@@ -1,4 +1,8 @@
 -- Drop indexes
+DROP INDEX IF EXISTS idx_submissions_problem_id;
+DROP INDEX IF EXISTS idx_submissions_player_id;
+DROP INDEX IF EXISTS idx_problem_accepted_answers_problem_id;
+DROP INDEX IF EXISTS idx_problem_options_problem_id;
 DROP INDEX IF EXISTS idx_problems_lookup;
 DROP INDEX IF EXISTS idx_game_events_game_id;
 DROP INDEX IF EXISTS idx_board_cells_game_id;

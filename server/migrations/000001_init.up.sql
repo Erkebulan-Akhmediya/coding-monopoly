@@ -48,24 +48,29 @@ CREATE TABLE problems (
     prompt TEXT NOT NULL,
     is_published BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (id, type)
 );
 
 -- 5. problem_options table
 -- (problem_id, text, is_correct) for mcq
 CREATE TABLE problem_options (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    problem_id UUID NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+    problem_id UUID NOT NULL,
+    problem_type problem_type NOT NULL DEFAULT 'mcq' CHECK (problem_type = 'mcq'),
     text TEXT NOT NULL,
-    is_correct BOOLEAN NOT NULL DEFAULT false
+    is_correct BOOLEAN NOT NULL DEFAULT false,
+    FOREIGN KEY (problem_id, problem_type) REFERENCES problems(id, type) ON DELETE CASCADE
 );
 
 -- 6. problem_accepted_answers table
 -- (problem_id, answer_text) for text
 CREATE TABLE problem_accepted_answers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    problem_id UUID NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
-    answer_text TEXT NOT NULL
+    problem_id UUID NOT NULL,
+    problem_type problem_type NOT NULL DEFAULT 'text' CHECK (problem_type = 'text'),
+    answer_text TEXT NOT NULL,
+    FOREIGN KEY (problem_id, problem_type) REFERENCES problems(id, type) ON DELETE CASCADE
 );
 
 -- 7. submissions table
@@ -97,3 +102,11 @@ CREATE INDEX idx_game_events_game_id ON game_events (game_id);
 
 -- lookup-by-difficulty+type+is_published
 CREATE INDEX idx_problems_lookup ON problems (difficulty, type, is_published);
+
+-- lookup-by-problem-for-options-and-answers
+CREATE INDEX idx_problem_options_problem_id ON problem_options (problem_id);
+CREATE INDEX idx_problem_accepted_answers_problem_id ON problem_accepted_answers (problem_id);
+
+-- lookup-for-submissions
+CREATE INDEX idx_submissions_player_id ON submissions (player_id);
+CREATE INDEX idx_submissions_problem_id ON submissions (problem_id);
