@@ -1,2 +1,0 @@
--- 000001_init.up.sql
--- Write your initial schema migration here

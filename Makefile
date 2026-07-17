@@ -1,10 +1,13 @@
-.PHONY: dev-server dev-client db-up migrate-up migrate-down
+.PHONY: dev-server dev-client db-up migrate-up migrate-down seed
 
-MIGRATION_DIR=migrations
+MIGRATION_DIR=server/migrations
 DB_CONN=postgres://postgres:postgres@localhost:5432/monopoly?sslmode=disable
 
 dev-server:
 	cd server && go run ./cmd/server
+
+seed:
+	cd server && go run ./cmd/seed
 
 dev-client:
 	cd client && npm install && npm run dev
