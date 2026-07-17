@@ -9,6 +9,9 @@ dev-server:
 dev-client:
 	cd client && npm install && npm run dev
 
+build-client:
+	cd client && npm run build && cp -r ./dist ../server/dist
+
 db-up:
 	docker compose up -d
 	@echo "Waiting for PostgreSQL..."
