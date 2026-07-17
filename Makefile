@@ -7,7 +7,7 @@ dev-server:
 	cd server && go run ./cmd/server
 
 dev-client:
-	cd client && npm run dev
+	cd client && npm install && npm run dev
 
 db-up:
 	docker compose up -d
