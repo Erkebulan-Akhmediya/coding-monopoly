@@ -1,0 +1,2 @@
+-- 000001_init.down.sql
+-- Write schema rollback statements here
