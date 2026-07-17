@@ -11,6 +11,11 @@ dev-client:
 
 db-up:
 	docker compose up -d
+	@echo "Waiting for PostgreSQL..."
+	@until [ "$$(docker compose ps -q db | xargs docker inspect -f '{{.State.Health.Status}}')" = "healthy" ]; do \
+		sleep 1; \
+	done
+	@echo "PostgreSQL is ready."
 
 migrate-up:
 	@if command -v migrate >/dev/null 2>&1; then \
