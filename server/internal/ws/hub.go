@@ -30,10 +30,10 @@ type HubBroadcaster struct {
 	hub *Hub
 }
 
-func (hb *HubBroadcaster) BroadcastRoom(roomID string, msgType string, payload interface{}) {
+func (hb *HubBroadcaster) BroadcastRoom(roomID string, msgType string, payload any) {
 	data, err := NewMessage(msgType, roomID, payload)
 	if err == nil {
-		hb.hub.BroadcastRoom(roomID, data)
+		hb.hub.deliverToRoom(roomID, data)
 	}
 }
 
@@ -203,24 +203,7 @@ func (h *Hub) Run() {
 			h.broadcastStateSync(roomID)
 
 		case req := <-h.broadcast:
-			h.mu.RLock()
-			var targetClients []*Client
-			if req.roomID != "" {
-				if roomClients, ok := h.rooms[req.roomID]; ok {
-					for c := range roomClients {
-						targetClients = append(targetClients, c)
-					}
-				}
-			} else {
-				for c := range h.clients {
-					targetClients = append(targetClients, c)
-				}
-			}
-			h.mu.RUnlock()
-
-			for _, c := range targetClients {
-				c.SendBytes(req.data)
-			}
+			h.deliverToRoom(req.roomID, req.data)
 
 		case <-h.stopChan:
 			log.Printf("[WS Hub] Shutting down...")
@@ -282,6 +265,27 @@ func (h *Hub) BroadcastRoom(roomID string, data []byte) {
 		data:   data,
 	}:
 	case <-h.stopChan:
+	}
+}
+
+func (h *Hub) deliverToRoom(roomID string, data []byte) {
+	h.mu.RLock()
+	var targetClients []*Client
+	if roomID != "" {
+		if roomClients, ok := h.rooms[roomID]; ok {
+			for c := range roomClients {
+				targetClients = append(targetClients, c)
+			}
+		}
+	} else {
+		for c := range h.clients {
+			targetClients = append(targetClients, c)
+		}
+	}
+	h.mu.RUnlock()
+
+	for _, c := range targetClients {
+		c.SendBytes(data)
 	}
 }
 

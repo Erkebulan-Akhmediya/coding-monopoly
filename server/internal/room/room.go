@@ -10,14 +10,14 @@ import (
 )
 
 var (
-	ErrNotActivePlayer  = errors.New("not active player's turn")
-	ErrPlayerNotFound   = errors.New("player not found in room")
+	ErrNotActivePlayer   = errors.New("not active player's turn")
+	ErrPlayerNotFound    = errors.New("player not found in room")
 	ErrInvalidDifficulty = errors.New("invalid difficulty level, must be 'easy', 'medium', or 'hard'")
 )
 
 // Broadcaster provides an interface for Room to push messages to connected clients.
 type Broadcaster interface {
-	BroadcastRoom(roomID string, msgType string, payload interface{})
+	BroadcastRoom(roomID string, msgType string, payload any)
 	SendError(clientID string, errMsg string)
 }
 
