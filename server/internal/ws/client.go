@@ -146,7 +146,10 @@ func (c *Client) SendBytes(data []byte) {
 	select {
 	case c.send <- data:
 	default:
-		log.Printf("[WS Client] Client %s send buffer full, dropping message", c.id)
+		log.Printf("[WS Client] Client %s send buffer full, dropping message and closing connection", c.id)
+		go func() {
+			_ = c.conn.Close()
+		}()
 	}
 }
 

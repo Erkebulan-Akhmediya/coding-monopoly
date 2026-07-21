@@ -17,6 +17,7 @@ const (
 
 // Message is the standard WebSocket JSON frame wrapper.
 type Message struct {
+	Version int             `json:"v,omitempty"`
 	Type    string          `json:"type"`
 	RoomID  string          `json:"room_id,omitempty"`
 	Payload json.RawMessage `json:"payload,omitempty"`
@@ -62,6 +63,7 @@ func NewMessage(msgType string, roomID string, payload interface{}) ([]byte, err
 	}
 
 	msg := Message{
+		Version: 1,
 		Type:    msgType,
 		RoomID:  roomID,
 		Payload: payloadBytes,
@@ -73,8 +75,9 @@ func NewMessage(msgType string, roomID string, payload interface{}) ([]byte, err
 // NewErrorMessage creates a serialized error Message.
 func NewErrorMessage(errMsg string) []byte {
 	msg := Message{
-		Type:  MessageTypeError,
-		Error: errMsg,
+		Version: 1,
+		Type:    MessageTypeError,
+		Error:   errMsg,
 	}
 	b, _ := json.Marshal(msg)
 	return b

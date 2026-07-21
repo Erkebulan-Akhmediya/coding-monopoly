@@ -68,17 +68,17 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.register:
+			h.mu.Lock()
 			h.clients[client] = true
+			h.mu.Unlock()
 			log.Printf("[WS Hub] Client registered: %s", client.id)
 
 		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
+			h.mu.Lock()
+			roomID := client.GetRoomID()
+			_, ok := h.clients[client]
+			if ok {
 				delete(h.clients, client)
-				client.CloseSendChannel()
-
-				roomID := client.GetRoomID()
-				wasJoined := client.IsJoined()
-
 				if roomID != "" {
 					if roomClients, exists := h.rooms[roomID]; exists {
 						delete(roomClients, client)
@@ -87,7 +87,12 @@ func (h *Hub) Run() {
 						}
 					}
 				}
+			}
+			h.mu.Unlock()
 
+			if ok {
+				client.CloseSendChannel()
+				wasJoined := client.IsJoined()
 				log.Printf("[WS Hub] Client unregistered: %s (name: %s, room: %s)", client.id, client.GetName(), roomID)
 
 				if wasJoined && roomID != "" {
@@ -99,7 +104,11 @@ func (h *Hub) Run() {
 
 		case req := <-h.join:
 			c := req.client
-			if _, ok := h.clients[c]; !ok {
+			h.mu.RLock()
+			_, registered := h.clients[c]
+			h.mu.RUnlock()
+
+			if !registered {
 				log.Printf("[WS Hub] Join rejected: client %s not registered", c.id)
 				continue
 			}
@@ -111,6 +120,9 @@ func (h *Hub) Run() {
 
 			// If client was previously in a different room, clean up old room
 			oldRoomID := c.GetRoomID()
+			wasJoined := c.IsJoined()
+
+			h.mu.Lock()
 			if oldRoomID != "" && oldRoomID != roomID {
 				if oldRoom, exists := h.rooms[oldRoomID]; exists {
 					delete(oldRoom, c)
@@ -118,21 +130,23 @@ func (h *Hub) Run() {
 						delete(h.rooms, oldRoomID)
 					}
 				}
-				if c.IsJoined() {
-					playerInfo := c.ToPlayerInfo(false)
-					h.broadcastPresence(oldRoomID, "left", playerInfo)
-					h.broadcastStateSync(oldRoomID)
-				}
 			}
-
-			// Update client state
-			c.SetJoined(req.name, roomID)
 
 			// Add to new room
 			if h.rooms[roomID] == nil {
 				h.rooms[roomID] = make(map[*Client]bool)
 			}
 			h.rooms[roomID][c] = true
+			h.mu.Unlock()
+
+			// Update client state
+			c.SetJoined(req.name, roomID)
+
+			if oldRoomID != "" && oldRoomID != roomID && wasJoined {
+				playerInfo := c.ToPlayerInfo(false)
+				h.broadcastPresence(oldRoomID, "left", playerInfo)
+				h.broadcastStateSync(oldRoomID)
+			}
 
 			log.Printf("[WS Hub] Client %s (%s) joined room: %s", c.id, req.name, roomID)
 
@@ -144,61 +158,89 @@ func (h *Hub) Run() {
 			h.broadcastStateSync(roomID)
 
 		case req := <-h.broadcast:
+			h.mu.RLock()
+			var targetClients []*Client
 			if req.roomID != "" {
 				if roomClients, ok := h.rooms[req.roomID]; ok {
 					for c := range roomClients {
-						c.SendBytes(req.data)
+						targetClients = append(targetClients, c)
 					}
 				}
 			} else {
 				for c := range h.clients {
-					c.SendBytes(req.data)
+					targetClients = append(targetClients, c)
 				}
+			}
+			h.mu.RUnlock()
+
+			for _, c := range targetClients {
+				c.SendBytes(req.data)
 			}
 
 		case <-h.stopChan:
 			log.Printf("[WS Hub] Shutting down...")
+			h.mu.Lock()
 			for c := range h.clients {
 				c.CloseSendChannel()
 			}
+			h.mu.Unlock()
 			return
 		}
 	}
 }
 
-// Stop stops the hub loop.
+// Stop stops the hub loop safely.
 func (h *Hub) Stop() {
-	close(h.stopChan)
+	h.mu.Lock()
+	select {
+	case <-h.stopChan:
+		// Already stopped
+	default:
+		close(h.stopChan)
+	}
+	h.mu.Unlock()
 }
 
 // RegisterClient queues a client for registration in the hub.
 func (h *Hub) RegisterClient(c *Client) {
-	h.register <- c
+	select {
+	case h.register <- c:
+	case <-h.stopChan:
+	}
 }
 
 // UnregisterClient queues a client for unregistration in the hub.
 func (h *Hub) UnregisterClient(c *Client) {
-	h.unregister <- c
+	select {
+	case h.unregister <- c:
+	case <-h.stopChan:
+	}
 }
 
 // JoinRoom queues a join request for a client.
 func (h *Hub) JoinRoom(c *Client, name string, roomID string) {
-	h.join <- &joinRequest{
+	select {
+	case h.join <- &joinRequest{
 		client: c,
 		name:   name,
 		roomID: roomID,
+	}:
+	case <-h.stopChan:
 	}
 }
 
 // BroadcastRoom queues a message to be sent to all joined clients in a room.
 func (h *Hub) BroadcastRoom(roomID string, data []byte) {
-	h.broadcast <- &broadcastRequest{
+	select {
+	case h.broadcast <- &broadcastRequest{
 		roomID: roomID,
 		data:   data,
+	}:
+	case <-h.stopChan:
 	}
 }
 
-// Internal helper to broadcast presence to a room (must be called inside single owning goroutine loop).
+// Internal helper to broadcast presence to a room.
 func (h *Hub) broadcastPresence(roomID string, event string, player PlayerInfo) {
 	payload := PresencePayload{
 		Event:  event,
@@ -210,23 +252,34 @@ func (h *Hub) broadcastPresence(roomID string, event string, player PlayerInfo) 
 		return
 	}
 
+	h.mu.RLock()
+	var targetClients []*Client
 	if roomClients, ok := h.rooms[roomID]; ok {
 		for c := range roomClients {
-			c.SendBytes(data)
+			targetClients = append(targetClients, c)
 		}
+	}
+	h.mu.RUnlock()
+
+	for _, c := range targetClients {
+		c.SendBytes(data)
 	}
 }
 
-// Internal helper to broadcast state_sync to a room (must be called inside single owning goroutine loop).
+// Internal helper to broadcast state_sync to a room.
 func (h *Hub) broadcastStateSync(roomID string) {
+	h.mu.RLock()
 	var players []PlayerInfo
+	var targetClients []*Client
 	if roomClients, ok := h.rooms[roomID]; ok {
 		for c := range roomClients {
 			if c.IsJoined() {
 				players = append(players, c.ToPlayerInfo(true))
 			}
+			targetClients = append(targetClients, c)
 		}
 	}
+	h.mu.RUnlock()
 
 	payload := StateSyncPayload{
 		RoomID:  roomID,
@@ -239,10 +292,8 @@ func (h *Hub) broadcastStateSync(roomID string) {
 		return
 	}
 
-	if roomClients, ok := h.rooms[roomID]; ok {
-		for c := range roomClients {
-			c.SendBytes(data)
-		}
+	for _, c := range targetClients {
+		c.SendBytes(data)
 	}
 }
 

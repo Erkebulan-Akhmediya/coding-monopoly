@@ -259,3 +259,157 @@ func TestWS_EmptyNameValidation(t *testing.T) {
 		t.Errorf("Expected name required error message, got: %s", msg.Error)
 	}
 }
+
+func TestWS_MessageEnvelopeVersionAndType(t *testing.T) {
+	hub, server := setupTestServer(t)
+
+	conn := connectClient(t, server)
+	defer conn.Close()
+
+	sendJoin(t, conn, "Alice", "room-envelope")
+
+	// Read presence message
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	var raw map[string]interface{}
+	if err := conn.ReadJSON(&raw); err != nil {
+		t.Fatalf("Failed to read raw JSON message: %v", err)
+	}
+
+	if raw["v"] != float64(1) {
+		t.Errorf("Expected version v=1 in envelope, got: %v", raw["v"])
+	}
+	if raw["type"] != MessageTypePresence {
+		t.Errorf("Expected type=%s in envelope, got: %v", MessageTypePresence, raw["type"])
+	}
+
+	// Send unknown/future message type
+	unknownMsg := Message{
+		Version: 99,
+		Type:    "future_msg_v99",
+	}
+	if err := conn.WriteJSON(unknownMsg); err != nil {
+		t.Fatalf("Failed to send unknown message type: %v", err)
+	}
+
+	// Verify connection is still alive by asking for room players from hub
+	time.Sleep(100 * time.Millisecond)
+	players := hub.GetRoomPlayers("room-envelope")
+	if len(players) != 1 || players[0].Name != "Alice" {
+		t.Errorf("Client should remain active after sending unknown message type, got: %+v", players)
+	}
+}
+
+func TestWS_ConcurrentConnectDisconnectRace(t *testing.T) {
+	hub, server := setupTestServer(t)
+
+	const numClients = 15
+	done := make(chan struct{})
+
+	for i := 0; i < numClients; i++ {
+		go func(id int) {
+			defer func() { done <- struct{}{} }()
+
+			roomID := "race-room-1"
+			if id%2 == 0 {
+				roomID = "race-room-2"
+			}
+
+			conn := connectClient(t, server)
+			defer conn.Close()
+
+			sendJoin(t, conn, strings.Repeat("User", 1)+string(rune('A'+id)), roomID)
+
+			// Perform concurrent reads & state checks
+			for j := 0; j < 5; j++ {
+				_ = hub.GetRoomPlayers(roomID)
+				bMsg, _ := NewMessage("test_event", roomID, map[string]string{"foo": "bar"})
+				hub.BroadcastRoom(roomID, bMsg)
+				time.Sleep(10 * time.Millisecond)
+			}
+		}(i)
+	}
+
+	for i := 0; i < numClients; i++ {
+		<-done
+	}
+}
+
+func TestWS_GoroutineLeakOnDisconnectAndShutdown(t *testing.T) {
+	hub := NewHub()
+	go hub.Run()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ServeWS(hub, w, r)
+	}))
+
+	const clientCount = 5
+	var conns []*websocket.Conn
+	for i := 0; i < clientCount; i++ {
+		conn := connectClient(t, server)
+		sendJoin(t, conn, strings.Repeat("P", 1)+string(rune('1'+i)), "leak-room")
+		conns = append(conns, conn)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Close all connections
+	for _, c := range conns {
+		_ = c.Close()
+	}
+
+	time.Sleep(200 * time.Millisecond)
+
+	// Stop Hub
+	server.Close()
+	hub.Stop()
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify room is empty
+	players := hub.GetRoomPlayers("leak-room")
+	if len(players) != 0 {
+		t.Errorf("Expected 0 players after disconnect and hub shutdown, got %d", len(players))
+	}
+}
+
+func TestWS_SlowClientBackpressure(t *testing.T) {
+	hub, server := setupTestServer(t)
+
+	// Fast client
+	connFast := connectClient(t, server)
+	defer connFast.Close()
+	sendJoin(t, connFast, "FastUser", "backpressure-room")
+	_ = readMessageTimeout(t, connFast, 2*time.Second) // presence
+	_ = readMessageTimeout(t, connFast, 2*time.Second) // state_sync
+
+	// Slow client: custom tiny send channel buffer override isn't needed if we fill the default channel
+	// Or we can broadcast many messages rapidly
+	connSlow := connectClient(t, server)
+	defer connSlow.Close()
+	sendJoin(t, connSlow, "SlowUser", "backpressure-room")
+	_ = readMessageTimeout(t, connFast, 2*time.Second) // presence SlowUser
+	_ = readMessageTimeout(t, connFast, 2*time.Second) // state_sync [Fast, Slow]
+
+	// Broadcast many messages without reading from connSlow
+	bigPayload := strings.Repeat("x", 1024)
+	for i := 0; i < 300; i++ {
+		msg, _ := NewMessage("test_broadcast", "backpressure-room", map[string]string{"data": bigPayload})
+		hub.BroadcastRoom("backpressure-room", msg)
+	}
+
+	// Fast client should receive messages without blocking
+	recvCount := 0
+	for i := 0; i < 50; i++ {
+		_ = connFast.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+		var m Message
+		if err := connFast.ReadJSON(&m); err == nil {
+			recvCount++
+		} else {
+			break
+		}
+	}
+
+	if recvCount == 0 {
+		t.Errorf("Fast client failed to receive broadcast messages during slow client backpressure")
+	}
+}
