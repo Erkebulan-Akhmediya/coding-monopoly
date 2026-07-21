@@ -7,12 +7,17 @@ import (
 
 // Message types
 const (
-	MessageTypeJoin      = "join"
-	MessageTypeStateSync = "state_sync"
-	MessageTypePresence  = "presence"
-	MessageTypeError     = "error"
-	MessageTypePing      = "ping"
-	MessageTypePong      = "pong"
+	MessageTypeJoin         = "join"
+	MessageTypeStateSync    = "state_sync"
+	MessageTypePresence     = "presence"
+	MessageTypeError        = "error"
+	MessageTypePing         = "ping"
+	MessageTypePong         = "pong"
+	MessageTypeChooseLevel  = "choose_level"
+	MessageTypeSubmitAnswer = "submit_answer"
+	MessageTypeTurnStarted  = "turn_started"
+	MessageTypeTurnEnded    = "turn_ended"
+	MessageTypeRollResolved = "roll_resolved"
 )
 
 // Message is the standard WebSocket JSON frame wrapper.
@@ -22,6 +27,17 @@ type Message struct {
 	RoomID  string          `json:"room_id,omitempty"`
 	Payload json.RawMessage `json:"payload,omitempty"`
 	Error   string          `json:"error,omitempty"`
+}
+
+// ChooseLevelPayload represents the payload to select question difficulty.
+type ChooseLevelPayload struct {
+	Difficulty string `json:"difficulty"`
+}
+
+// SubmitAnswerPayload represents the payload to submit an answer.
+type SubmitAnswerPayload struct {
+	ProblemID string          `json:"problem_id,omitempty"`
+	Answer    json.RawMessage `json:"answer,omitempty"`
 }
 
 // JoinPayload represents the payload sent by a client to join a room.

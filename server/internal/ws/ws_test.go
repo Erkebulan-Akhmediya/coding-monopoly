@@ -413,3 +413,96 @@ func TestWS_SlowClientBackpressure(t *testing.T) {
 		t.Errorf("Fast client failed to receive broadcast messages during slow client backpressure")
 	}
 }
+
+func TestWS_TurnEngineIntegration(t *testing.T) {
+	_, server := setupTestServer(t)
+
+	// Connect Alice
+	connA := connectClient(t, server)
+	defer connA.Close()
+	sendJoin(t, connA, "Alice", "ws-turn-room")
+
+	_ = readMessageTimeout(t, connA, 2*time.Second) // presence
+	_ = readMessageTimeout(t, connA, 2*time.Second) // state_sync
+	msgStartA := readMessageTimeout(t, connA, 2*time.Second) // turn_started
+	if msgStartA.Type != MessageTypeTurnStarted {
+		t.Fatalf("Expected turn_started message, got %s", msgStartA.Type)
+	}
+
+	var turnStartedA struct {
+		ActivePlayerID string `json:"active_player_id"`
+	}
+	_ = json.Unmarshal(msgStartA.Payload, &turnStartedA)
+	if turnStartedA.ActivePlayerID == "" {
+		t.Errorf("Empty active_player_id in turn_started: %+v", turnStartedA)
+	}
+
+	// Connect Bob
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, connB, "Bob", "ws-turn-room")
+
+	_ = readMessageTimeout(t, connA, 2*time.Second) // presence B
+	_ = readMessageTimeout(t, connA, 2*time.Second) // state_sync [A, B]
+
+	_ = readMessageTimeout(t, connB, 2*time.Second) // presence B
+	_ = readMessageTimeout(t, connB, 2*time.Second) // state_sync [A, B]
+
+	// Bob attempts choose_level (NOT active player) -> should be rejected with error
+	chooseMsg := Message{
+		Type:   MessageTypeChooseLevel,
+		RoomID: "ws-turn-room",
+		Payload: json.RawMessage(`{"difficulty":"easy"}`),
+	}
+	if err := connB.WriteJSON(chooseMsg); err != nil {
+		t.Fatalf("Failed to send choose_level from Bob: %v", err)
+	}
+
+	errMsg := readMessageTimeout(t, connB, 2*time.Second)
+	if errMsg.Type != MessageTypeError {
+		t.Fatalf("Expected error message for Bob choose_level, got %s", errMsg.Type)
+	}
+	if !strings.Contains(errMsg.Error, "Not your turn") {
+		t.Errorf("Expected 'Not your turn' error, got: %s", errMsg.Error)
+	}
+
+	// Alice (active player) selects difficulty hard (3 rolls)
+	chooseAlice := Message{
+		Type:   MessageTypeChooseLevel,
+		RoomID: "ws-turn-room",
+		Payload: json.RawMessage(`{"difficulty":"hard"}`),
+	}
+	if err := connA.WriteJSON(chooseAlice); err != nil {
+		t.Fatalf("Failed to send choose_level from Alice: %v", err)
+	}
+
+	// Alice submits answer
+	submitAlice := Message{
+		Type:   MessageTypeSubmitAnswer,
+		RoomID: "ws-turn-room",
+		Payload: json.RawMessage(`{}`),
+	}
+	if err := connA.WriteJSON(submitAlice); err != nil {
+		t.Fatalf("Failed to send submit_answer from Alice: %v", err)
+	}
+
+	// Read 3 roll_resolved broadcasts on Alice connection
+	for i := 1; i <= 3; i++ {
+		rollMsg := readMessageTimeout(t, connA, 2*time.Second)
+		if rollMsg.Type != MessageTypeRollResolved {
+			t.Fatalf("Expected roll_resolved message %d, got %s", i, rollMsg.Type)
+		}
+	}
+
+	// Read turn_ended broadcast on Alice connection
+	endMsg := readMessageTimeout(t, connA, 2*time.Second)
+	if endMsg.Type != MessageTypeTurnEnded {
+		t.Fatalf("Expected turn_ended message, got %s", endMsg.Type)
+	}
+
+	// Read turn_started broadcast on Alice connection (now Bob's turn)
+	nextStart := readMessageTimeout(t, connA, 2*time.Second)
+	if nextStart.Type != MessageTypeTurnStarted {
+		t.Fatalf("Expected turn_started message for Bob, got %s", nextStart.Type)
+	}
+}

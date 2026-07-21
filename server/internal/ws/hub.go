@@ -3,6 +3,8 @@ package ws
 import (
 	"log"
 	"sync"
+
+	"server/internal/room"
 )
 
 // Authoritative Connection Set Concurrency Model:
@@ -23,6 +25,34 @@ type broadcastRequest struct {
 	data   []byte
 }
 
+// HubBroadcaster implements room.Broadcaster interface for WebSockets.
+type HubBroadcaster struct {
+	hub *Hub
+}
+
+func (hb *HubBroadcaster) BroadcastRoom(roomID string, msgType string, payload interface{}) {
+	data, err := NewMessage(msgType, roomID, payload)
+	if err == nil {
+		hb.hub.BroadcastRoom(roomID, data)
+	}
+}
+
+func (hb *HubBroadcaster) SendError(clientID string, errMsg string) {
+	hb.hub.mu.RLock()
+	var targetClient *Client
+	for c := range hb.hub.clients {
+		if c.GetID() == clientID {
+			targetClient = c
+			break
+		}
+	}
+	hb.hub.mu.RUnlock()
+
+	if targetClient != nil {
+		targetClient.sendError(errMsg)
+	}
+}
+
 // Hub maintains the set of active connections and broadcasts messages to clients.
 type Hub struct {
 	// Registered clients: map of active client connections.
@@ -30,6 +60,9 @@ type Hub struct {
 
 	// Rooms map: roomID -> map of joined clients in that room.
 	rooms map[string]map[*Client]bool
+
+	// Room engine instances: roomID -> *room.Room
+	roomInstances map[string]*room.Room
 
 	// Inbound messages from the clients.
 	register chan *Client
@@ -53,13 +86,14 @@ type Hub struct {
 // NewHub creates and returns a new Hub instance.
 func NewHub() *Hub {
 	return &Hub{
-		clients:    make(map[*Client]bool),
-		rooms:      make(map[string]map[*Client]bool),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		join:       make(chan *joinRequest),
-		broadcast:  make(chan *broadcastRequest),
-		stopChan:   make(chan struct{}),
+		clients:       make(map[*Client]bool),
+		rooms:         make(map[string]map[*Client]bool),
+		roomInstances: make(map[string]*room.Room),
+		register:      make(chan *Client),
+		unregister:    make(chan *Client),
+		join:          make(chan *joinRequest),
+		broadcast:     make(chan *broadcastRequest),
+		stopChan:      make(chan struct{}),
 	}
 }
 
@@ -99,6 +133,10 @@ func (h *Hub) Run() {
 					playerInfo := client.ToPlayerInfo(false)
 					h.broadcastPresence(roomID, "left", playerInfo)
 					h.broadcastStateSync(roomID)
+
+					if r, exists := h.roomInstances[roomID]; exists {
+						r.DisconnectPlayer(client.id)
+					}
 				}
 			}
 
@@ -130,6 +168,9 @@ func (h *Hub) Run() {
 						delete(h.rooms, oldRoomID)
 					}
 				}
+				if r, exists := h.roomInstances[oldRoomID]; exists {
+					r.DisconnectPlayer(c.id)
+				}
 			}
 
 			// Add to new room
@@ -141,6 +182,10 @@ func (h *Hub) Run() {
 
 			// Update client state
 			c.SetJoined(req.name, roomID)
+
+			// Update room engine state
+			r := h.GetRoomInstance(roomID)
+			r.AddOrReconnectPlayer(c.id, req.name)
 
 			if oldRoomID != "" && oldRoomID != roomID && wasJoined {
 				playerInfo := c.ToPlayerInfo(false)
@@ -311,4 +356,18 @@ func (h *Hub) GetRoomPlayers(roomID string) []PlayerInfo {
 		}
 	}
 	return players
+}
+
+// GetRoomInstance retrieves an existing room.Room instance or creates a new one thread-safely.
+func (h *Hub) GetRoomInstance(roomID string) *room.Room {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	r, ok := h.roomInstances[roomID]
+	if !ok {
+		hb := &HubBroadcaster{hub: h}
+		r = room.NewRoom(roomID, hb)
+		h.roomInstances[roomID] = r
+	}
+	return r
 }

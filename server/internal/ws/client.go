@@ -239,11 +239,46 @@ func (c *Client) handleIncomingMessage(data []byte) {
 	switch msg.Type {
 	case MessageTypeJoin:
 		c.handleJoinMessage(msg)
+	case MessageTypeChooseLevel:
+		c.handleChooseLevelMessage(msg)
+	case MessageTypeSubmitAnswer:
+		c.handleSubmitAnswerMessage(msg)
 	case MessageTypePing:
 		pong, _ := NewMessage(MessageTypePong, c.GetRoomID(), nil)
 		c.SendBytes(pong)
 	default:
 		log.Printf("[WS Client] Received unhandled message type '%s' from client %s", msg.Type, c.id)
+	}
+}
+
+func (c *Client) handleChooseLevelMessage(msg Message) {
+	roomID := c.GetRoomID()
+	if roomID == "" {
+		c.sendError("Must join a room before choosing difficulty level")
+		return
+	}
+
+	var payload ChooseLevelPayload
+	if len(msg.Payload) > 0 {
+		_ = json.Unmarshal(msg.Payload, &payload)
+	}
+
+	r := c.hub.GetRoomInstance(roomID)
+	if err := r.ChooseLevel(c.GetID(), payload.Difficulty); err != nil {
+		log.Printf("[WS Client] ChooseLevel rejected for client %s: %v", c.id, err)
+	}
+}
+
+func (c *Client) handleSubmitAnswerMessage(msg Message) {
+	roomID := c.GetRoomID()
+	if roomID == "" {
+		c.sendError("Must join a room before submitting an answer")
+		return
+	}
+
+	r := c.hub.GetRoomInstance(roomID)
+	if _, err := r.SubmitAnswer(c.GetID(), msg.Payload); err != nil {
+		log.Printf("[WS Client] SubmitAnswer rejected for client %s: %v", c.id, err)
 	}
 }
 
