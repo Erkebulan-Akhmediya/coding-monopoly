@@ -13,9 +13,10 @@ type MockBroadcaster struct {
 }
 
 type BroadcastEvent struct {
-	RoomID  string
-	MsgType string
-	Payload interface{}
+	RoomID           string
+	MsgType          string
+	Payload          interface{}
+	ExcludedClientID string
 }
 
 type ErrorEvent struct {

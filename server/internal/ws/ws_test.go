@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,11 +10,17 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"server/internal/room"
 )
 
 func setupTestServer(t *testing.T, clientOpts ...ClientOptions) (*Hub, *httptest.Server) {
+	return setupTestServerWithProvider(t, nil, clientOpts...)
+}
+
+func setupTestServerWithProvider(t *testing.T, provider room.QuestionProvider, clientOpts ...ClientOptions) (*Hub, *httptest.Server) {
 	t.Helper()
-	hub := NewHub()
+	hub := NewHub(provider)
 	go hub.Run()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,6 +33,14 @@ func setupTestServer(t *testing.T, clientOpts ...ClientOptions) (*Hub, *httptest
 	})
 
 	return hub, server
+}
+
+type fixedQuestionProvider struct {
+	question room.Question
+}
+
+func (p fixedQuestionProvider) AssignQuestion(string) (room.Question, error) {
+	return p.question, nil
 }
 
 func connectClient(t *testing.T, server *httptest.Server) *websocket.Conn {
@@ -46,8 +61,8 @@ func sendJoin(t *testing.T, conn *websocket.Conn, name string, roomID string) {
 	}
 	payloadBytes, _ := json.Marshal(joinPayload)
 	msg := Message{
-		Type:   MessageTypeJoin,
-		RoomID: roomID,
+		Type:    MessageTypeJoin,
+		RoomID:  roomID,
 		Payload: payloadBytes,
 	}
 	if err := conn.WriteJSON(msg); err != nil {
@@ -66,6 +81,49 @@ func readMessageTimeout(t *testing.T, conn *websocket.Conn, timeout time.Duratio
 	return msg
 }
 
+func readRawMessageTimeout(t *testing.T, conn *websocket.Conn, timeout time.Duration) ([]byte, Message) {
+	t.Helper()
+	_ = conn.SetReadDeadline(time.Now().Add(timeout))
+	_, raw, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("Failed to read raw WebSocket message within deadline: %v", err)
+	}
+	var msg Message
+	if err := json.Unmarshal(raw, &msg); err != nil {
+		t.Fatalf("Failed to decode raw WebSocket message: %v", err)
+	}
+	return raw, msg
+}
+
+func readUntilType(t *testing.T, conn *websocket.Conn, want string) ([]byte, Message) {
+	t.Helper()
+	for i := 0; i < 12; i++ {
+		raw, msg := readRawMessageTimeout(t, conn, 2*time.Second)
+		if msg.Type == want {
+			return raw, msg
+		}
+	}
+	t.Fatalf("did not receive message type %q", want)
+	return nil, Message{}
+}
+
+func readTypes(t *testing.T, conn *websocket.Conn, wanted ...string) map[string]Message {
+	t.Helper()
+	remaining := make(map[string]bool, len(wanted))
+	for _, want := range wanted {
+		remaining[want] = true
+	}
+	result := make(map[string]Message, len(wanted))
+	for len(remaining) > 0 {
+		_, msg := readRawMessageTimeout(t, conn, 2*time.Second)
+		if remaining[msg.Type] {
+			result[msg.Type] = msg
+			delete(remaining, msg.Type)
+		}
+	}
+	return result
+}
+
 func TestWS_JoinFlowAndStateSync(t *testing.T) {
 	_, server := setupTestServer(t)
 
@@ -75,7 +133,7 @@ func TestWS_JoinFlowAndStateSync(t *testing.T) {
 	sendJoin(t, connA, "Alice", "room-1")
 
 	// Expect presence broadcast for Alice
-	msg1 := readMessageTimeout(t, connA, 2*time.Second)
+	_, msg1 := readUntilType(t, connA, MessageTypePresence)
 	if msg1.Type != MessageTypePresence {
 		t.Fatalf("Expected presence message, got %s", msg1.Type)
 	}
@@ -88,7 +146,7 @@ func TestWS_JoinFlowAndStateSync(t *testing.T) {
 	}
 
 	// Expect state_sync message with 1 player
-	msg2 := readMessageTimeout(t, connA, 2*time.Second)
+	_, msg2 := readUntilType(t, connA, MessageTypeStateSync)
 	if msg2.Type != MessageTypeStateSync {
 		t.Fatalf("Expected state_sync message, got %s", msg2.Type)
 	}
@@ -108,8 +166,8 @@ func TestWS_MultiClientPresenceAndStateSync(t *testing.T) {
 	connA := connectClient(t, server)
 	defer connA.Close()
 	sendJoin(t, connA, "Alice", "game-room")
-	_ = readMessageTimeout(t, connA, 2*time.Second) // presence A
-	_ = readMessageTimeout(t, connA, 2*time.Second) // state_sync [Alice]
+	_, _ = readUntilType(t, connA, MessageTypePresence)  // presence A
+	_, _ = readUntilType(t, connA, MessageTypeStateSync) // state_sync [Alice]
 
 	// Connect Client B
 	connB := connectClient(t, server)
@@ -117,7 +175,7 @@ func TestWS_MultiClientPresenceAndStateSync(t *testing.T) {
 	sendJoin(t, connB, "Bob", "game-room")
 
 	// Client A should receive presence for Bob joining
-	msgA_presence := readMessageTimeout(t, connA, 2*time.Second)
+	_, msgA_presence := readUntilType(t, connA, MessageTypePresence)
 	if msgA_presence.Type != MessageTypePresence {
 		t.Fatalf("Client A expected presence for Bob, got %s", msgA_presence.Type)
 	}
@@ -128,7 +186,7 @@ func TestWS_MultiClientPresenceAndStateSync(t *testing.T) {
 	}
 
 	// Client A should receive updated state_sync containing both Alice and Bob
-	msgA_sync := readMessageTimeout(t, connA, 2*time.Second)
+	_, msgA_sync := readUntilType(t, connA, MessageTypeStateSync)
 	if msgA_sync.Type != MessageTypeStateSync {
 		t.Fatalf("Client A expected state_sync, got %s", msgA_sync.Type)
 	}
@@ -139,11 +197,11 @@ func TestWS_MultiClientPresenceAndStateSync(t *testing.T) {
 	}
 
 	// Client B should also receive presence and state_sync
-	msgB_presence := readMessageTimeout(t, connB, 2*time.Second)
+	_, msgB_presence := readUntilType(t, connB, MessageTypePresence)
 	if msgB_presence.Type != MessageTypePresence {
 		t.Fatalf("Client B expected presence message, got %s", msgB_presence.Type)
 	}
-	msgB_sync := readMessageTimeout(t, connB, 2*time.Second)
+	_, msgB_sync := readUntilType(t, connB, MessageTypeStateSync)
 	if msgB_sync.Type != MessageTypeStateSync {
 		t.Fatalf("Client B expected state_sync message, got %s", msgB_sync.Type)
 	}
@@ -160,22 +218,22 @@ func TestWS_GracefulDisconnect(t *testing.T) {
 	connA := connectClient(t, server)
 	defer connA.Close()
 	sendJoin(t, connA, "Alice", "room-disconnect")
-	_ = readMessageTimeout(t, connA, 2*time.Second) // presence
-	_ = readMessageTimeout(t, connA, 2*time.Second) // state_sync
+	_, _ = readUntilType(t, connA, MessageTypePresence)
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
 
 	connB := connectClient(t, server)
 	sendJoin(t, connB, "Bob", "room-disconnect")
-	_ = readMessageTimeout(t, connA, 2*time.Second) // presence B
-	_ = readMessageTimeout(t, connA, 2*time.Second) // state_sync [A, B]
-	_ = readMessageTimeout(t, connB, 2*time.Second) // presence B
-	_ = readMessageTimeout(t, connB, 2*time.Second) // state_sync [A, B]
+	_, _ = readUntilType(t, connA, MessageTypePresence)  // presence B
+	_, _ = readUntilType(t, connA, MessageTypeStateSync) // state_sync [A, B]
+	_, _ = readUntilType(t, connB, MessageTypePresence)  // presence B
+	_, _ = readUntilType(t, connB, MessageTypeStateSync) // state_sync [A, B]
 
 	// Graceful disconnect Client B
 	_ = connB.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "leaving"))
 	_ = connB.Close()
 
 	// Client A should receive presence ("left") for Bob
-	msgA_left := readMessageTimeout(t, connA, 2*time.Second)
+	_, msgA_left := readUntilType(t, connA, MessageTypePresence)
 	if msgA_left.Type != MessageTypePresence {
 		t.Fatalf("Client A expected presence message on disconnect, got %s", msgA_left.Type)
 	}
@@ -186,7 +244,7 @@ func TestWS_GracefulDisconnect(t *testing.T) {
 	}
 
 	// Client A should receive updated state_sync with only Alice
-	msgA_sync := readMessageTimeout(t, connA, 2*time.Second)
+	_, msgA_sync := readUntilType(t, connA, MessageTypeStateSync)
 	if msgA_sync.Type != MessageTypeStateSync {
 		t.Fatalf("Client A expected state_sync after disconnect, got %s", msgA_sync.Type)
 	}
@@ -208,21 +266,21 @@ func TestWS_UngracefulDisconnect(t *testing.T) {
 	connA := connectClient(t, server)
 	defer connA.Close()
 	sendJoin(t, connA, "Alice", "room-ungraceful")
-	_ = readMessageTimeout(t, connA, 2*time.Second) // presence
-	_ = readMessageTimeout(t, connA, 2*time.Second) // state_sync
+	_, _ = readUntilType(t, connA, MessageTypePresence)
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
 
 	connB := connectClient(t, server)
 	sendJoin(t, connB, "Bob", "room-ungraceful")
-	_ = readMessageTimeout(t, connA, 2*time.Second) // presence B
-	_ = readMessageTimeout(t, connA, 2*time.Second) // state_sync [A, B]
-	_ = readMessageTimeout(t, connB, 2*time.Second) // presence B
-	_ = readMessageTimeout(t, connB, 2*time.Second) // state_sync [A, B]
+	_, _ = readUntilType(t, connA, MessageTypePresence)  // presence B
+	_, _ = readUntilType(t, connA, MessageTypeStateSync) // state_sync [A, B]
+	_, _ = readUntilType(t, connB, MessageTypePresence)  // presence B
+	_, _ = readUntilType(t, connB, MessageTypeStateSync) // state_sync [A, B]
 
 	// Simulate ungraceful disconnect by abruptly closing underlying TCP connection without sending close frame
 	_ = connB.UnderlyingConn().Close()
 
 	// Client A should receive presence ("left") and state_sync automatically after pong timeout
-	msgA_left := readMessageTimeout(t, connA, 2*time.Second)
+	_, msgA_left := readUntilType(t, connA, MessageTypePresence)
 	if msgA_left.Type != MessageTypePresence {
 		t.Fatalf("Client A expected presence message on ungraceful disconnect, got %s", msgA_left.Type)
 	}
@@ -232,7 +290,7 @@ func TestWS_UngracefulDisconnect(t *testing.T) {
 		t.Errorf("Unexpected leave presence: %+v", presenceLeft)
 	}
 
-	msgA_sync := readMessageTimeout(t, connA, 2*time.Second)
+	_, msgA_sync := readUntilType(t, connA, MessageTypeStateSync)
 	if msgA_sync.Type != MessageTypeStateSync {
 		t.Fatalf("Client A expected state_sync after ungraceful disconnect, got %s", msgA_sync.Type)
 	}
@@ -269,10 +327,10 @@ func TestWS_MessageEnvelopeVersionAndType(t *testing.T) {
 	sendJoin(t, conn, "Alice", "room-envelope")
 
 	// Read presence message
-	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	rawBytes, _ := readUntilType(t, conn, MessageTypePresence)
 	var raw map[string]interface{}
-	if err := conn.ReadJSON(&raw); err != nil {
-		t.Fatalf("Failed to read raw JSON message: %v", err)
+	if err := json.Unmarshal(rawBytes, &raw); err != nil {
+		t.Fatalf("Failed to decode raw JSON message: %v", err)
 	}
 
 	if raw["v"] != float64(1) {
@@ -422,9 +480,8 @@ func TestWS_TurnEngineIntegration(t *testing.T) {
 	defer connA.Close()
 	sendJoin(t, connA, "Alice", "ws-turn-room")
 
-	_ = readMessageTimeout(t, connA, 2*time.Second) // presence
-	_ = readMessageTimeout(t, connA, 2*time.Second) // state_sync
-	msgStartA := readMessageTimeout(t, connA, 2*time.Second) // turn_started
+	initialMessages := readTypes(t, connA, MessageTypePresence, MessageTypeStateSync, MessageTypeTurnStarted)
+	msgStartA := initialMessages[MessageTypeTurnStarted]
 	if msgStartA.Type != MessageTypeTurnStarted {
 		t.Fatalf("Expected turn_started message, got %s", msgStartA.Type)
 	}
@@ -442,16 +499,16 @@ func TestWS_TurnEngineIntegration(t *testing.T) {
 	defer connB.Close()
 	sendJoin(t, connB, "Bob", "ws-turn-room")
 
-	_ = readMessageTimeout(t, connA, 2*time.Second) // presence B
-	_ = readMessageTimeout(t, connA, 2*time.Second) // state_sync [A, B]
+	_, _ = readUntilType(t, connA, MessageTypePresence)  // presence B
+	_, _ = readUntilType(t, connA, MessageTypeStateSync) // state_sync [A, B]
 
-	_ = readMessageTimeout(t, connB, 2*time.Second) // presence B
-	_ = readMessageTimeout(t, connB, 2*time.Second) // state_sync [A, B]
+	_, _ = readUntilType(t, connB, MessageTypePresence)  // presence B
+	_, _ = readUntilType(t, connB, MessageTypeStateSync) // state_sync [A, B]
 
 	// Bob attempts choose_level (NOT active player) -> should be rejected with error
 	chooseMsg := Message{
-		Type:   MessageTypeChooseLevel,
-		RoomID: "ws-turn-room",
+		Type:    MessageTypeChooseLevel,
+		RoomID:  "ws-turn-room",
 		Payload: json.RawMessage(`{"difficulty":"easy"}`),
 	}
 	if err := connB.WriteJSON(chooseMsg); err != nil {
@@ -468,8 +525,8 @@ func TestWS_TurnEngineIntegration(t *testing.T) {
 
 	// Alice (active player) selects difficulty hard (3 rolls)
 	chooseAlice := Message{
-		Type:   MessageTypeChooseLevel,
-		RoomID: "ws-turn-room",
+		Type:    MessageTypeChooseLevel,
+		RoomID:  "ws-turn-room",
 		Payload: json.RawMessage(`{"difficulty":"hard"}`),
 	}
 	if err := connA.WriteJSON(chooseAlice); err != nil {
@@ -478,8 +535,8 @@ func TestWS_TurnEngineIntegration(t *testing.T) {
 
 	// Alice submits answer
 	submitAlice := Message{
-		Type:   MessageTypeSubmitAnswer,
-		RoomID: "ws-turn-room",
+		Type:    MessageTypeSubmitAnswer,
+		RoomID:  "ws-turn-room",
 		Payload: json.RawMessage(`{}`),
 	}
 	if err := connA.WriteJSON(submitAlice); err != nil {
@@ -504,5 +561,99 @@ func TestWS_TurnEngineIntegration(t *testing.T) {
 	nextStart := readMessageTimeout(t, connA, 2*time.Second)
 	if nextStart.Type != MessageTypeTurnStarted {
 		t.Fatalf("Expected turn_started message for Bob, got %s", nextStart.Type)
+	}
+}
+
+func TestWS_QuestionContentAndCorrectAnswerStayOffSpectatorWire(t *testing.T) {
+	provider := fixedQuestionProvider{question: room.Question{
+		ID:     "q-wire-secret",
+		Type:   "mcq",
+		Prompt: "SECRET_PROMPT_ONLY_FOR_ALICE",
+		Options: []room.QuestionOption{
+			{ID: "SECRET_CORRECT_OPTION_ID", Text: "SECRET_CORRECT_OPTION_TEXT", Correct: true},
+			{ID: "SECRET_WRONG_OPTION_ID", Text: "SECRET_WRONG_OPTION_TEXT"},
+		},
+	}}
+	_, server := setupTestServerWithProvider(t, provider)
+
+	connA := connectClient(t, server)
+	defer connA.Close()
+	connB := connectClient(t, server)
+	defer connB.Close()
+
+	sendJoin(t, connA, "Alice", "wire-room")
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
+	sendJoin(t, connB, "Bob", "wire-room")
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
+	_, _ = readUntilType(t, connB, MessageTypeStateSync)
+
+	choose := Message{
+		Type:    MessageTypeChooseLevel,
+		RoomID:  "wire-room",
+		Payload: json.RawMessage(`{"difficulty":"easy"}`),
+	}
+	if err := connA.WriteJSON(choose); err != nil {
+		t.Fatalf("failed to choose level: %v", err)
+	}
+
+	_, activeQuestion := readUntilType(t, connA, MessageTypeQuestionStarted)
+	if !bytes.Contains(activeQuestion.Payload, []byte("SECRET_PROMPT_ONLY_FOR_ALICE")) {
+		t.Fatalf("active player did not receive the prompt: %s", activeQuestion.Payload)
+	}
+	spectatorRaw, spectatorQuestion := readUntilType(t, connB, MessageTypeQuestionStarted)
+	for _, secret := range []string{
+		"SECRET_PROMPT_ONLY_FOR_ALICE",
+		"SECRET_CORRECT_OPTION_ID",
+		"SECRET_CORRECT_OPTION_TEXT",
+		"SECRET_WRONG_OPTION_ID",
+		"SECRET_WRONG_OPTION_TEXT",
+	} {
+		if bytes.Contains(spectatorRaw, []byte(secret)) {
+			t.Fatalf("spectator question_started wire payload leaked %q: %s", secret, spectatorRaw)
+		}
+	}
+	var spectatorPayload map[string]any
+	if err := json.Unmarshal(spectatorQuestion.Payload, &spectatorPayload); err != nil {
+		t.Fatalf("invalid spectator question payload: %v", err)
+	}
+	for _, forbiddenField := range []string{"problem_id", "type", "prompt", "options"} {
+		if _, present := spectatorPayload[forbiddenField]; present {
+			t.Fatalf("spectator question payload contains forbidden field %q: %s", forbiddenField, spectatorQuestion.Payload)
+		}
+	}
+
+	submit := Message{
+		Type:    MessageTypeSubmitAnswer,
+		RoomID:  "wire-room",
+		Payload: json.RawMessage(`{"problem_id":"q-wire-secret","answer":["SECRET_CORRECT_OPTION_ID"]}`),
+	}
+	if err := connA.WriteJSON(submit); err != nil {
+		t.Fatalf("failed to submit answer: %v", err)
+	}
+
+	spectatorResultRaw, spectatorResult := readUntilType(t, connB, MessageTypeAnswerResult)
+	for _, secret := range []string{
+		"correct_answer",
+		"SECRET_CORRECT_OPTION_ID",
+		"SECRET_CORRECT_OPTION_TEXT",
+		"SECRET_PROMPT_ONLY_FOR_ALICE",
+	} {
+		if bytes.Contains(spectatorResultRaw, []byte(secret)) {
+			t.Fatalf("spectator answer_result wire payload leaked %q: %s", secret, spectatorResultRaw)
+		}
+	}
+	var publicResult map[string]any
+	if err := json.Unmarshal(spectatorResult.Payload, &publicResult); err != nil {
+		t.Fatalf("invalid spectator answer_result payload: %v", err)
+	}
+	if _, present := publicResult["correct_answer"]; present {
+		t.Fatalf("spectator answer_result contains correct_answer: %s", spectatorResult.Payload)
+	}
+
+	// Alice receives the private review copy after the public result.
+	_, _ = readUntilType(t, connA, MessageTypeAnswerResult)
+	privateResultRaw, _ := readUntilType(t, connA, MessageTypeAnswerResult)
+	if !bytes.Contains(privateResultRaw, []byte("SECRET_CORRECT_OPTION_ID")) {
+		t.Fatalf("active player did not receive the private correct-answer review: %s", privateResultRaw)
 	}
 }

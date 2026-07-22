@@ -27,8 +27,10 @@ func (b *privateTestBroadcaster) BroadcastRoom(roomID string, msgType string, pa
 	b.broadcasts = append(b.broadcasts, BroadcastEvent{RoomID: roomID, MsgType: msgType, Payload: payload})
 }
 
-func (b *privateTestBroadcaster) BroadcastRoomExcept(roomID, _ string, msgType string, payload any) {
-	b.BroadcastRoom(roomID, msgType, payload)
+func (b *privateTestBroadcaster) BroadcastRoomExcept(roomID, excludedClientID string, msgType string, payload any) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.broadcasts = append(b.broadcasts, BroadcastEvent{RoomID: roomID, MsgType: msgType, Payload: payload, ExcludedClientID: excludedClientID})
 }
 
 func (b *privateTestBroadcaster) SendToPlayer(roomID, clientID, msgType string, payload any) {
@@ -77,6 +79,9 @@ func TestRoom_AssignsAndGradesTextQuestionPrivately(t *testing.T) {
 	publicPayload := public[0].Payload.(QuestionStartedPayload)
 	if publicPayload.Prompt != "" || publicPayload.Options != nil || publicPayload.Difficulty != "easy" || publicPayload.Deadline.IsZero() {
 		t.Fatalf("question content leaked in public payload: %+v", publicPayload)
+	}
+	if public[0].ExcludedClientID != "alice" {
+		t.Fatalf("question_started was not excluded from active player: excluded=%q", public[0].ExcludedClientID)
 	}
 	private := b.events("question_started", true)
 	if len(private) != 1 || private[0].Payload.(QuestionStartedPayload).Prompt != "What does this print?" {
@@ -154,5 +159,92 @@ func TestRoom_MCQRequiresExactOptionSet(t *testing.T) {
 	result := b.events("answer_result", false)[0].Payload.(AnswerResultPayload)
 	if result.Correct {
 		t.Fatal("partial MCQ selection was graded correct")
+	}
+}
+
+func TestRoom_SubmitAndTimeoutRaceResolvesExactlyOnce(t *testing.T) {
+	for attempt := 0; attempt < 100; attempt++ {
+		b := &privateTestBroadcaster{}
+		r := NewRoomWithQuestionProvider("race-room", b, testQuestionProvider{question: Question{
+			ID:      "q-race",
+			Type:    "mcq",
+			Prompt:  "race prompt must stay private",
+			Options: []QuestionOption{{ID: "correct", Text: "correct option", Correct: true}, {ID: "wrong", Text: "wrong option"}},
+		}})
+		r.SetDeadlineDurations(time.Hour, time.Hour, time.Hour)
+		r.AddOrReconnectPlayer("alice", "Alice")
+		r.AddOrReconnectPlayer("bob", "Bob")
+		if err := r.ChooseLevel("alice", "easy"); err != nil {
+			t.Fatalf("attempt %d: ChooseLevel failed: %v", attempt, err)
+		}
+
+		r.mu.RLock()
+		turn := r.currentTurn
+		r.mu.RUnlock()
+		if turn == nil {
+			t.Fatalf("attempt %d: expected active turn", attempt)
+		}
+
+		start := make(chan struct{})
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			<-start
+			r.resolveTimeout(turn, "alice")
+		}()
+		go func() {
+			defer wg.Done()
+			<-start
+			_, _ = r.SubmitAnswer("alice", json.RawMessage(`{"problem_id":"q-race","answer":["correct"]}`))
+		}()
+		close(start)
+		wg.Wait()
+
+		publicResults := b.events("answer_result", false)
+		privateResults := b.events("answer_result", true)
+		if len(publicResults) != 1 || len(privateResults) != 1 {
+			t.Fatalf("attempt %d: race produced public/private results %d/%d, want 1/1", attempt, len(publicResults), len(privateResults))
+		}
+		result := publicResults[0].Payload.(AnswerResultPayload)
+		if result.TimedOut == result.Correct {
+			t.Fatalf("attempt %d: invalid single winner result: %+v", attempt, result)
+		}
+		if result.Correct && len(result.Rolls) != 1 {
+			t.Fatalf("attempt %d: correct winner applied %d rolls, want 1", attempt, len(result.Rolls))
+		}
+		if result.TimedOut && len(result.Rolls) != 0 {
+			t.Fatalf("attempt %d: timeout winner applied rolls: %+v", attempt, result.Rolls)
+		}
+		if got := len(b.events("roll_resolved", false)); got != len(result.Rolls) {
+			t.Fatalf("attempt %d: roll broadcasts=%d, result rolls=%d", attempt, got, len(result.Rolls))
+		}
+		if len(b.events("turn_ended", false)) != 1 {
+			t.Fatalf("attempt %d: race double-ended the turn", attempt)
+		}
+		if r.GetActivePlayerID() != "bob" {
+			t.Fatalf("attempt %d: race did not advance to Bob, active=%s", attempt, r.GetActivePlayerID())
+		}
+	}
+}
+
+func TestGradeQuestion_TextNormalizationIsBounded(t *testing.T) {
+	question := Question{
+		Type:            "text",
+		AcceptedAnswers: []string{"Hello World"},
+	}
+
+	for _, answer := range []string{"  hello world  ", "\n\tHeLLo WoRLD\t"} {
+		payload, _ := json.Marshal(answer)
+		if !gradeQuestion(question, payload, false) {
+			t.Errorf("normalized answer %q was rejected", answer)
+		}
+	}
+
+	for _, answer := range []string{"hello worlds", "hello worl", "hello world!", "helloworld"} {
+		payload, _ := json.Marshal(answer)
+		if gradeQuestion(question, payload, false) {
+			t.Errorf("wrong-but-similar answer %q was accepted", answer)
+		}
 	}
 }
