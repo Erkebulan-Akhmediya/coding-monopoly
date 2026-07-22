@@ -10,6 +10,7 @@ export default defineComponent({
     return {
       remaining: 0 as number,
       intervalId: null as number | null,
+      store: store,
     }
   },
   computed: {
@@ -90,7 +91,7 @@ export default defineComponent({
     </div>
     <div class="board-grid">
       <div
-        v-for="(cell, idx) in cells"
+        v-for="(, idx) in cells"
         :key="idx"
         class="board-cell"
         :class="{ corner: isCorner(idx) }"

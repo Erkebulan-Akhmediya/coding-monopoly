@@ -17,7 +17,7 @@ interface Message {
 }
 
 class WebSocketService {
-  private url: string = `${window.location.protocol.replace('http', 'ws')}//${window.location.host}/ws`
+  private url: string = import.meta.env.VITE_WS_BASE_URL
   private socket: WebSocket | null = null
   private reconnectAttempts: number = 0
   private maxBackoff: number = 30000 // 30 s
