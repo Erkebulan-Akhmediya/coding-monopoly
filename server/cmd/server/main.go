@@ -32,7 +32,7 @@ func main() {
 		log.Fatalf("Configure admin API: %v", err)
 	}
 
-	hub := ws.NewHub()
+	hub := ws.NewHub(ws.NewDBQuestionProvider(db))
 	go hub.Run()
 
 	http.HandleFunc("/ws", ws.Handler(hub))

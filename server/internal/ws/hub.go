@@ -37,6 +37,28 @@ func (hb *HubBroadcaster) BroadcastRoom(roomID string, msgType string, payload a
 	}
 }
 
+func (hb *HubBroadcaster) BroadcastRoomExcept(roomID string, excludedClientID string, msgType string, payload any) {
+	data, err := NewMessage(msgType, roomID, payload)
+	if err == nil {
+		hb.hub.deliverToRoomExcept(roomID, excludedClientID, data)
+	}
+}
+
+func (hb *HubBroadcaster) SendToPlayer(roomID string, clientID string, msgType string, payload any) {
+	data, err := NewMessage(msgType, roomID, payload)
+	if err != nil {
+		return
+	}
+	hb.hub.mu.RLock()
+	defer hb.hub.mu.RUnlock()
+	for c := range hb.hub.clients {
+		if c.GetID() == clientID && c.GetRoomID() == roomID && c.IsJoined() {
+			c.SendBytes(data)
+			return
+		}
+	}
+}
+
 func (hb *HubBroadcaster) SendError(clientID string, errMsg string) {
 	hb.hub.mu.RLock()
 	var targetClient *Client
@@ -62,7 +84,8 @@ type Hub struct {
 	rooms map[string]map[*Client]bool
 
 	// Room engine instances: roomID -> *room.Room
-	roomInstances map[string]*room.Room
+	roomInstances    map[string]*room.Room
+	questionProvider room.QuestionProvider
 
 	// Inbound messages from the clients.
 	register chan *Client
@@ -84,16 +107,21 @@ type Hub struct {
 }
 
 // NewHub creates and returns a new Hub instance.
-func NewHub() *Hub {
+func NewHub(providers ...room.QuestionProvider) *Hub {
+	var provider room.QuestionProvider
+	if len(providers) > 0 {
+		provider = providers[0]
+	}
 	return &Hub{
-		clients:       make(map[*Client]bool),
-		rooms:         make(map[string]map[*Client]bool),
-		roomInstances: make(map[string]*room.Room),
-		register:      make(chan *Client),
-		unregister:    make(chan *Client),
-		join:          make(chan *joinRequest),
-		broadcast:     make(chan *broadcastRequest),
-		stopChan:      make(chan struct{}),
+		clients:          make(map[*Client]bool),
+		rooms:            make(map[string]map[*Client]bool),
+		roomInstances:    make(map[string]*room.Room),
+		questionProvider: provider,
+		register:         make(chan *Client),
+		unregister:       make(chan *Client),
+		join:             make(chan *joinRequest),
+		broadcast:        make(chan *broadcastRequest),
+		stopChan:         make(chan struct{}),
 	}
 }
 
@@ -269,6 +297,10 @@ func (h *Hub) BroadcastRoom(roomID string, data []byte) {
 }
 
 func (h *Hub) deliverToRoom(roomID string, data []byte) {
+	h.deliverToRoomExcept(roomID, "", data)
+}
+
+func (h *Hub) deliverToRoomExcept(roomID string, excludedClientID string, data []byte) {
 	h.mu.RLock()
 	var targetClients []*Client
 	if roomID != "" {
@@ -285,6 +317,9 @@ func (h *Hub) deliverToRoom(roomID string, data []byte) {
 	h.mu.RUnlock()
 
 	for _, c := range targetClients {
+		if excludedClientID != "" && c.GetID() == excludedClientID {
+			continue
+		}
 		c.SendBytes(data)
 	}
 }
@@ -370,7 +405,7 @@ func (h *Hub) GetRoomInstance(roomID string) *room.Room {
 	r, ok := h.roomInstances[roomID]
 	if !ok {
 		hb := &HubBroadcaster{hub: h}
-		r = room.NewRoom(roomID, hb)
+		r = room.NewRoomWithQuestionProvider(roomID, hb, h.questionProvider)
 		h.roomInstances[roomID] = r
 	}
 	return r

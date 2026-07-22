@@ -7,17 +7,19 @@ import (
 
 // Message types
 const (
-	MessageTypeJoin         = "join"
-	MessageTypeStateSync    = "state_sync"
-	MessageTypePresence     = "presence"
-	MessageTypeError        = "error"
-	MessageTypePing         = "ping"
-	MessageTypePong         = "pong"
-	MessageTypeChooseLevel  = "choose_level"
-	MessageTypeSubmitAnswer = "submit_answer"
-	MessageTypeTurnStarted  = "turn_started"
-	MessageTypeTurnEnded    = "turn_ended"
-	MessageTypeRollResolved = "roll_resolved"
+	MessageTypeJoin            = "join"
+	MessageTypeStateSync       = "state_sync"
+	MessageTypePresence        = "presence"
+	MessageTypeError           = "error"
+	MessageTypePing            = "ping"
+	MessageTypePong            = "pong"
+	MessageTypeChooseLevel     = "choose_level"
+	MessageTypeSubmitAnswer    = "submit_answer"
+	MessageTypeTurnStarted     = "turn_started"
+	MessageTypeTurnEnded       = "turn_ended"
+	MessageTypeRollResolved    = "roll_resolved"
+	MessageTypeQuestionStarted = "question_started"
+	MessageTypeAnswerResult    = "answer_result"
 )
 
 // Message is the standard WebSocket JSON frame wrapper.
