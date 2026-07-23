@@ -98,6 +98,8 @@ class WebSocketService {
       case 'presence':
         if (payload.event === 'joined')
           store.players.push(payload.player)
+        else if (payload.event === 'left')
+          store.players = store.players.filter(player => payload.player.id !== player.id)
         break
       case 'turn':
         // payload: { currentPlayer: string }
