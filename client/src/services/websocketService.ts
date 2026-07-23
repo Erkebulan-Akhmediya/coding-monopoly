@@ -20,29 +20,48 @@ class WebSocketService {
   private url: string = import.meta.env.VITE_WS_BASE_URL
   private socket: WebSocket | null = null
   private reconnectAttempts: number = 0
+  private _connectPromise?: Promise<void>
   private maxBackoff: number = 30000 // 30 s
 
   /** Connect (or reconnect) to the server */
   async connect(): Promise<void> {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) return
-    this.socket = new WebSocket(this.url)
-    this.socket.onopen = () => {
-      console.log('WebSocket connected')
-      this.reconnectAttempts = 0
-      store.connected = true
-      // ask server for a full state snapshot on (re)connect
-      this.send({ type: 'state_request', payload: {} })
+    // If a connection is already open, resolve immediately
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      return Promise.resolve();
     }
-    this.socket.onclose = () => {
-      console.warn('WebSocket closed – attempting reconnection')
-      store.connected = false
-      this.scheduleReconnect()
+    // If a connection attempt is already in progress, return its promise
+    if (this._connectPromise) {
+      return this._connectPromise;
     }
-    this.socket.onerror = (err) => {
-      console.error('WebSocket error', err)
-      // Let onclose handle reconnection
-    }
-    this.socket.onmessage = (ev) => this.handleMessage(ev.data)
+    // Create a new promise that resolves on successful open, rejects on error/close
+    this._connectPromise = new Promise<void>((resolve, reject) => {
+      this.socket = new WebSocket(this.url);
+      this.socket.onopen = () => {
+        console.log('WebSocket connected');
+        this.reconnectAttempts = 0;
+        store.connected = true;
+        // ask server for a full state snapshot on (re)connect
+        this.send({ type: 'state_request', payload: {} });
+        resolve();
+        this._connectPromise = undefined;
+      };
+      this.socket.onclose = () => {
+        console.warn('WebSocket closed – attempting reconnection');
+        store.connected = false;
+        this.scheduleReconnect();
+        // If the connection was never opened, reject the pending promise
+        if (this._connectPromise) {
+          reject(new Error('WebSocket connection closed before opening'));
+          this._connectPromise = undefined;
+        }
+      };
+      this.socket.onerror = (err) => {
+        console.error('WebSocket error', err);
+        // Let onclose handle reconnection and rejection
+      };
+      this.socket.onmessage = (ev) => this.handleMessage(ev.data);
+    });
+    return this._connectPromise;
   }
 
   /** Send a JSON‑serialisable payload */
