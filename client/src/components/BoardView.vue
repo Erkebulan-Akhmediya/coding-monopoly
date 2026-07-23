@@ -2,10 +2,11 @@
 import { defineComponent } from 'vue'
 import { store } from '../store'
 import PlayerToken from './PlayerToken.vue'
+import DiceOverlay from './DiceOverlay.vue'
 
 export default defineComponent({
   name: 'BoardView',
-  components: { PlayerToken },
+  components: { PlayerToken, DiceOverlay },
   data() {
     return {
       remaining: 0 as number,
@@ -91,10 +92,10 @@ export default defineComponent({
     </div>
     <div class="board-grid">
       <div
-        v-for="(, idx) in cells"
+        v-for="(cell, idx) in cells"
         :key="idx"
         class="board-cell"
-        :class="{ corner: isCorner(idx) }"
+        :class="{ corner: isCorner(idx), ['cell-' + (cell.effect || '')]: !!cell.effect }"
       >
         <span class="cell-index">{{ idx }}</span>
         <!-- placeholder for cell-specific info, e.g., type/name -->

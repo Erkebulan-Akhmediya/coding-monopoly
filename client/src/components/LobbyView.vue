@@ -16,6 +16,7 @@ export default defineComponent({
       store.playerName = this.nameInput.trim()
       await websocketService.connect()
       // after connection, server will broadcast presence and set store.connected
+      console.log('connected:', store.connected)
     },
   },
 })

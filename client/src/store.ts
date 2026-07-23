@@ -17,4 +17,6 @@ export const store = reactive({
   questionActive: false as boolean,
   // deadline timestamp in ms (UTC) for the active question countdown
   deadline: 0 as number,
+  diceRolls: [] as number[], // recent dice roll values
+  lastEffect: '' as string, // description of latest effect
 })

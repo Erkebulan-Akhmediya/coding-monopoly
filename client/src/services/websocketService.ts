@@ -30,6 +30,8 @@ class WebSocketService {
       console.log('WebSocket connected')
       this.reconnectAttempts = 0
       store.connected = true
+        // ask server for a full state snapshot on (re)connect
+        this.send({ type: 'state_request', payload: {} })
     }
     this.socket.onclose = () => {
       console.warn('WebSocket closed – attempting reconnection')
@@ -91,9 +93,13 @@ class WebSocketService {
       case 'question_end':
         store.questionActive = false
         store.deadline = 0
+        // clear any lingering dice/effect UI
+        store.diceRolls = []
+        store.lastEffect = ''
         break
       default:
         console.warn('Unhandled message type', type)
+        break
     }
   }
 }
