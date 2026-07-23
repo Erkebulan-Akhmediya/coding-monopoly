@@ -74,6 +74,7 @@ class WebSocketService {
     switch (type) {
       case 'state_sync':
         store.players = payload.players
+        store.boardCells = payload.board_cells
         break
       case 'presence':
         if (payload.event === 'joined')
