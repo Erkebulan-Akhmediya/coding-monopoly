@@ -30,8 +30,8 @@ class WebSocketService {
       console.log('WebSocket connected')
       this.reconnectAttempts = 0
       store.connected = true
-        // ask server for a full state snapshot on (re)connect
-        this.send({ type: 'state_request', payload: {} })
+      // ask server for a full state snapshot on (re)connect
+      this.send({ type: 'state_request', payload: {} })
     }
     this.socket.onclose = () => {
       console.warn('WebSocket closed – attempting reconnection')
