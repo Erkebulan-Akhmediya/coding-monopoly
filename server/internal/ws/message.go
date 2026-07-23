@@ -3,6 +3,8 @@ package ws
 import (
 	"encoding/json"
 	"time"
+
+	"server/internal/room"
 )
 
 // Message types
@@ -59,8 +61,9 @@ type PlayerInfo struct {
 
 // StateSyncPayload represents the complete player list for a room.
 type StateSyncPayload struct {
-	RoomID  string       `json:"room_id"`
-	Players []PlayerInfo `json:"players"`
+	RoomID     string           `json:"room_id"`
+	Players    []PlayerInfo     `json:"players"`
+	BoardCells []room.BoardCell `json:"board_cells"`
 }
 
 // PresencePayload represents a presence broadcast (join/leave).

@@ -355,6 +355,7 @@ func (h *Hub) broadcastStateSync(roomID string) {
 	h.mu.RLock()
 	var players []PlayerInfo
 	var targetClients []*Client
+	var cells []room.BoardCell
 	if roomClients, ok := h.rooms[roomID]; ok {
 		for c := range roomClients {
 			if c.IsJoined() {
@@ -363,11 +364,16 @@ func (h *Hub) broadcastStateSync(roomID string) {
 			targetClients = append(targetClients, c)
 		}
 	}
+	r, ok := h.roomInstances[roomID]
+	if ok {
+		cells = r.Board()
+	}
 	h.mu.RUnlock()
 
 	payload := StateSyncPayload{
-		RoomID:  roomID,
-		Players: players,
+		RoomID:     roomID,
+		Players:    players,
+		BoardCells: cells,
 	}
 
 	data, err := NewMessage(MessageTypeStateSync, roomID, payload)

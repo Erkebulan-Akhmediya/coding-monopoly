@@ -519,7 +519,6 @@ func correctAnswerFor(question Question) any {
 }
 
 func (r *Room) rollPlayerLocked(player *Player) []RollResult {
-
 	// Determine number of rolls N matching difficulty (easy=1, medium=2, hard=3)
 	numRolls := 1
 	switch player.ChosenDifficulty {
@@ -661,4 +660,8 @@ func (r *Room) FormatPlayerTurnSummary() string {
 			activeMark, i, p.Name, p.ID, p.Position, p.XP, p.IsConnected)
 	}
 	return summary
+}
+
+func (r *Room) Board() []BoardCell {
+	return r.board
 }
