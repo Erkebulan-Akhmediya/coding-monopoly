@@ -72,13 +72,12 @@ class WebSocketService {
     }
     const { type, payload } = msg
     switch (type) {
-      case 'presence':
-        // payload: { players: [{id, name, token}], selfId }
+      case 'state_sync':
         store.players = payload.players
         break
-      case 'board_state':
-        // payload: { cells: [...] }
-        store.boardCells = payload.cells
+      case 'presence':
+        if (payload.event === 'joined')
+          store.players.push(payload.player)
         break
       case 'turn':
         // payload: { currentPlayer: string }
