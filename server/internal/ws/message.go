@@ -52,11 +52,17 @@ type JoinPayload struct {
 
 // PlayerInfo represents player state sent over WebSocket.
 type PlayerInfo struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	RoomID      string    `json:"room_id"`
-	JoinedAt    time.Time `json:"joined_at"`
-	IsConnected bool      `json:"is_connected"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	RoomID       string    `json:"room_id"`
+	JoinedAt     time.Time `json:"joined_at"`
+	IsConnected  bool      `json:"is_connected"`
+	Position     int       `json:"position"`
+	XP           int       `json:"xp"`
+	InCodeFreeze bool      `json:"in_code_freeze,omitempty"`
+	SkipNextTurn bool      `json:"skip_next_turn,omitempty"`
+	DoubleXP     bool      `json:"double_xp,omitempty"`
+	FreePasses   int       `json:"free_passes,omitempty"`
 }
 
 // StateSyncPayload represents the complete player list for a room.

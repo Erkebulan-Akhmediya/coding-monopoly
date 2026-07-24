@@ -92,29 +92,88 @@ class WebSocketService {
     const { type, payload } = msg
     switch (type) {
       case 'state_sync':
-        store.players = payload.players
-        store.boardCells = payload.board_cells
+        store.players = (payload.players || []).map((p: any) => ({
+          ...p,
+          position: p.position ?? 0,
+          xp: p.xp ?? 0,
+        }))
+        store.boardCells = payload.board_cells || []
         break
       case 'presence':
-        if (payload.event === 'joined')
-          store.players.push(payload.player)
-        else if (payload.event === 'left')
+        if (payload.event === 'joined') {
+          const newPlayer = {
+            ...payload.player,
+            position: payload.player.position ?? 0,
+            xp: payload.player.xp ?? 0,
+          }
+          const existingIdx = store.players.findIndex(p => p.id === newPlayer.id)
+          if (existingIdx >= 0) {
+            store.players[existingIdx] = newPlayer
+          } else {
+            store.players.push(newPlayer)
+          }
+        } else if (payload.event === 'left') {
           store.players = store.players.filter(player => payload.player.id !== player.id)
+        }
         break
       case 'turn':
-        // payload: { currentPlayer: string }
-        store.currentTurnPlayer = payload.currentPlayer
+        store.currentTurnPlayer = payload.currentPlayer || ''
         store.questionActive = false
         break
+      case 'turn_started':
+        const activeP = store.players.find(p => p.id === payload.active_player_id)
+        store.currentTurnPlayer = activeP ? activeP.name : (payload.active_player_id || '')
+        store.questionActive = false
+        store.diceRolls = []
+        store.lastEffect = ''
+        break
+      case 'turn_ended':
+        store.questionActive = false
+        break
+      case 'roll_resolved': {
+        const player = store.players.find(p => p.id === payload.player_id)
+        if (player) {
+          player.position = payload.new_position ?? player.position
+          if (typeof payload.player_xp === 'number') {
+            player.xp = payload.player_xp
+          }
+        }
+        if (typeof payload.die_roll === 'number') {
+          if (payload.roll_index === 1) {
+            store.diceRolls = [payload.die_roll]
+          } else {
+            store.diceRolls.push(payload.die_roll)
+          }
+        }
+        if (payload.effect && payload.effect.description) {
+          store.lastEffect = payload.effect.description
+        } else if (payload.landed_cell && payload.landed_cell.name) {
+          store.lastEffect = `Landed on ${payload.landed_cell.name}`
+        }
+        break
+      }
+      case 'answer_result': {
+        const player = store.players.find(p => p.id === payload.player_id)
+        if (payload.rolls && Array.isArray(payload.rolls)) {
+          payload.rolls.forEach((r: any) => {
+            if (player && typeof r.new_position === 'number') {
+              player.position = r.new_position
+            }
+            if (player && typeof r.player_xp === 'number') {
+              player.xp = r.player_xp
+            }
+          })
+        }
+        break
+      }
       case 'question_start':
-        // payload: { deadline: number (ms since epoch) }
+      case 'question_started':
         store.questionActive = true
-        store.deadline = payload.deadline
+        store.deadline = payload.deadline || 0
         break
       case 'question_end':
         store.questionActive = false
         store.deadline = 0
-        // clear any lingering dice/effect UI
         store.diceRolls = []
         store.lastEffect = ''
         break

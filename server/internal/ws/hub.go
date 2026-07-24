@@ -367,6 +367,21 @@ func (h *Hub) broadcastStateSync(roomID string) {
 	r, ok := h.roomInstances[roomID]
 	if ok {
 		cells = r.Board()
+		roomPlayers := r.GetPlayers()
+		playerMap := make(map[string]room.Player)
+		for _, rp := range roomPlayers {
+			playerMap[rp.ID] = rp
+		}
+		for i := range players {
+			if rp, found := playerMap[players[i].ID]; found {
+				players[i].Position = rp.Position
+				players[i].XP = rp.XP
+				players[i].InCodeFreeze = rp.InCodeFreeze
+				players[i].SkipNextTurn = rp.SkipNextTurn
+				players[i].DoubleXP = rp.DoubleXP
+				players[i].FreePasses = rp.FreePasses
+			}
+		}
 	}
 	h.mu.RUnlock()
 
@@ -393,10 +408,27 @@ func (h *Hub) GetRoomPlayers(roomID string) []PlayerInfo {
 	defer h.mu.RUnlock()
 
 	var players []PlayerInfo
+	var playerMap map[string]room.Player
+	if r, ok := h.roomInstances[roomID]; ok {
+		playerMap = make(map[string]room.Player)
+		for _, rp := range r.GetPlayers() {
+			playerMap[rp.ID] = rp
+		}
+	}
+
 	if roomClients, ok := h.rooms[roomID]; ok {
 		for c := range roomClients {
 			if c.IsJoined() {
-				players = append(players, c.ToPlayerInfo(true))
+				pi := c.ToPlayerInfo(true)
+				if rp, found := playerMap[c.id]; found {
+					pi.Position = rp.Position
+					pi.XP = rp.XP
+					pi.InCodeFreeze = rp.InCodeFreeze
+					pi.SkipNextTurn = rp.SkipNextTurn
+					pi.DoubleXP = rp.DoubleXP
+					pi.FreePasses = rp.FreePasses
+				}
+				players = append(players, pi)
 			}
 		}
 	}
