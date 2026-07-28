@@ -108,6 +108,15 @@ export default defineComponent({
       if (cell.type === 'special_challenge') return cell.params?.bonus ? `+${cell.params.bonus} XP` : 'Bonus'
       return ''
     },
+    getXpGainClass(cell: any): string {
+      if (cell && cell.type === 'xp_gain' && cell.params && typeof cell.params.amount === 'number') {
+        const amount = cell.params.amount
+        if (amount <= 20) return 'xp-gain-sm'
+        if (amount <= 50) return 'xp-gain-md'
+        return 'xp-gain-lg'
+      }
+      return ''
+    },
     updateRemaining() {
       if (this.showCountdown) {
         this.remaining = this.countdown
@@ -152,6 +161,7 @@ export default defineComponent({
         class="board-cell"
         :class="[
           'cell-' + (cell.type || 'generic'),
+          getXpGainClass(cell),
           { corner: isCorner(idx) }
         ]"
         :style="getCellGridStyle(idx)"
@@ -352,6 +362,23 @@ export default defineComponent({
 .cell-xp_gain {
   background: linear-gradient(180deg, rgba(16, 185, 129, 0.25) 0%, #334155 100%);
   border-top: 3px solid #10b981;
+}
+
+/* Distinct Intensity for XP Gain Sizes */
+.cell-xp_gain.xp-gain-sm {
+  background: linear-gradient(180deg, rgba(5, 150, 105, 0.15) 0%, #334155 100%);
+  border-top: 3px solid #059669;
+}
+
+.cell-xp_gain.xp-gain-md {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.35) 0%, #334155 100%);
+  border-top: 3px solid #10b981;
+}
+
+.cell-xp_gain.xp-gain-lg {
+  background: linear-gradient(180deg, rgba(52, 211, 153, 0.6) 0%, #334155 100%);
+  border-top: 3px solid #34d399;
+  box-shadow: inset 0 2px 10px rgba(52, 211, 153, 0.15);
 }
 
 .cell-xp_loss {
