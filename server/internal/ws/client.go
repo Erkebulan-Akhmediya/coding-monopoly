@@ -246,9 +246,20 @@ func (c *Client) handleIncomingMessage(data []byte) {
 	case MessageTypePing:
 		pong, _ := NewMessage(MessageTypePong, c.GetRoomID(), nil)
 		c.SendBytes(pong)
+	case MessageTypeStateRequest:
+		c.handleStateRequestMessage()
 	default:
 		log.Printf("[WS Client] Received unhandled message type '%s' from client %s", msg.Type, c.id)
 	}
+}
+
+func (c *Client) handleStateRequestMessage() {
+	roomID := c.GetRoomID()
+	if roomID == "" {
+		// Client hasn't joined a room yet; nothing to sync.
+		return
+	}
+	c.hub.sendStateSyncToClient(roomID, c)
 }
 
 func (c *Client) handleChooseLevelMessage(msg Message) {

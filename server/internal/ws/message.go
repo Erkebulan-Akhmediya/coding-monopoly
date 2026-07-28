@@ -22,6 +22,7 @@ const (
 	MessageTypeRollResolved    = "roll_resolved"
 	MessageTypeQuestionStarted = "question_started"
 	MessageTypeAnswerResult    = "answer_result"
+	MessageTypeStateRequest    = "state_request"
 )
 
 // Message is the standard WebSocket JSON frame wrapper.

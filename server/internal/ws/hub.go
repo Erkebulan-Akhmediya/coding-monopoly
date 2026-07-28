@@ -352,6 +352,35 @@ func (h *Hub) broadcastPresence(roomID string, event string, player PlayerInfo) 
 
 // Internal helper to broadcast state_sync to a room.
 func (h *Hub) broadcastStateSync(roomID string) {
+	payload, targetClients := h.buildStateSyncPayload(roomID)
+
+	data, err := NewMessage(MessageTypeStateSync, roomID, payload)
+	if err != nil {
+		log.Printf("[WS Hub] Error creating state_sync message: %v", err)
+		return
+	}
+
+	for _, c := range targetClients {
+		c.SendBytes(data)
+	}
+}
+
+// sendStateSyncToClient sends a state_sync message to a single client (used on reconnect).
+func (h *Hub) sendStateSyncToClient(roomID string, target *Client) {
+	payload, _ := h.buildStateSyncPayload(roomID)
+
+	data, err := NewMessage(MessageTypeStateSync, roomID, payload)
+	if err != nil {
+		log.Printf("[WS Hub] Error creating state_sync message for client %s: %v", target.GetID(), err)
+		return
+	}
+
+	target.SendBytes(data)
+}
+
+// buildStateSyncPayload assembles the StateSyncPayload and the list of connected
+// clients for a room. Shared by broadcastStateSync and sendStateSyncToClient.
+func (h *Hub) buildStateSyncPayload(roomID string) (StateSyncPayload, []*Client) {
 	h.mu.RLock()
 	var players []PlayerInfo
 	var targetClients []*Client
@@ -391,15 +420,7 @@ func (h *Hub) broadcastStateSync(roomID string) {
 		BoardCells: cells,
 	}
 
-	data, err := NewMessage(MessageTypeStateSync, roomID, payload)
-	if err != nil {
-		log.Printf("[WS Hub] Error creating state_sync message: %v", err)
-		return
-	}
-
-	for _, c := range targetClients {
-		c.SendBytes(data)
-	}
+	return payload, targetClients
 }
 
 // GetRoomPlayers returns a snapshot of connected players in a room (thread-safe utility).
