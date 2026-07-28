@@ -36,7 +36,7 @@ func DefaultBoard() []BoardCell {
 		Index:  8,
 		Name:   "Code Freeze",
 		Type:   "code_freeze",
-		Params: map[string]interface{}{},
+		Params: map[string]any{},
 	}
 
 	// Side 2: Cells 9 to 15
@@ -53,7 +53,7 @@ func DefaultBoard() []BoardCell {
 		Index:  16,
 		Name:   "Coffee Break",
 		Type:   "coffee_break",
-		Params: map[string]interface{}{},
+		Params: map[string]any{},
 	}
 
 	// Side 3: Cells 17 to 23
@@ -70,7 +70,7 @@ func DefaultBoard() []BoardCell {
 		Index:  24,
 		Name:   "Deadline",
 		Type:   "deadline",
-		Params: map[string]interface{}{},
+		Params: map[string]any{},
 	}
 
 	// Side 4: Cells 25 to 31

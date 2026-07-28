@@ -657,3 +657,47 @@ func TestWS_QuestionContentAndCorrectAnswerStayOffSpectatorWire(t *testing.T) {
 		t.Fatalf("active player did not receive the private correct-answer review: %s", privateResultRaw)
 	}
 }
+
+func TestWS_StateSyncIncludesTurnState(t *testing.T) {
+	_, server := setupTestServer(t)
+
+	connA := connectClient(t, server)
+	defer connA.Close()
+	sendJoin(t, connA, "Alice", "sync-turn-room")
+
+	_, _ = readUntilType(t, connA, MessageTypePresence)
+	_, msgSyncA := readUntilType(t, connA, MessageTypeStateSync)
+
+	var payloadA StateSyncPayload
+	if err := json.Unmarshal(msgSyncA.Payload, &payloadA); err != nil {
+		t.Fatalf("Failed to unmarshal state_sync: %v", err)
+	}
+
+	if len(payloadA.Players) != 1 {
+		t.Fatalf("Expected 1 player, got %d", len(payloadA.Players))
+	}
+	aliceID := payloadA.Players[0].ID
+	if payloadA.CurrentTurnPlayer != aliceID {
+		t.Errorf("Expected current_turn_player to be %s, got %s", aliceID, payloadA.CurrentTurnPlayer)
+	}
+	if payloadA.QuestionActive {
+		t.Errorf("Expected question_active to be false")
+	}
+
+	// Connect Client B and verify state_sync sent to B
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, connB, "Bob", "sync-turn-room")
+
+	_, _ = readUntilType(t, connB, MessageTypePresence)
+	_, msgSyncB := readUntilType(t, connB, MessageTypeStateSync)
+
+	var payloadB StateSyncPayload
+	if err := json.Unmarshal(msgSyncB.Payload, &payloadB); err != nil {
+		t.Fatalf("Failed to unmarshal state_sync for B: %v", err)
+	}
+
+	if payloadB.CurrentTurnPlayer != aliceID {
+		t.Errorf("Expected current_turn_player in state_sync for B to be %s, got %s", aliceID, payloadB.CurrentTurnPlayer)
+	}
+}

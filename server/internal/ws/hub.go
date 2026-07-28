@@ -3,6 +3,7 @@ package ws
 import (
 	"log"
 	"sync"
+	"time"
 
 	"server/internal/room"
 )
@@ -352,23 +353,7 @@ func (h *Hub) broadcastPresence(roomID string, event string, player PlayerInfo) 
 
 // Internal helper to broadcast state_sync to a room.
 func (h *Hub) broadcastStateSync(roomID string) {
-	h.mu.RLock()
-	var players []PlayerInfo
-	var targetClients []*Client
-	if roomClients, ok := h.rooms[roomID]; ok {
-		for c := range roomClients {
-			if c.IsJoined() {
-				players = append(players, c.ToPlayerInfo(true))
-			}
-			targetClients = append(targetClients, c)
-		}
-	}
-	h.mu.RUnlock()
-
-	payload := StateSyncPayload{
-		RoomID:  roomID,
-		Players: players,
-	}
+	payload, targetClients := h.buildStateSyncPayload(roomID)
 
 	data, err := NewMessage(MessageTypeStateSync, roomID, payload)
 	if err != nil {
@@ -381,16 +366,98 @@ func (h *Hub) broadcastStateSync(roomID string) {
 	}
 }
 
+// sendStateSyncToClient sends a state_sync message to a single client (used on reconnect).
+func (h *Hub) sendStateSyncToClient(roomID string, target *Client) {
+	payload, _ := h.buildStateSyncPayload(roomID)
+
+	data, err := NewMessage(MessageTypeStateSync, roomID, payload)
+	if err != nil {
+		log.Printf("[WS Hub] Error creating state_sync message for client %s: %v", target.GetID(), err)
+		return
+	}
+
+	target.SendBytes(data)
+}
+
+// buildStateSyncPayload assembles the StateSyncPayload and the list of connected
+// clients for a room. Shared by broadcastStateSync and sendStateSyncToClient.
+func (h *Hub) buildStateSyncPayload(roomID string) (StateSyncPayload, []*Client) {
+	h.mu.RLock()
+	var players []PlayerInfo
+	var targetClients []*Client
+	var cells []room.BoardCell
+	var currentTurnPlayer string
+	var questionActive bool
+	var deadline *time.Time
+	if roomClients, ok := h.rooms[roomID]; ok {
+		for c := range roomClients {
+			if c.IsJoined() {
+				players = append(players, c.ToPlayerInfo(true))
+			}
+			targetClients = append(targetClients, c)
+		}
+	}
+	r, ok := h.roomInstances[roomID]
+	if ok {
+		cells = r.Board()
+		roomPlayers := r.GetPlayers()
+		playerMap := make(map[string]room.Player)
+		for _, rp := range roomPlayers {
+			playerMap[rp.ID] = rp
+		}
+		for i := range players {
+			if rp, found := playerMap[players[i].ID]; found {
+				players[i].Position = rp.Position
+				players[i].XP = rp.XP
+				players[i].InCodeFreeze = rp.InCodeFreeze
+				players[i].SkipNextTurn = rp.SkipNextTurn
+				players[i].DoubleXP = rp.DoubleXP
+				players[i].FreePasses = rp.FreePasses
+			}
+		}
+		currentTurnPlayer, questionActive, deadline = r.GetTurnState()
+	}
+	h.mu.RUnlock()
+
+	payload := StateSyncPayload{
+		RoomID:            roomID,
+		Players:           players,
+		BoardCells:        cells,
+		CurrentTurnPlayer: currentTurnPlayer,
+		QuestionActive:    questionActive,
+		Deadline:          deadline,
+	}
+
+	return payload, targetClients
+}
+
 // GetRoomPlayers returns a snapshot of connected players in a room (thread-safe utility).
 func (h *Hub) GetRoomPlayers(roomID string) []PlayerInfo {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
 	var players []PlayerInfo
+	var playerMap map[string]room.Player
+	if r, ok := h.roomInstances[roomID]; ok {
+		playerMap = make(map[string]room.Player)
+		for _, rp := range r.GetPlayers() {
+			playerMap[rp.ID] = rp
+		}
+	}
+
 	if roomClients, ok := h.rooms[roomID]; ok {
 		for c := range roomClients {
 			if c.IsJoined() {
-				players = append(players, c.ToPlayerInfo(true))
+				pi := c.ToPlayerInfo(true)
+				if rp, found := playerMap[c.id]; found {
+					pi.Position = rp.Position
+					pi.XP = rp.XP
+					pi.InCodeFreeze = rp.InCodeFreeze
+					pi.SkipNextTurn = rp.SkipNextTurn
+					pi.DoubleXP = rp.DoubleXP
+					pi.FreePasses = rp.FreePasses
+				}
+				players = append(players, pi)
 			}
 		}
 	}

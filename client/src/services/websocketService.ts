@@ -20,27 +20,48 @@ class WebSocketService {
   private url: string = import.meta.env.VITE_WS_BASE_URL
   private socket: WebSocket | null = null
   private reconnectAttempts: number = 0
+  private _connectPromise?: Promise<void>
   private maxBackoff: number = 30000 // 30 s
 
   /** Connect (or reconnect) to the server */
   async connect(): Promise<void> {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) return
-    this.socket = new WebSocket(this.url)
-    this.socket.onopen = () => {
-      console.log('WebSocket connected')
-      this.reconnectAttempts = 0
-      store.connected = true
+    // If a connection is already open, resolve immediately
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      return Promise.resolve();
     }
-    this.socket.onclose = () => {
-      console.warn('WebSocket closed – attempting reconnection')
-      store.connected = false
-      this.scheduleReconnect()
+    // If a connection attempt is already in progress, return its promise
+    if (this._connectPromise) {
+      return this._connectPromise;
     }
-    this.socket.onerror = (err) => {
-      console.error('WebSocket error', err)
-      // Let onclose handle reconnection
-    }
-    this.socket.onmessage = (ev) => this.handleMessage(ev.data)
+    // Create a new promise that resolves on successful open, rejects on error/close
+    this._connectPromise = new Promise<void>((resolve, reject) => {
+      this.socket = new WebSocket(this.url);
+      this.socket.onopen = () => {
+        console.log('WebSocket connected');
+        this.reconnectAttempts = 0;
+        store.connected = true;
+        // ask server for a full state snapshot on (re)connect
+        this.send({ type: 'state_request', payload: {} });
+        resolve();
+        this._connectPromise = undefined;
+      };
+      this.socket.onclose = () => {
+        console.warn('WebSocket closed – attempting reconnection');
+        store.connected = false;
+        this.scheduleReconnect();
+        // If the connection was never opened, reject the pending promise
+        if (this._connectPromise) {
+          reject(new Error('WebSocket connection closed before opening'));
+          this._connectPromise = undefined;
+        }
+      };
+      this.socket.onerror = (err) => {
+        console.error('WebSocket error', err);
+        // Let onclose handle reconnection and rejection
+      };
+      this.socket.onmessage = (ev) => this.handleMessage(ev.data);
+    });
+    return this._connectPromise;
   }
 
   /** Send a JSON‑serialisable payload */
@@ -70,30 +91,109 @@ class WebSocketService {
     }
     const { type, payload } = msg
     switch (type) {
-      case 'presence':
-        // payload: { players: [{id, name, token}], selfId }
-        store.players = payload.players
+      case 'state_sync':
+        store.players = (payload.players || []).map((p: any) => ({
+          ...p,
+          position: p.position ?? 0,
+          xp: p.xp ?? 0,
+        }))
+        store.boardCells = payload.board_cells || []
+        if (payload.current_turn_player !== undefined) {
+          const activeP = store.players.find(p => p.id === payload.current_turn_player)
+          store.currentTurnPlayer = activeP ? activeP.name : (payload.current_turn_player || '')
+        }
+        if (payload.question_active !== undefined) {
+          store.questionActive = !!payload.question_active
+        }
+        if (payload.deadline !== undefined) {
+          store.deadline = typeof payload.deadline === 'number'
+            ? payload.deadline
+            : (payload.deadline ? new Date(payload.deadline).getTime() : 0)
+        }
         break
-      case 'board_state':
-        // payload: { cells: [...] }
-        store.boardCells = payload.cells
+      case 'presence':
+        if (payload.event === 'joined') {
+          const newPlayer = {
+            ...payload.player,
+            position: payload.player.position ?? 0,
+            xp: payload.player.xp ?? 0,
+          }
+          const existingIdx = store.players.findIndex(p => p.id === newPlayer.id)
+          if (existingIdx >= 0) {
+            store.players[existingIdx] = newPlayer
+          } else {
+            store.players.push(newPlayer)
+          }
+        } else if (payload.event === 'left') {
+          store.players = store.players.filter(player => payload.player.id !== player.id)
+        }
         break
       case 'turn':
-        // payload: { currentPlayer: string }
-        store.currentTurnPlayer = payload.currentPlayer
+        store.currentTurnPlayer = payload.currentPlayer || ''
         store.questionActive = false
         break
+      case 'turn_started':
+        const activeP = store.players.find(p => p.id === payload.active_player_id)
+        store.currentTurnPlayer = activeP ? activeP.name : (payload.active_player_id || '')
+        store.questionActive = false
+        store.diceRolls = []
+        store.lastEffect = ''
+        break
+      case 'turn_ended':
+        store.questionActive = false
+        break
+      case 'roll_resolved': {
+        const player = store.players.find(p => p.id === payload.player_id)
+        if (player) {
+          player.position = payload.new_position ?? player.position
+          if (typeof payload.player_xp === 'number') {
+            player.xp = payload.player_xp
+          }
+        }
+        if (typeof payload.die_roll === 'number') {
+          if (payload.roll_index === 1) {
+            store.diceRolls = [payload.die_roll]
+          } else {
+            store.diceRolls.push(payload.die_roll)
+          }
+        }
+        if (payload.effect && payload.effect.description) {
+          store.lastEffect = payload.effect.description
+        } else if (payload.landed_cell && payload.landed_cell.name) {
+          store.lastEffect = `Landed on ${payload.landed_cell.name}`
+        }
+        break
+      }
+      case 'answer_result': {
+        const player = store.players.find(p => p.id === payload.player_id)
+        if (payload.rolls && Array.isArray(payload.rolls)) {
+          payload.rolls.forEach((r: any) => {
+            if (player && typeof r.new_position === 'number') {
+              player.position = r.new_position
+            }
+            if (player && typeof r.player_xp === 'number') {
+              player.xp = r.player_xp
+            }
+          })
+        }
+        break
+      }
       case 'question_start':
-        // payload: { deadline: number (ms since epoch) }
+      case 'question_started':
         store.questionActive = true
-        store.deadline = payload.deadline
+        store.deadline = typeof payload.deadline === 'number'
+          ? payload.deadline
+          : (payload.deadline ? new Date(payload.deadline).getTime() : 0)
         break
       case 'question_end':
         store.questionActive = false
         store.deadline = 0
+        store.diceRolls = []
+        store.lastEffect = ''
         break
       default:
         console.warn('Unhandled message type', type)
+        break
     }
   }
 }

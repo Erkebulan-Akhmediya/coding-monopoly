@@ -211,6 +211,20 @@ func (r *Room) GetActivePlayerID() string {
 	return r.activePlayerID
 }
 
+// GetTurnState returns the current active player ID, whether a question is in progress, and the deadline if active.
+func (r *Room) GetTurnState() (activePlayerID string, questionActive bool, deadline *time.Time) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	activePlayerID = r.activePlayerID
+	if r.currentTurn != nil && !r.currentTurn.resolved {
+		questionActive = true
+		d := r.currentTurn.deadline
+		deadline = &d
+	}
+	return activePlayerID, questionActive, deadline
+}
+
 // AddOrReconnectPlayer handles player join or reconnect, maintaining strict join order.
 func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, bool) {
 	r.mu.Lock()
@@ -519,7 +533,6 @@ func correctAnswerFor(question Question) any {
 }
 
 func (r *Room) rollPlayerLocked(player *Player) []RollResult {
-
 	// Determine number of rolls N matching difficulty (easy=1, medium=2, hard=3)
 	numRolls := 1
 	switch player.ChosenDifficulty {
@@ -661,4 +674,8 @@ func (r *Room) FormatPlayerTurnSummary() string {
 			activeMark, i, p.Name, p.ID, p.Position, p.XP, p.IsConnected)
 	}
 	return summary
+}
+
+func (r *Room) Board() []BoardCell {
+	return r.board
 }
