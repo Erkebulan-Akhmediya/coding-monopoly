@@ -98,6 +98,18 @@ class WebSocketService {
           xp: p.xp ?? 0,
         }))
         store.boardCells = payload.board_cells || []
+        if (payload.current_turn_player !== undefined) {
+          const activeP = store.players.find(p => p.id === payload.current_turn_player)
+          store.currentTurnPlayer = activeP ? activeP.name : (payload.current_turn_player || '')
+        }
+        if (payload.question_active !== undefined) {
+          store.questionActive = !!payload.question_active
+        }
+        if (payload.deadline !== undefined) {
+          store.deadline = typeof payload.deadline === 'number'
+            ? payload.deadline
+            : (payload.deadline ? new Date(payload.deadline).getTime() : 0)
+        }
         break
       case 'presence':
         if (payload.event === 'joined') {
@@ -169,7 +181,9 @@ class WebSocketService {
       case 'question_start':
       case 'question_started':
         store.questionActive = true
-        store.deadline = payload.deadline || 0
+        store.deadline = typeof payload.deadline === 'number'
+          ? payload.deadline
+          : (payload.deadline ? new Date(payload.deadline).getTime() : 0)
         break
       case 'question_end':
         store.questionActive = false

@@ -68,9 +68,12 @@ type PlayerInfo struct {
 
 // StateSyncPayload represents the complete player list for a room.
 type StateSyncPayload struct {
-	RoomID     string           `json:"room_id"`
-	Players    []PlayerInfo     `json:"players"`
-	BoardCells []room.BoardCell `json:"board_cells"`
+	RoomID            string           `json:"room_id"`
+	Players           []PlayerInfo     `json:"players"`
+	BoardCells        []room.BoardCell `json:"board_cells"`
+	CurrentTurnPlayer string           `json:"current_turn_player,omitempty"`
+	QuestionActive    bool             `json:"question_active"`
+	Deadline          *time.Time       `json:"deadline,omitempty"`
 }
 
 // PresencePayload represents a presence broadcast (join/leave).

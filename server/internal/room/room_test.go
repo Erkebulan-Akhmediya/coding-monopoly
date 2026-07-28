@@ -314,3 +314,22 @@ func TestRoom_SkipNextTurnModifier(t *testing.T) {
 		t.Errorf("Bob's SkipNextTurn flag should have been cleared after skipping")
 	}
 }
+
+func TestRoom_GetTurnState(t *testing.T) {
+	mock := &MockBroadcaster{}
+	r := NewRoom("test-room-state", mock)
+	r.AddOrReconnectPlayer("c1", "Alice")
+	r.AddOrReconnectPlayer("c2", "Bob")
+
+	// Initially c1 is active player, no question active
+	activeID, active, deadline := r.GetTurnState()
+	if activeID != "c1" {
+		t.Errorf("Expected active player c1, got %s", activeID)
+	}
+	if active {
+		t.Errorf("Expected questionActive to be false initially")
+	}
+	if deadline != nil {
+		t.Errorf("Expected deadline to be nil initially")
+	}
+}

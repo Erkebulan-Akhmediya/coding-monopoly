@@ -3,6 +3,7 @@ package ws
 import (
 	"log"
 	"sync"
+	"time"
 
 	"server/internal/room"
 )
@@ -385,6 +386,9 @@ func (h *Hub) buildStateSyncPayload(roomID string) (StateSyncPayload, []*Client)
 	var players []PlayerInfo
 	var targetClients []*Client
 	var cells []room.BoardCell
+	var currentTurnPlayer string
+	var questionActive bool
+	var deadline *time.Time
 	if roomClients, ok := h.rooms[roomID]; ok {
 		for c := range roomClients {
 			if c.IsJoined() {
@@ -411,13 +415,17 @@ func (h *Hub) buildStateSyncPayload(roomID string) (StateSyncPayload, []*Client)
 				players[i].FreePasses = rp.FreePasses
 			}
 		}
+		currentTurnPlayer, questionActive, deadline = r.GetTurnState()
 	}
 	h.mu.RUnlock()
 
 	payload := StateSyncPayload{
-		RoomID:     roomID,
-		Players:    players,
-		BoardCells: cells,
+		RoomID:            roomID,
+		Players:           players,
+		BoardCells:        cells,
+		CurrentTurnPlayer: currentTurnPlayer,
+		QuestionActive:    questionActive,
+		Deadline:          deadline,
 	}
 
 	return payload, targetClients
