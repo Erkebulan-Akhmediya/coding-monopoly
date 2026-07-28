@@ -128,6 +128,10 @@ export default defineComponent({
       }
     },
   },
+  beforeMount() {
+    if (!store.playerName)
+      store.playerName = sessionStorage.getItem('playerName')
+  },
   mounted() {
     this.startTimer()
   },

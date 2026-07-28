@@ -14,6 +14,7 @@ export default defineComponent({
     async join() {
       if (!this.nameInput.trim()) return
       store.playerName = this.nameInput.trim()
+      sessionStorage.setItem('playerName', store.playerName)
       await websocketService.connect()
       // after connection, server will broadcast presence and set store.connected
       websocketService.send({
