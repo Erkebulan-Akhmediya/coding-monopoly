@@ -348,12 +348,14 @@ export default defineComponent({
   border-color: #ef4444;
 }
 
-/* Cell Types Accent Colors */
+/* Cell Types Accent Colors (Using gradients matching their borders for better visibility) */
 .cell-xp_gain {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.25) 0%, #334155 100%);
   border-top: 3px solid #10b981;
 }
 
 .cell-xp_loss {
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.25) 0%, #334155 100%);
   border-top: 3px solid #ef4444;
 }
 
@@ -363,22 +365,27 @@ export default defineComponent({
 }
 
 .cell-teleport {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.25) 0%, #334155 100%);
   border-top: 3px solid #8b5cf6;
 }
 
 .cell-skip_next {
+  background: linear-gradient(180deg, rgba(249, 115, 22, 0.25) 0%, #334155 100%);
   border-top: 3px solid #f97316;
 }
 
 .cell-double_xp {
+  background: linear-gradient(180deg, rgba(234, 179, 8, 0.25) 0%, #334155 100%);
   border-top: 3px solid #eab308;
 }
 
 .cell-free_pass {
+  background: linear-gradient(180deg, rgba(6, 182, 212, 0.25) 0%, #334155 100%);
   border-top: 3px solid #06b6d4;
 }
 
 .cell-special_challenge {
+  background: linear-gradient(180deg, rgba(236, 72, 153, 0.25) 0%, #334155 100%);
   border-top: 3px solid #ec4899;
 }
 
