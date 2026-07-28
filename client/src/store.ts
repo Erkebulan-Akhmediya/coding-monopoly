@@ -12,6 +12,13 @@ export interface Player {
   double_xp?: boolean
   free_passes?: number
 }
+export interface Question {
+  id: string
+  type: string
+  difficulty: string
+  prompt: string
+  options?: Array<{ id: string; text: string }>
+}
 
 // Simple global reactive store for the client app (Options API friendly)
 export const store = reactive({
@@ -29,6 +36,7 @@ export const store = reactive({
   questionActive: false as boolean,
   // deadline timestamp in ms (UTC) for the active question countdown
   deadline: 0 as number,
+  activeQuestion: null as Question | null,
   diceRolls: [] as number[], // recent dice roll values
   lastEffect: '' as string, // description of latest effect
 })

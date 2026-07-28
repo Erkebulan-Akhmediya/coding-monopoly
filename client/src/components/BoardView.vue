@@ -4,10 +4,12 @@ import { store } from '../store'
 import type { Player } from '../store'
 import PlayerToken from './PlayerToken.vue'
 import DiceOverlay from './DiceOverlay.vue'
+import LevelPicker from './LevelPicker.vue'
+import ProblemPanel from './ProblemPanel.vue'
 
 export default defineComponent({
   name: 'BoardView',
-  components: { PlayerToken, DiceOverlay },
+  components: { PlayerToken, DiceOverlay, LevelPicker, ProblemPanel },
   data() {
     return {
       remaining: 0 as number,
@@ -139,7 +141,7 @@ export default defineComponent({
   },
   beforeMount() {
     if (!store.playerName)
-      store.playerName = sessionStorage.getItem('playerName')
+      store.playerName = sessionStorage.getItem('playerName') || ''
   },
   mounted() {
     this.startTimer()
@@ -203,6 +205,12 @@ export default defineComponent({
 
         <!-- Dice Roll & Effect Overlay Component -->
         <DiceOverlay />
+
+        <!-- Game Action Panel: LevelPicker, ProblemPanel -->
+        <div class="game-action-container">
+          <LevelPicker v-if="isMyTurn && !store.questionActive" />
+          <ProblemPanel v-else-if="store.questionActive" />
+        </div>
 
         <!-- Leaderboard / Player Overview Panel -->
         <div class="leaderboard">
@@ -550,6 +558,11 @@ export default defineComponent({
   font-weight: 800;
   color: #34d399;
   font-size: 0.85rem;
+}
+
+.game-action-container {
+  margin: 0.5rem 0;
+  width: 100%;
 }
 
 @media (max-width: 820px) {
