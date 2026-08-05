@@ -491,3 +491,59 @@ func (h *Hub) GetRoomInstance(roomID string) *room.Room {
 	}
 	return r
 }
+
+// RegisterAdminClient registers an already-authenticated admin spectator client
+// and adds it to the named room's client set so it receives all broadcasts.
+// Unlike the regular JoinRoom flow, no player record is created in the room engine.
+func (h *Hub) RegisterAdminClient(c *Client, roomID string) {
+	h.mu.Lock()
+	h.clients[c] = true
+	if h.rooms[roomID] == nil {
+		h.rooms[roomID] = make(map[*Client]bool)
+	}
+	h.rooms[roomID][c] = true
+	h.mu.Unlock()
+
+	// Ensure a room engine exists so state_sync works.
+	_ = h.GetRoomInstance(roomID)
+
+	// Send an immediate state snapshot to the new admin spectator.
+	h.sendStateSyncToClient(roomID, c)
+	log.Printf("[WS Hub] Admin client %s registered in room %s", c.id, roomID)
+}
+
+// broadcastGameEvent sends a game_event message to every admin spectator watching a room.
+func (h *Hub) broadcastGameEvent(roomID string, kind string, message string, meta any) {
+	payload := GameEventPayload{
+		Kind:      kind,
+		Message:   message,
+		Timestamp: timeNow(),
+		Meta:      meta,
+	}
+	data, err := NewMessage(MessageTypeGameEvent, roomID, payload)
+	if err != nil {
+		log.Printf("[WS Hub] Error creating game_event message: %v", err)
+		return
+	}
+	h.broadcastToAdmins(roomID, data)
+}
+
+// broadcastToAdmins delivers data only to admin spectator clients in a room.
+func (h *Hub) broadcastToAdmins(roomID string, data []byte) {
+	h.mu.RLock()
+	var targets []*Client
+	if roomClients, ok := h.rooms[roomID]; ok {
+		for c := range roomClients {
+			if c.IsAdmin() {
+				targets = append(targets, c)
+			}
+		}
+	}
+	h.mu.RUnlock()
+	for _, c := range targets {
+		c.SendBytes(data)
+	}
+}
+
+// timeNow is a replaceable clock for testing.
+var timeNow = func() time.Time { return time.Now() }

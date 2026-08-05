@@ -36,6 +36,11 @@ func main() {
 	go hub.Run()
 
 	http.HandleFunc("/ws", ws.Handler(hub))
+
+	// Admin spectator WebSocket: token validated before upgrade, admin clients
+	// cannot trigger choose_level or submit_answer even if they try.
+	http.HandleFunc("/ws/admin", ws.AdminHandler(hub, adminHandler.ValidateToken))
+
 	http.Handle("/admin", adminHandler)
 	http.Handle("/admin/", adminHandler)
 
