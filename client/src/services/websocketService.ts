@@ -131,16 +131,19 @@ class WebSocketService {
       case 'turn':
         store.currentTurnPlayer = payload.currentPlayer || ''
         store.questionActive = false
+        store.activeQuestion = null
         break
       case 'turn_started':
         const activeP = store.players.find(p => p.id === payload.active_player_id)
         store.currentTurnPlayer = activeP ? activeP.name : (payload.active_player_id || '')
         store.questionActive = false
+        store.activeQuestion = null
         store.diceRolls = []
         store.lastEffect = ''
         break
       case 'turn_ended':
         store.questionActive = false
+        store.activeQuestion = null
         break
       case 'roll_resolved': {
         const player = store.players.find(p => p.id === payload.player_id)
@@ -184,9 +187,17 @@ class WebSocketService {
         store.deadline = typeof payload.deadline === 'number'
           ? payload.deadline
           : (payload.deadline ? new Date(payload.deadline).getTime() : 0)
+        store.activeQuestion = {
+          id: payload.problem_id || '',
+          type: payload.type || '',
+          difficulty: payload.difficulty || '',
+          prompt: payload.prompt || '',
+          options: payload.options || []
+        }
         break
       case 'question_end':
         store.questionActive = false
+        store.activeQuestion = null
         store.deadline = 0
         store.diceRolls = []
         store.lastEffect = ''
