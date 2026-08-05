@@ -2,12 +2,12 @@
 import { defineComponent } from 'vue'
 import LobbyView from './components/LobbyView.vue'
 import BoardView from './components/BoardView.vue'
-import AdminSpectatorView from './components/AdminSpectatorView.vue'
+import AdminView from './components/AdminView.vue'
 import { store } from './store'
 
 export default defineComponent({
   name: 'App',
-  components: { LobbyView, BoardView, AdminSpectatorView },
+  components: { LobbyView, BoardView, AdminView },
   data() {
     return {
       isAdmin: false,
@@ -25,8 +25,8 @@ export default defineComponent({
 </script>
 
 <template>
-  <!-- Admin spectator mode: open the page with ?admin=1 -->
-  <AdminSpectatorView v-if="isAdmin" />
+  <!-- Admin area mode: open the page with ?admin=1 -->
+  <AdminView v-if="isAdmin" />
   <template v-else>
     <LobbyView v-if="!showBoard" />
     <BoardView v-else />
