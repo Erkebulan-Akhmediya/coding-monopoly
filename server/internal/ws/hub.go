@@ -377,6 +377,20 @@ func (h *Hub) sendStateSyncToClient(roomID string, target *Client) {
 	}
 
 	target.SendBytes(data)
+
+	// Resync the active question to the active player if a question is currently active.
+	h.mu.RLock()
+	r, ok := h.roomInstances[roomID]
+	h.mu.RUnlock()
+
+	if ok {
+		if qPayload := r.GetActiveQuestionPayload(target.GetID()); qPayload != nil {
+			qData, err := NewMessage(MessageTypeQuestionStarted, roomID, qPayload)
+			if err == nil {
+				target.SendBytes(qData)
+			}
+		}
+	}
 }
 
 // buildStateSyncPayload assembles the StateSyncPayload and the list of connected

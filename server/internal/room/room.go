@@ -81,10 +81,11 @@ type AnswerResultPayload struct {
 }
 
 type activeTurn struct {
-	question Question
-	deadline time.Time
-	timer    *time.Timer
-	resolved bool // protected by Room.mu; this is the single-resolution guard
+	question   Question
+	difficulty string
+	deadline   time.Time
+	timer      *time.Timer
+	resolved   bool // protected by Room.mu; this is the single-resolution guard
 }
 
 // RollResult represents the details and outcome of a single dice roll.
@@ -225,6 +226,24 @@ func (r *Room) GetTurnState() (activePlayerID string, questionActive bool, deadl
 	return activePlayerID, questionActive, deadline
 }
 
+// GetActiveQuestionPayload returns the full question payload if the given client is the active player.
+func (r *Room) GetActiveQuestionPayload(clientID string) *QuestionStartedPayload {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if r.activePlayerID == clientID && r.currentTurn != nil && !r.currentTurn.resolved {
+		return &QuestionStartedPayload{
+			ProblemID:  r.currentTurn.question.ID,
+			Type:       r.currentTurn.question.Type,
+			Difficulty: r.currentTurn.difficulty,
+			Deadline:   r.currentTurn.deadline,
+			Prompt:     r.currentTurn.question.Prompt,
+			Options:    r.currentTurn.question.Options,
+		}
+	}
+	return nil
+}
+
 // AddOrReconnectPlayer handles player join or reconnect, maintaining strict join order.
 func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, bool) {
 	r.mu.Lock()
@@ -333,7 +352,7 @@ func (r *Room) ChooseLevel(clientID string, difficulty string) error {
 
 	duration := r.deadlineDurations[difficulty]
 	deadline := time.Now().Add(duration)
-	turn := &activeTurn{question: question, deadline: deadline}
+	turn := &activeTurn{question: question, difficulty: difficulty, deadline: deadline}
 	r.currentTurn = turn
 	turn.timer = time.AfterFunc(duration, func() {
 		r.resolveTimeout(turn, clientID)
