@@ -127,6 +127,7 @@ type Room struct {
 	questionProvider  QuestionProvider
 	currentTurn       *activeTurn
 	deadlineDurations map[string]time.Duration
+	paused            bool // set by AdminTogglePause
 }
 
 // NewRoom creates a new Room with default board and initialized RNG.
@@ -697,4 +698,135 @@ func (r *Room) FormatPlayerTurnSummary() string {
 
 func (r *Room) Board() []BoardCell {
 	return r.board
+}
+
+// ---------------------------------------------------------------------------
+// Admin control methods
+// ---------------------------------------------------------------------------
+
+// AdminStartGame is a hook for admin "start" control. Currently the room
+// starts implicitly when the first player joins; this method exists so the
+// admin WS handler has something to call and so future gating (e.g. minimum
+// player count) can be inserted here without changing the WS layer.
+func (r *Room) AdminStartGame() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	// If there is already an active player, nothing to do.
+	if r.activePlayerID != "" {
+		return
+	}
+	// Find the first connected player and make them active.
+	for i, p := range r.players {
+		if p.IsConnected {
+			r.turnIdx = i
+			r.activePlayerID = p.ID
+			r.broadcastTurnStartedLocked()
+			return
+		}
+	}
+}
+
+// AdminTogglePause pauses or unpauses the game. Returns true if the game is
+// now paused, false if it was just resumed.
+// Pause: the current turn timer is cancelled; the active turn is preserved.
+// Resume: the turn timer is restarted with the remaining deadline.
+func (r *Room) AdminTogglePause() (paused bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.paused = !r.paused
+	if r.paused {
+		// Stop the running timer without marking the turn as resolved.
+		if r.currentTurn != nil && r.currentTurn.timer != nil {
+			r.currentTurn.timer.Stop()
+		}
+	} else {
+		// Resume: re-arm the timer for the remaining time (or 1 ms if already past).
+		if r.currentTurn != nil && !r.currentTurn.resolved {
+			remaining := time.Until(r.currentTurn.deadline)
+			if remaining <= 0 {
+				remaining = time.Millisecond
+			}
+			turn := r.currentTurn
+			activeID := r.activePlayerID
+			r.currentTurn.timer = time.AfterFunc(remaining, func() {
+				r.resolveTimeout(turn, activeID)
+			})
+		}
+	}
+	return r.paused
+}
+
+// IsPaused reports whether the game is currently paused.
+func (r *Room) IsPaused() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.paused
+}
+
+// AdminKickPlayer disconnects the named player from the room engine
+// (same effect as DisconnectPlayer, which already handles turn advancement).
+// Returns the player's name for logging/event feed display.
+func (r *Room) AdminKickPlayer(playerID string) string {
+	r.mu.RLock()
+	p, exists := r.playerMap[playerID]
+	name := ""
+	if exists {
+		name = p.Name
+	}
+	r.mu.RUnlock()
+
+	if !exists {
+		return playerID
+	}
+	r.DisconnectPlayer(playerID)
+	return name
+}
+
+// AdminSkipTurn forcibly ends the current active player's turn without
+// grading — useful when the player has not yet chosen a difficulty and the
+// normal answer-phase timer therefore never started.
+// If playerID is empty it defaults to the current active player.
+// Returns the name of the player whose turn was skipped.
+func (r *Room) AdminSkipTurn(playerID string) string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	target := playerID
+	if target == "" {
+		target = r.activePlayerID
+	}
+	if target == "" || target != r.activePlayerID {
+		return target
+	}
+
+	p := r.playerMap[target]
+	name := target
+	if p != nil {
+		name = p.Name
+	}
+
+	// Cancel any running timer without resolving the turn through the normal
+	// grading path so we don't double-broadcast answer_result.
+	r.cancelCurrentTurnLocked()
+
+	// Broadcast a synthetic "timed out" answer result so the frontend knows
+	// the turn ended cleanly.
+	if r.broadcaster != nil {
+		r.broadcaster.BroadcastRoom(r.ID, "answer_result", AnswerResultPayload{
+			PlayerID: target,
+			Correct:  false,
+			TimedOut: true,
+		})
+	}
+
+	if p != nil {
+		p.ChosenDifficulty = ""
+	}
+
+	if r.broadcaster != nil {
+		r.broadcaster.BroadcastRoom(r.ID, "turn_ended", TurnEndedPayload{PlayerID: target})
+	}
+	r.advanceTurnLocked()
+
+	return name
 }

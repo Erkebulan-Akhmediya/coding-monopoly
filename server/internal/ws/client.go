@@ -37,6 +37,7 @@ type Client struct {
 	roomID    string
 	isJoined  bool
 	joinedAt  time.Time
+	isAdmin   bool // true for admin spectator connections; blocks player actions
 
 	// Timing configurations (can be customized for testing)
 	writeWait      time.Duration
@@ -121,6 +122,22 @@ func (c *Client) IsJoined() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.isJoined
+}
+
+// IsAdmin returns whether this is an admin spectator connection.
+func (c *Client) IsAdmin() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.isAdmin
+}
+
+// SetAdmin marks this client as an authenticated admin spectator and records the
+// room it is watching. Called exactly once, before ReadPump starts.
+func (c *Client) SetAdmin(roomID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.isAdmin = true
+	c.roomID = roomID
 }
 
 // ToPlayerInfo converts Client state into a PlayerInfo struct.
@@ -236,6 +253,29 @@ func (c *Client) handleIncomingMessage(data []byte) {
 		return
 	}
 
+	// Admin spectator connections may only send admin commands; player actions
+	// are silently rejected to prevent accidental or malicious side-effects.
+	if c.IsAdmin() {
+		switch msg.Type {
+		case MessageTypeAdminStart:
+			c.handleAdminStartMessage(msg)
+		case MessageTypeAdminPause:
+			c.handleAdminPauseMessage(msg)
+		case MessageTypeAdminKick:
+			c.handleAdminKickMessage(msg)
+		case MessageTypeAdminSkipTurn:
+			c.handleAdminSkipTurnMessage(msg)
+		case MessageTypePing:
+			pong, _ := NewMessage(MessageTypePong, c.GetRoomID(), nil)
+			c.SendBytes(pong)
+		case MessageTypeStateRequest:
+			c.handleStateRequestMessage()
+		default:
+			log.Printf("[WS Admin] Rejected message type '%s' from admin client %s (admin-only connection)", msg.Type, c.id)
+		}
+		return
+	}
+
 	switch msg.Type {
 	case MessageTypeJoin:
 		c.handleJoinMessage(msg)
@@ -340,4 +380,75 @@ func (c *Client) handleJoinMessage(msg Message) {
 func (c *Client) sendError(errMsg string) {
 	errBytes := NewErrorMessage(errMsg)
 	c.SendBytes(errBytes)
+}
+
+// ---------------------------------------------------------------------------
+// Admin command handlers (only reachable when c.isAdmin == true)
+// ---------------------------------------------------------------------------
+
+func (c *Client) handleAdminStartMessage(msg Message) {
+	roomID := c.GetRoomID()
+	if roomID == "" {
+		c.sendError("admin: not watching any room")
+		return
+	}
+	r := c.hub.GetRoomInstance(roomID)
+	r.AdminStartGame()
+	c.hub.broadcastGameEvent(roomID, "admin_action", "Admin started the game", nil)
+	log.Printf("[WS Admin] Client %s started game in room %s", c.id, roomID)
+}
+
+func (c *Client) handleAdminPauseMessage(msg Message) {
+	roomID := c.GetRoomID()
+	if roomID == "" {
+		c.sendError("admin: not watching any room")
+		return
+	}
+	r := c.hub.GetRoomInstance(roomID)
+	paused := r.AdminTogglePause()
+	action := "Admin resumed the game"
+	if paused {
+		action = "Admin paused the game"
+	}
+	c.hub.broadcastGameEvent(roomID, "admin_action", action, nil)
+	log.Printf("[WS Admin] Client %s toggled pause (paused=%v) in room %s", c.id, paused, roomID)
+}
+
+func (c *Client) handleAdminKickMessage(msg Message) {
+	roomID := c.GetRoomID()
+	if roomID == "" {
+		c.sendError("admin: not watching any room")
+		return
+	}
+	var payload AdminKickPayload
+	if len(msg.Payload) > 0 {
+		if err := json.Unmarshal(msg.Payload, &payload); err != nil || payload.PlayerID == "" {
+			c.sendError("admin: kick requires player_id")
+			return
+		}
+	}
+	if payload.PlayerID == "" {
+		c.sendError("admin: kick requires player_id")
+		return
+	}
+	r := c.hub.GetRoomInstance(roomID)
+	name := r.AdminKickPlayer(payload.PlayerID)
+	c.hub.broadcastGameEvent(roomID, "admin_action", "Admin kicked player: "+name, map[string]string{"player_id": payload.PlayerID})
+	log.Printf("[WS Admin] Client %s kicked player %s from room %s", c.id, payload.PlayerID, roomID)
+}
+
+func (c *Client) handleAdminSkipTurnMessage(msg Message) {
+	roomID := c.GetRoomID()
+	if roomID == "" {
+		c.sendError("admin: not watching any room")
+		return
+	}
+	var payload AdminSkipTurnPayload
+	if len(msg.Payload) > 0 {
+		_ = json.Unmarshal(msg.Payload, &payload)
+	}
+	r := c.hub.GetRoomInstance(roomID)
+	skippedName := r.AdminSkipTurn(payload.PlayerID)
+	c.hub.broadcastGameEvent(roomID, "admin_action", "Admin skipped turn for: "+skippedName, map[string]string{"player_id": payload.PlayerID})
+	log.Printf("[WS Admin] Client %s skipped turn for player '%s' in room %s", c.id, skippedName, roomID)
 }

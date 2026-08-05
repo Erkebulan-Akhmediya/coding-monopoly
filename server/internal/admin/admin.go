@@ -147,6 +147,35 @@ func (h *Handler) authorized(r *http.Request) bool {
 	return true
 }
 
+// ValidateToken verifies a raw bearer token string (without the "Bearer " prefix).
+// It is safe to call concurrently and is intended for use by the admin WS handler.
+func (h *Handler) ValidateToken(token string) bool {
+	pieces := strings.Split(token, ".")
+	if len(pieces) != 2 {
+		return false
+	}
+	provided, err := base64.RawURLEncoding.DecodeString(pieces[1])
+	if err != nil {
+		return false
+	}
+	mac := hmac.New(sha256.New, []byte(h.config.TokenSecret))
+	_, _ = mac.Write([]byte(pieces[0]))
+	if !hmac.Equal(provided, mac.Sum(nil)) {
+		return false
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(pieces[0])
+	if err != nil {
+		return false
+	}
+	var claims struct {
+		Exp int64 `json:"exp"`
+	}
+	if json.Unmarshal(payload, &claims) != nil || claims.Exp <= h.now().Unix() {
+		return false
+	}
+	return true
+}
+
 type Option struct {
 	ID        string `json:"id"`
 	Text      string `json:"text"`

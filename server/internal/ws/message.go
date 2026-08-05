@@ -23,6 +23,16 @@ const (
 	MessageTypeQuestionStarted = "question_started"
 	MessageTypeAnswerResult    = "answer_result"
 	MessageTypeStateRequest    = "state_request"
+
+	// Admin-only message types (sent by admin spectator clients).
+	MessageTypeAdminJoin      = "admin_join"      // authenticates the spectator WS connection
+	MessageTypeAdminStart     = "admin_start"     // start the game
+	MessageTypeAdminPause     = "admin_pause"     // pause / resume the game
+	MessageTypeAdminKick      = "admin_kick"      // remove a player from the room
+	MessageTypeAdminSkipTurn  = "admin_skip_turn" // manually advance past the active player's turn
+
+	// Server → admin event feed entry.
+	MessageTypeGameEvent = "game_event"
 )
 
 // Message is the standard WebSocket JSON frame wrapper.
@@ -80,6 +90,31 @@ type StateSyncPayload struct {
 type PresencePayload struct {
 	Event  string     `json:"event"` // "joined" or "left"
 	Player PlayerInfo `json:"player"`
+}
+
+// AdminJoinPayload is used by the admin WS client to identify itself.
+type AdminJoinPayload struct {
+	Token  string `json:"token"`
+	RoomID string `json:"room_id,omitempty"`
+}
+
+// AdminKickPayload identifies the player to be kicked.
+type AdminKickPayload struct {
+	PlayerID string `json:"player_id"`
+}
+
+// AdminSkipTurnPayload optionally carries the target player ID (defaults to
+// the current active player if omitted).
+type AdminSkipTurnPayload struct {
+	PlayerID string `json:"player_id,omitempty"`
+}
+
+// GameEventPayload is an entry in the live event feed pushed to admin spectators.
+type GameEventPayload struct {
+	Kind      string    `json:"kind"`       // e.g. "turn_started", "answer_result", "admin_action"
+	Message   string    `json:"message"`    // human-readable description
+	Timestamp time.Time `json:"timestamp"`
+	Meta      any       `json:"meta,omitempty"` // optional raw payload for rich display
 }
 
 // NewMessage creates a serialized Message.
