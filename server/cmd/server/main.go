@@ -36,22 +36,24 @@ func main() {
 	hub := ws.NewHub(ws.NewDBQuestionProvider(db))
 	go hub.Run()
 
-	http.HandleFunc("/ws", ws.Handler(hub))
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/ws", ws.Handler(hub))
 
 	// Admin spectator WebSocket: token validated before upgrade, admin clients
 	// cannot trigger choose_level or submit_answer even if they try.
-	http.HandleFunc("/ws/admin", ws.AdminHandler(hub, adminHandler.ValidateToken))
+	mux.HandleFunc("/ws/admin", ws.AdminHandler(hub, adminHandler.ValidateToken))
 
-	http.Handle("/admin", adminHandler)
-	http.Handle("/admin/", adminHandler)
+	mux.Handle("/admin", adminHandler)
+	mux.Handle("/admin/", adminHandler)
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("Monopoly Server Running"))
@@ -59,7 +61,20 @@ func main() {
 
 	port := "8080"
 	log.Printf("Server starting on port %s...", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, corsMiddleware(mux)); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
