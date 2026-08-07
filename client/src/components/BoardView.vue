@@ -266,6 +266,11 @@ export default defineComponent({
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
+.board-cell:hover .cell-tokens {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
 .cell-header {
   display: flex;
   justify-content: space-between;
@@ -325,6 +330,7 @@ export default defineComponent({
 
   min-height: 1.25rem;
   padding-top: 2px;
+  transition: opacity 0.2s ease;
 }
 
 /* Corner Cells Special Styling */
