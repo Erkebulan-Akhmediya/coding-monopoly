@@ -4,13 +4,17 @@ import { store } from '../store'
 import type { Player } from '../store'
 import PlayerToken from './PlayerToken.vue'
 import DiceOverlay from './DiceOverlay.vue'
-import LevelPicker from './LevelPicker.vue'
-import ProblemPanel from './ProblemPanel.vue'
 import Leaderboard from './Leaderboard.vue'
+import GameActionPanel from './GameActionPanel.vue'
 
 export default defineComponent({
   name: 'BoardView',
-  components: { PlayerToken, DiceOverlay, LevelPicker, ProblemPanel, Leaderboard },
+  components: { 
+    PlayerToken, 
+    DiceOverlay, 
+    Leaderboard, 
+    GameActionPanel, 
+  },
   data() {
     return {
       remaining: 0 as number,
@@ -205,14 +209,11 @@ export default defineComponent({
         <DiceOverlay />
 
         <!-- Game Action Panel: LevelPicker, ProblemPanel -->
-        <div class="game-action-container">
-          <LevelPicker v-if="isMyTurn && !store.questionActive" />
-          <ProblemPanel v-else-if="store.questionActive" />
-        </div>
-
+        <GameActionPanel />
         
       </div>
     </div>
+
     <!-- Leaderboard / Player Overview Panel -->
     <Leaderboard />
   </div>
@@ -469,11 +470,6 @@ export default defineComponent({
 @keyframes pulse-red {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
-}
-
-.game-action-container {
-  margin: 0.5rem 0;
-  width: 100%;
 }
 
 @media (max-width: 820px) {
