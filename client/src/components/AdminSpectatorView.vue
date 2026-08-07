@@ -54,6 +54,13 @@ const PLAYER_COLORS = [
 export default defineComponent({
   name: 'AdminSpectatorView',
 
+  props: {
+    isEmbedded: {
+      type: Boolean,
+      default: false,
+    },
+  },
+
   data() {
     return {
       store: adminStore,
@@ -69,7 +76,7 @@ export default defineComponent({
 
   computed: {
     isLoggedIn(): boolean {
-      return adminStore.connected && !!adminStore.token
+      return (adminStore.connected || this.isEmbedded) && !!adminStore.token
     },
 
     sortedPlayers(): AdminPlayer[] {

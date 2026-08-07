@@ -235,6 +235,8 @@ func (h *Handler) problems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch r.Method {
+	case http.MethodGet:
+		h.getProblem(w, r, parts[0])
 	case http.MethodPut:
 		h.updateProblem(w, r, parts[0])
 	case http.MethodDelete:
@@ -291,7 +293,26 @@ func (h *Handler) listProblems(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "read problems")
 		return
 	}
+	for i := range problems {
+		full, err := h.loadProblem(r.Context(), problems[i].ID)
+		if err == nil {
+			problems[i] = full
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"problems": problems})
+}
+
+func (h *Handler) getProblem(w http.ResponseWriter, r *http.Request, id string) {
+	p, err := h.loadProblem(r.Context(), id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "problem not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "read problem")
+		return
+	}
+	writeJSON(w, http.StatusOK, p)
 }
 
 func enumFilter(value, name string, allowed []string) (any, error) {
