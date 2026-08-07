@@ -1,8 +1,11 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { store, type Player } from '../store';
+import PlayerToken from './PlayerToken.vue';
+
 export default defineComponent({
   name: 'Leaderboard',
+  components: {PlayerToken},
   data() {
     return {
       store: store,
@@ -53,7 +56,7 @@ export default defineComponent({
   top: 10px;
   left: 10px;
 
-  width: 300px;
+  width: 250px;
 }
 
 .leaderboard h3 {

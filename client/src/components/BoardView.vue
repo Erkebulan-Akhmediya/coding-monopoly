@@ -234,7 +234,7 @@ export default defineComponent({
 
 .board-grid {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 85px));
+  grid-template-columns: repeat(9, minmax(0, 130px));
   grid-template-rows: repeat(9, minmax(0, 85px));
   gap: 4px;
   background: #1e293b;
@@ -311,11 +311,18 @@ export default defineComponent({
 
 /* Tokens Container inside Cell */
 .cell-tokens {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  justify-content: center;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  grid-template-rows: repeat(3, auto);
+  place-items: center;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
   min-height: 1.25rem;
   padding-top: 2px;
 }
