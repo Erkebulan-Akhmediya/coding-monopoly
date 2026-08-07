@@ -22,15 +22,27 @@ export default defineComponent({
 
 <template>
   <!-- Game Action Panel: LevelPicker, ProblemPanel -->
-  <div class="game-action-container">
-    <LevelPicker v-if="isMyTurn && !store.questionActive" />
-    <ProblemPanel v-else-if="store.questionActive" />
+  <div v-if="isMyTurn" class="game-action-container">
+    <LevelPicker v-if="!store.questionActive" />
+    <ProblemPanel v-else />
   </div>
 </template>
 
 <style scoped>
 .game-action-container {
-  margin: 0.5rem 0;
+  margin: auto;
   width: 100%;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
 }
 </style>

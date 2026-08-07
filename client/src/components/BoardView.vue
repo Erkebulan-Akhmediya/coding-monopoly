@@ -207,15 +207,15 @@ export default defineComponent({
 
         <!-- Dice Roll & Effect Overlay Component -->
         <DiceOverlay />
-
-        <!-- Game Action Panel: LevelPicker, ProblemPanel -->
-        <GameActionPanel />
         
       </div>
     </div>
 
     <!-- Leaderboard / Player Overview Panel -->
     <Leaderboard />
+
+    <!-- Game Action Panel: LevelPicker, ProblemPanel -->
+    <GameActionPanel />
   </div>
 </template>
 
