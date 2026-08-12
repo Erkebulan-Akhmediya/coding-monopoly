@@ -24,7 +24,8 @@ class WebSocketService {
   private maxBackoff: number = 30000 // 30 s
   /** Keeps dice overlay visible after roll_resolved; turn_started arrives in the same burst. */
   private diceClearTimer: ReturnType<typeof setTimeout> | null = null
-  private static readonly DICE_DISPLAY_MS = 3000
+  /** Cover roll-a-die's 3s CSS animation plus a short result hold. */
+  private static readonly DICE_DISPLAY_MS = 5500
 
   private clearDiceOverlay(): void {
     store.diceRolls = []
