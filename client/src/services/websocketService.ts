@@ -22,6 +22,25 @@ class WebSocketService {
   private reconnectAttempts: number = 0
   private _connectPromise?: Promise<void>
   private maxBackoff: number = 30000 // 30 s
+  /** Keeps dice overlay visible after roll_resolved; turn_started arrives in the same burst. */
+  private diceClearTimer: ReturnType<typeof setTimeout> | null = null
+  /** Cover roll-a-die's 3s CSS animation plus a short result hold. */
+  private static readonly DICE_DISPLAY_MS = 5500
+
+  private clearDiceOverlay(): void {
+    store.diceRolls = []
+    store.lastEffect = ''
+  }
+
+  private scheduleDiceOverlayClear(): void {
+    if (this.diceClearTimer !== null) {
+      clearTimeout(this.diceClearTimer)
+    }
+    this.diceClearTimer = setTimeout(() => {
+      this.diceClearTimer = null
+      this.clearDiceOverlay()
+    }, WebSocketService.DICE_DISPLAY_MS)
+  }
 
   /** Connect (or reconnect) to the server */
   async connect(): Promise<void> {
@@ -138,8 +157,8 @@ class WebSocketService {
         store.currentTurnPlayer = activeP ? activeP.name : (payload.active_player_id || '')
         store.questionActive = false
         store.activeQuestion = null
-        store.diceRolls = []
-        store.lastEffect = ''
+        // Do not clear dice here: server sends turn_started immediately after
+        // roll_resolved in the same burst, which would hide the overlay before paint.
         break
       case 'turn_ended':
         store.questionActive = false
@@ -165,6 +184,7 @@ class WebSocketService {
         } else if (payload.landed_cell && payload.landed_cell.name) {
           store.lastEffect = `Landed on ${payload.landed_cell.name}`
         }
+        this.scheduleDiceOverlayClear()
         break
       }
       case 'answer_result': {
@@ -183,6 +203,11 @@ class WebSocketService {
       }
       case 'question_start':
       case 'question_started':
+        if (this.diceClearTimer !== null) {
+          clearTimeout(this.diceClearTimer)
+          this.diceClearTimer = null
+        }
+        this.clearDiceOverlay()
         store.questionActive = true
         store.deadline = typeof payload.deadline === 'number'
           ? payload.deadline
@@ -199,8 +224,11 @@ class WebSocketService {
         store.questionActive = false
         store.activeQuestion = null
         store.deadline = 0
-        store.diceRolls = []
-        store.lastEffect = ''
+        if (this.diceClearTimer !== null) {
+          clearTimeout(this.diceClearTimer)
+          this.diceClearTimer = null
+        }
+        this.clearDiceOverlay()
         break
       default:
         console.warn('Unhandled message type', type)
