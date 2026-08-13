@@ -172,6 +172,7 @@ export default defineComponent({
     cancelKick() { this.confirmKick = null },
 
     skipTurn(playerID?: string) { adminWS.skipTurn(playerID) },
+    endGame() { adminWS.endGame() },
 
     isCorner(idx: number): boolean { return this.cornerIndexes.includes(idx) },
 
@@ -359,6 +360,7 @@ export default defineComponent({
                   :disabled="!store.currentTurnPlayer" @click="skipTurn()">
             ⏭ Skip Active Turn
           </button>
+          <button id="admin-end-btn" class="ctrl-btn btn-danger" @click="endGame">🏁 End Game</button>
         </div>
 
         <div class="turn-strip" v-if="store.currentTurnPlayer">

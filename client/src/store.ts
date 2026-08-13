@@ -12,6 +12,7 @@ export interface Player {
   double_xp?: boolean
   free_passes?: number
 }
+
 export interface Question {
   id: string
   type: string
@@ -27,25 +28,60 @@ export interface PendingTokenMove {
   dieRoll: number
 }
 
+export interface EffectToast {
+  id: number
+  effectType: string
+  description: string
+  xpDelta: number
+  cellIndex: number | null
+}
+
+export interface PlayerStanding {
+  player_id: string
+  name: string
+  xp: number
+  position: number
+  rank: number
+  is_connected: boolean
+}
+
+export interface GameOverSummary {
+  winner_id: string
+  winner_name: string
+  reason: string
+  target_xp: number
+  standings: PlayerStanding[]
+}
+
 // Simple global reactive store for the client app (Options API friendly)
 export const store = reactive({
   // Player state
   playerName: '' as string,
+  playerId: '' as string,
+  roomId: 'default' as string,
   connected: false as boolean,
-  // List of all connected players (including this client)
+  // List of all players (including briefly disconnected slots)
   players: [] as Player[],
 
   // Board cells state received from server
-  boardCells: [] as any[], // each cell object as defined by the server
+  boardCells: [] as any[],
 
   // Turn management
-  currentTurnPlayer: '' as string, // name of player whose turn it is
+  currentTurnPlayer: '' as string,
   questionActive: false as boolean,
-  // deadline timestamp in ms (UTC) for the active question countdown
   deadline: 0 as number,
   activeQuestion: null as Question | null,
-  diceRolls: [] as number[], // recent dice roll values
-  lastEffect: '' as string, // description of latest effect
+  diceRolls: [] as number[],
+  lastEffect: '' as string,
+  lastEffectType: '' as string,
+
+  // Effect feedback
+  effectToasts: [] as EffectToast[],
+  highlightedCellIndex: null as number | null,
+
+  // Win condition / end screen
+  targetXP: 500 as number,
+  gameOver: null as GameOverSummary | null,
 
   // Board token animation (visual cell ≠ logical position while hopping)
   tokenVisualPositions: {} as Record<string, number>,
@@ -55,4 +91,3 @@ export const store = reactive({
   landedCellIndex: null as number | null,
   landedCellPlayerId: '' as string,
 })
-

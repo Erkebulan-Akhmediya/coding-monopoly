@@ -14,7 +14,11 @@ export default defineComponent({
   },
   computed: {
     isMyTurn(): boolean {
-      return store.currentTurnPlayer === store.playerName && store.playerName !== ''
+      return (
+        !store.gameOver &&
+        store.currentTurnPlayer === store.playerName &&
+        store.playerName !== ''
+      )
     },
   },
 });

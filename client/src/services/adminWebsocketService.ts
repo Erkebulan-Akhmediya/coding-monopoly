@@ -102,6 +102,10 @@ class AdminWebSocketService {
     this.send({ type: 'admin_skip_turn', payload: { player_id: playerID ?? '' } })
   }
 
+  endGame(winnerID?: string): void {
+    this.send({ type: 'admin_end_game', payload: { winner_id: winnerID ?? '' } })
+  }
+
   // ---- Internals ------------------------------------------------------------
 
   private buildUrl(): string {
@@ -154,15 +158,22 @@ class AdminWebSocketService {
 
       case 'presence':
         if (payload.event === 'joined') {
-          const np = { ...payload.player, position: payload.player.position ?? 0, xp: payload.player.xp ?? 0 }
+          const np = {
+            ...payload.player,
+            position: payload.player.position ?? 0,
+            xp: payload.player.xp ?? 0,
+            is_connected: true,
+          }
           const idx = adminStore.players.findIndex((p) => p.id === np.id)
-          if (idx >= 0) adminStore.players[idx] = np
+          if (idx >= 0) adminStore.players[idx] = { ...adminStore.players[idx], ...np }
           else adminStore.players.push(np)
           adminStore.appendEvent('presence', `${np.name} joined`)
         } else if (payload.event === 'left') {
           const left = adminStore.players.find((p) => p.id === payload.player.id)
-          adminStore.players = adminStore.players.filter((p) => p.id !== payload.player.id)
-          adminStore.appendEvent('presence', `${left?.name ?? payload.player.id} left`)
+          if (left) {
+            left.is_connected = false
+          }
+          adminStore.appendEvent('presence', `${left?.name ?? payload.player.id} disconnected`)
         }
         break
 
@@ -224,6 +235,15 @@ class AdminWebSocketService {
       case 'game_event':
         // Push admin action and other server-emitted events into the feed.
         adminStore.appendEvent(payload.kind ?? 'event', payload.message ?? JSON.stringify(payload))
+        break
+
+      case 'game_over':
+        adminStore.questionActive = false
+        adminStore.currentTurnPlayer = ''
+        adminStore.appendEvent(
+          'admin_action',
+          `Game over — winner: ${payload?.winner_name ?? payload?.winner_id ?? 'unknown'}`,
+        )
         break
 
       case 'error':

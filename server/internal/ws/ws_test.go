@@ -243,15 +243,24 @@ func TestWS_GracefulDisconnect(t *testing.T) {
 		t.Errorf("Unexpected leave presence: %+v", presenceLeft)
 	}
 
-	// Client A should receive updated state_sync with only Alice
+	// Client A should receive updated state_sync retaining Bob's slot as disconnected
 	_, msgA_sync := readUntilType(t, connA, MessageTypeStateSync)
 	if msgA_sync.Type != MessageTypeStateSync {
 		t.Fatalf("Client A expected state_sync after disconnect, got %s", msgA_sync.Type)
 	}
 	var stateSyncAfter StateSyncPayload
 	_ = json.Unmarshal(msgA_sync.Payload, &stateSyncAfter)
-	if len(stateSyncAfter.Players) != 1 || stateSyncAfter.Players[0].Name != "Alice" {
-		t.Errorf("Expected 1 player (Alice) after disconnect, got: %+v", stateSyncAfter.Players)
+	if len(stateSyncAfter.Players) != 2 {
+		t.Fatalf("Expected 2 players retained after disconnect, got: %+v", stateSyncAfter.Players)
+	}
+	var bobDisconnected bool
+	for _, p := range stateSyncAfter.Players {
+		if p.Name == "Bob" && !p.IsConnected {
+			bobDisconnected = true
+		}
+	}
+	if !bobDisconnected {
+		t.Errorf("Expected Bob to remain in state_sync as disconnected, got: %+v", stateSyncAfter.Players)
 	}
 }
 
@@ -296,8 +305,17 @@ func TestWS_UngracefulDisconnect(t *testing.T) {
 	}
 	var stateSyncAfter StateSyncPayload
 	_ = json.Unmarshal(msgA_sync.Payload, &stateSyncAfter)
-	if len(stateSyncAfter.Players) != 1 || stateSyncAfter.Players[0].Name != "Alice" {
-		t.Errorf("Expected 1 player after ungraceful disconnect, got: %+v", stateSyncAfter.Players)
+	if len(stateSyncAfter.Players) != 2 {
+		t.Fatalf("Expected 2 players retained after ungraceful disconnect, got: %+v", stateSyncAfter.Players)
+	}
+	connected := 0
+	for _, p := range stateSyncAfter.Players {
+		if p.IsConnected {
+			connected++
+		}
+	}
+	if connected != 1 {
+		t.Errorf("Expected 1 connected player after ungraceful disconnect, got: %+v", stateSyncAfter.Players)
 	}
 }
 
@@ -423,10 +441,12 @@ func TestWS_GoroutineLeakOnDisconnectAndShutdown(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	// Verify room is empty
+	// Verify room engine retained slots but none are connected
 	players := hub.GetRoomPlayers("leak-room")
-	if len(players) != 0 {
-		t.Errorf("Expected 0 players after disconnect and hub shutdown, got %d", len(players))
+	for _, p := range players {
+		if p.IsConnected {
+			t.Errorf("Expected no connected players after disconnect and hub shutdown, found %s", p.Name)
+		}
 	}
 }
 
@@ -701,3 +721,106 @@ func TestWS_StateSyncIncludesTurnState(t *testing.T) {
 		t.Errorf("Expected current_turn_player in state_sync for B to be %s, got %s", aliceID, payloadB.CurrentTurnPlayer)
 	}
 }
+
+func sendJoinWithPlayerID(t *testing.T, conn *websocket.Conn, name, roomID, playerID string) {
+	t.Helper()
+	joinPayload := JoinPayload{
+		Name:     name,
+		RoomID:   roomID,
+		PlayerID: playerID,
+	}
+	payloadBytes, _ := json.Marshal(joinPayload)
+	msg := Message{
+		Type:    MessageTypeJoin,
+		RoomID:  roomID,
+		Payload: payloadBytes,
+	}
+	if err := conn.WriteJSON(msg); err != nil {
+		t.Fatalf("Failed to send join message: %v", err)
+	}
+}
+
+func TestWS_ReconnectResumesSlotAndMidQuestion(t *testing.T) {
+	provider := fixedQuestionProvider{question: room.Question{
+		ID:              "q-resume",
+		Type:            "text",
+		Difficulty:      "easy",
+		Prompt:          "resume me",
+		AcceptedAnswers: []string{"ok"},
+	}}
+	hub, server := setupTestServerWithProvider(t, provider)
+
+	connA := connectClient(t, server)
+	sendJoin(t, connA, "Alice", "resume-room")
+	_, joinedMsg := readUntilType(t, connA, MessageTypeJoined)
+	var joined JoinedPayload
+	_ = json.Unmarshal(joinedMsg.Payload, &joined)
+	if joined.PlayerID == "" {
+		t.Fatalf("expected player_id in joined payload")
+	}
+	aliceID := joined.PlayerID
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
+
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, connB, "Bob", "resume-room")
+	_, _ = readUntilType(t, connB, MessageTypeJoined)
+	_, _ = readUntilType(t, connB, MessageTypeStateSync)
+
+	r := hub.GetRoomInstance("resume-room")
+	r.SetDeadlineDurations(3*time.Second, 3*time.Second, 3*time.Second)
+	r.SetDisconnectGrace(500 * time.Millisecond)
+
+	// Start a question for Alice.
+	choosePayload, _ := json.Marshal(ChooseLevelPayload{Difficulty: "easy"})
+	_ = connA.WriteJSON(Message{Type: MessageTypeChooseLevel, Payload: choosePayload})
+	_, qMsg := readUntilType(t, connA, MessageTypeQuestionStarted)
+	var qBefore room.QuestionStartedPayload
+	_ = json.Unmarshal(qMsg.Payload, &qBefore)
+	if qBefore.Prompt == "" || qBefore.Deadline.IsZero() {
+		t.Fatalf("expected full question before disconnect: %+v", qBefore)
+	}
+
+	_ = connA.Close()
+	_, _ = readUntilType(t, connB, MessageTypePresence) // left
+	_, _ = readUntilType(t, connB, MessageTypeStateSync)
+
+	// Reclaim with the same player_id on a new connection.
+	connA2 := connectClient(t, server)
+	defer connA2.Close()
+	sendJoinWithPlayerID(t, connA2, "Alice", "resume-room", aliceID)
+
+	_, joined2 := readUntilType(t, connA2, MessageTypeJoined)
+	var joinedAgain JoinedPayload
+	_ = json.Unmarshal(joined2.Payload, &joinedAgain)
+	if !joinedAgain.Resumed || joinedAgain.PlayerID != aliceID {
+		t.Fatalf("expected resumed join for %s, got %+v", aliceID, joinedAgain)
+	}
+
+	_, syncMsg := readUntilType(t, connA2, MessageTypeStateSync)
+	var sync StateSyncPayload
+	_ = json.Unmarshal(syncMsg.Payload, &sync)
+	var alice *PlayerInfo
+	for i := range sync.Players {
+		if sync.Players[i].ID == aliceID {
+			alice = &sync.Players[i]
+		}
+	}
+	if alice == nil || !alice.IsConnected {
+		t.Fatalf("expected restored Alice slot, got %+v", alice)
+	}
+	if sync.CurrentTurnPlayer != aliceID || !sync.QuestionActive || sync.Deadline == nil {
+		t.Fatalf("expected mid-question turn state restored: %+v", sync)
+	}
+	if !sync.Deadline.Equal(qBefore.Deadline) {
+		t.Fatalf("deadline reset on resume: before=%v after=%v", qBefore.Deadline, sync.Deadline)
+	}
+
+	_, qResume := readUntilType(t, connA2, MessageTypeQuestionStarted)
+	var qAfter room.QuestionStartedPayload
+	_ = json.Unmarshal(qResume.Payload, &qAfter)
+	if qAfter.Prompt != "resume me" || !qAfter.Deadline.Equal(qBefore.Deadline) {
+		t.Fatalf("question resume mismatch: %+v", qAfter)
+	}
+}
+

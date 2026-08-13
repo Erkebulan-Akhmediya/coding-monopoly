@@ -8,6 +8,8 @@ import DiceOverlay from './DiceOverlay.vue'
 import LandedCellPreview from './LandedCellPreview.vue'
 import Leaderboard from './Leaderboard.vue'
 import GameActionPanel from './GameActionPanel.vue'
+import EffectToastStack from './EffectToastStack.vue'
+import EndGameSummary from './EndGameSummary.vue'
 
 export default defineComponent({
   name: 'BoardView',
@@ -16,7 +18,9 @@ export default defineComponent({
     DiceOverlay,
     LandedCellPreview,
     Leaderboard, 
-    GameActionPanel, 
+    GameActionPanel,
+    EffectToastStack,
+    EndGameSummary,
   },
   data() {
     return {
@@ -175,7 +179,10 @@ export default defineComponent({
         :class="[
           'cell-' + (cell.type || 'generic'),
           getXpGainClass(cell),
-          { corner: isCorner(idx) }
+          {
+            corner: isCorner(idx),
+            'effect-highlight': store.highlightedCellIndex === idx,
+          }
         ]"
         :style="getCellGridStyle(idx)"
       >
@@ -228,6 +235,9 @@ export default defineComponent({
 
     <!-- Game Action Panel: LevelPicker, ProblemPanel -->
     <GameActionPanel />
+
+    <EffectToastStack />
+    <EndGameSummary />
   </div>
 </template>
 
@@ -276,6 +286,22 @@ export default defineComponent({
   transform: scale(1.04);
   z-index: 5;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.board-cell.effect-highlight {
+  animation: cell-effect-pulse 0.9s ease-in-out 2;
+  box-shadow: 0 0 0 2px #fbbf24, 0 0 18px rgba(251, 191, 36, 0.55);
+  z-index: 6;
+}
+
+@keyframes cell-effect-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
 }
 
 /* Let the hop jump paint above the cell edge */

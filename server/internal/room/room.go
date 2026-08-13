@@ -113,6 +113,33 @@ type TurnEndedPayload struct {
 	PlayerID string `json:"player_id"`
 }
 
+// PlayerStanding is one row in the end-of-game summary.
+type PlayerStanding struct {
+	PlayerID    string `json:"player_id"`
+	Name        string `json:"name"`
+	XP          int    `json:"xp"`
+	Position    int    `json:"position"`
+	Rank        int    `json:"rank"`
+	IsConnected bool   `json:"is_connected"`
+}
+
+// GameOverPayload is broadcast when the match ends (target XP or admin).
+type GameOverPayload struct {
+	WinnerID   string           `json:"winner_id"`
+	WinnerName string           `json:"winner_name"`
+	Reason     string           `json:"reason"` // "target_xp" | "admin"
+	TargetXP   int              `json:"target_xp"`
+	Standings  []PlayerStanding `json:"standings"`
+}
+
+const (
+	// DefaultTargetXP is the first-to-XP win threshold.
+	DefaultTargetXP = 500
+	// DefaultDisconnectGrace is how long an active player may blip offline
+	// before their turn is forcibly ended. Distinct from the question timer.
+	DefaultDisconnectGrace = 5 * time.Second
+)
+
 // Room manages game state, connected players in join order, turn progression, and cell effect execution.
 type Room struct {
 	ID                string
@@ -128,6 +155,11 @@ type Room struct {
 	currentTurn       *activeTurn
 	deadlineDurations map[string]time.Duration
 	paused            bool // set by AdminTogglePause
+	finished          bool
+	gameOver          *GameOverPayload
+	targetXP          int
+	disconnectGrace   time.Duration
+	graceTimers       map[string]*time.Timer
 }
 
 // NewRoom creates a new Room with default board and initialized RNG.
@@ -145,6 +177,9 @@ func NewRoom(id string, broadcaster Broadcaster) *Room {
 			"medium": 45 * time.Second,
 			"hard":   60 * time.Second,
 		},
+		targetXP:        DefaultTargetXP,
+		disconnectGrace: DefaultDisconnectGrace,
+		graceTimers:     make(map[string]*time.Timer),
 	}
 }
 
@@ -171,6 +206,58 @@ func (r *Room) SetDeadlineDurations(easy, medium, hard time.Duration) {
 	r.deadlineDurations["easy"] = easy
 	r.deadlineDurations["medium"] = medium
 	r.deadlineDurations["hard"] = hard
+}
+
+// SetDisconnectGrace overrides the active-player disconnect grace period (tests).
+func (r *Room) SetDisconnectGrace(d time.Duration) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.disconnectGrace = d
+}
+
+// SetTargetXP overrides the first-to-XP win threshold (tests / config).
+func (r *Room) SetTargetXP(xp int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.targetXP = xp
+}
+
+// IsFinished reports whether the game has ended.
+func (r *Room) IsFinished() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.finished
+}
+
+// GetGameOver returns the end-of-game payload when the match is finished.
+func (r *Room) GetGameOver() *GameOverPayload {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.gameOver == nil {
+		return nil
+	}
+	cp := *r.gameOver
+	cp.Standings = append([]PlayerStanding(nil), r.gameOver.Standings...)
+	return &cp
+}
+
+// GetTargetXP returns the configured first-to-XP threshold.
+func (r *Room) GetTargetXP() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.targetXP
+}
+
+// CanReclaimPlayer reports whether a reconnecting client may take over playerID.
+// Allowed when the slot exists and is currently disconnected (or in grace).
+func (r *Room) CanReclaimPlayer(playerID string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	p, exists := r.playerMap[playerID]
+	if !exists {
+		return false
+	}
+	return !p.IsConnected
 }
 
 // SetRNG Seed or custom RNG generator (useful for deterministic testing).
@@ -246,24 +333,40 @@ func (r *Room) GetActiveQuestionPayload(clientID string) *QuestionStartedPayload
 }
 
 // AddOrReconnectPlayer handles player join or reconnect, maintaining strict join order.
+// A reconnecting player keeps the same slot, position, XP, and modifiers. If they are
+// still the active player mid-question, the existing deadline is left untouched.
 func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if p, exists := r.playerMap[clientID]; exists {
-		// Reconnecting player
+		r.clearGraceTimerLocked(clientID)
 		p.IsConnected = true
 		if name != "" {
 			p.Name = name
 		}
 
-		// If no active player set, make reconnecting player active if turn index points to them
-		if r.activePlayerID == "" {
-			r.activePlayerID = p.ID
-			r.broadcastTurnStartedLocked()
+		// If the room had no eligible active player, resume turn order from this slot
+		// when it is their place — otherwise pick the next connected player.
+		if r.activePlayerID == "" && !r.finished {
+			if r.turnIdx >= 0 && r.turnIdx < len(r.players) && r.players[r.turnIdx].ID == clientID {
+				r.activePlayerID = p.ID
+				r.broadcastTurnStartedLocked()
+			} else {
+				r.advanceTurnLocked()
+			}
 		}
 
 		return p, false
+	}
+
+	if r.finished {
+		player := NewPlayer(clientID, name)
+		// Spectate-only late join after game over: still track them, but do not
+		// start a turn.
+		r.players = append(r.players, player)
+		r.playerMap[clientID] = player
+		return player, false
 	}
 
 	// New player joining
@@ -283,7 +386,19 @@ func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, bool
 }
 
 // DisconnectPlayer marks a player as disconnected without removing their slot.
+// If they are the active player, a short grace period starts before the turn is
+// forfeited — a brief network blip does not immediately end their turn.
 func (r *Room) DisconnectPlayer(clientID string) {
+	r.disconnectPlayer(clientID, false)
+}
+
+// DisconnectPlayerImmediate marks a player disconnected and forfeits their turn
+// immediately (used for admin kick).
+func (r *Room) DisconnectPlayerImmediate(clientID string) {
+	r.disconnectPlayer(clientID, true)
+}
+
+func (r *Room) disconnectPlayer(clientID string, immediate bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -293,11 +408,61 @@ func (r *Room) DisconnectPlayer(clientID string) {
 	}
 
 	p.IsConnected = false
+	r.clearGraceTimerLocked(clientID)
 
-	// If the active player disconnected, advance turn to next connected player
-	if r.activePlayerID == clientID {
-		r.cancelCurrentTurnLocked()
-		r.advanceTurnLocked()
+	if r.activePlayerID != clientID || r.finished {
+		return
+	}
+
+	if immediate || r.disconnectGrace <= 0 {
+		r.forfeitActiveTurnLocked(clientID)
+		return
+	}
+
+	grace := r.disconnectGrace
+	r.graceTimers[clientID] = time.AfterFunc(grace, func() {
+		r.onDisconnectGraceExpired(clientID)
+	})
+}
+
+func (r *Room) onDisconnectGraceExpired(clientID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	delete(r.graceTimers, clientID)
+
+	p, exists := r.playerMap[clientID]
+	if !exists || p.IsConnected {
+		return
+	}
+	if r.activePlayerID != clientID || r.finished {
+		return
+	}
+	r.forfeitActiveTurnLocked(clientID)
+}
+
+// forfeitActiveTurnLocked ends the active player's turn without grading (grace
+// expiry / kick). The question timer is cancelled; mid-question content is dropped.
+func (r *Room) forfeitActiveTurnLocked(clientID string) {
+	r.cancelCurrentTurnLocked()
+	if player := r.playerMap[clientID]; player != nil {
+		player.ChosenDifficulty = ""
+	}
+	if r.broadcaster != nil {
+		r.broadcaster.BroadcastRoom(r.ID, "answer_result", AnswerResultPayload{
+			PlayerID: clientID,
+			Correct:  false,
+			TimedOut: true,
+		})
+		r.broadcaster.BroadcastRoom(r.ID, "turn_ended", TurnEndedPayload{PlayerID: clientID})
+	}
+	r.advanceTurnLocked()
+}
+
+func (r *Room) clearGraceTimerLocked(clientID string) {
+	if t, ok := r.graceTimers[clientID]; ok {
+		t.Stop()
+		delete(r.graceTimers, clientID)
 	}
 }
 
@@ -305,6 +470,13 @@ func (r *Room) DisconnectPlayer(clientID string) {
 func (r *Room) ChooseLevel(clientID string, difficulty string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if r.finished {
+		if r.broadcaster != nil {
+			r.broadcaster.SendError(clientID, "Game is over")
+		}
+		return errors.New("game is over")
+	}
 
 	if clientID != r.activePlayerID {
 		if r.broadcaster != nil {
@@ -387,6 +559,13 @@ func (r *Room) SubmitAnswer(clientID string, payload json.RawMessage) ([]RollRes
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if r.finished {
+		if r.broadcaster != nil {
+			r.broadcaster.SendError(clientID, "Game is over")
+		}
+		return nil, errors.New("game is over")
+	}
+
 	if clientID != r.activePlayerID {
 		if r.broadcaster != nil {
 			r.broadcaster.SendError(clientID, "Not your turn: only the active player can submit an answer")
@@ -458,6 +637,7 @@ func (r *Room) resolveAnswerLocked(turn *activeTurn, clientID string, payload js
 	}
 
 	r.endTurnLocked(clientID)
+	r.checkGameOverLocked()
 	return rolls
 }
 
@@ -615,6 +795,7 @@ func (r *Room) rollPlayerLocked(player *Player) []RollResult {
 func (r *Room) rollAndEndTurnLocked(player *Player, clientID string) []RollResult {
 	rolls := r.rollPlayerLocked(player)
 	r.endTurnLocked(clientID)
+	r.checkGameOverLocked()
 	return rolls
 }
 
@@ -626,7 +807,9 @@ func (r *Room) endTurnLocked(clientID string) {
 		player.ChosenDifficulty = ""
 	}
 	r.currentTurn = nil
-	r.advanceTurnLocked()
+	if !r.finished {
+		r.advanceTurnLocked()
+	}
 }
 
 func (r *Room) cancelCurrentTurnLocked() {
@@ -638,6 +821,11 @@ func (r *Room) cancelCurrentTurnLocked() {
 
 // advanceTurnLocked advances active player pointer to next connected player, skipping disconnected slots.
 func (r *Room) advanceTurnLocked() {
+	if r.finished {
+		r.activePlayerID = ""
+		return
+	}
+
 	totalPlayers := len(r.players)
 	if totalPlayers == 0 {
 		r.activePlayerID = ""
@@ -672,11 +860,88 @@ func (r *Room) advanceTurnLocked() {
 }
 
 func (r *Room) broadcastTurnStartedLocked() {
-	if r.broadcaster != nil && r.activePlayerID != "" {
+	if r.broadcaster != nil && r.activePlayerID != "" && !r.finished {
 		r.broadcaster.BroadcastRoom(r.ID, "turn_started", TurnStartedPayload{
 			ActivePlayerID: r.activePlayerID,
 		})
 	}
+}
+
+func (r *Room) checkGameOverLocked() {
+	if r.finished {
+		return
+	}
+	var best *Player
+	for _, p := range r.players {
+		if p.XP >= r.targetXP {
+			if best == nil || p.XP > best.XP {
+				best = p
+			}
+		}
+	}
+	if best == nil {
+		return
+	}
+	r.finishGameLocked(best.ID, "target_xp")
+}
+
+func (r *Room) finishGameLocked(winnerID string, reason string) {
+	if r.finished {
+		return
+	}
+	r.finished = true
+	r.cancelCurrentTurnLocked()
+	r.clearAllGraceTimersLocked()
+	r.activePlayerID = ""
+
+	standings := r.buildStandingsLocked()
+	winnerName := winnerID
+	if p := r.playerMap[winnerID]; p != nil {
+		winnerName = p.Name
+	}
+	payload := &GameOverPayload{
+		WinnerID:   winnerID,
+		WinnerName: winnerName,
+		Reason:     reason,
+		TargetXP:   r.targetXP,
+		Standings:  standings,
+	}
+	r.gameOver = payload
+
+	if r.broadcaster != nil {
+		r.broadcaster.BroadcastRoom(r.ID, "game_over", payload)
+	}
+}
+
+func (r *Room) clearAllGraceTimersLocked() {
+	for id, t := range r.graceTimers {
+		t.Stop()
+		delete(r.graceTimers, id)
+	}
+}
+
+func (r *Room) buildStandingsLocked() []PlayerStanding {
+	sorted := make([]*Player, len(r.players))
+	copy(sorted, r.players)
+	for i := 0; i < len(sorted); i++ {
+		for j := i + 1; j < len(sorted); j++ {
+			if sorted[j].XP > sorted[i].XP {
+				sorted[i], sorted[j] = sorted[j], sorted[i]
+			}
+		}
+	}
+	out := make([]PlayerStanding, 0, len(sorted))
+	for i, p := range sorted {
+		out = append(out, PlayerStanding{
+			PlayerID:    p.ID,
+			Name:        p.Name,
+			XP:          p.XP,
+			Position:    p.Position,
+			Rank:        i + 1,
+			IsConnected: p.IsConnected,
+		})
+	}
+	return out
 }
 
 // FormatPlayerTurnSummary produces a human-readable summary of the room state.
@@ -763,9 +1028,8 @@ func (r *Room) IsPaused() bool {
 	return r.paused
 }
 
-// AdminKickPlayer disconnects the named player from the room engine
-// (same effect as DisconnectPlayer, which already handles turn advancement).
-// Returns the player's name for logging/event feed display.
+// AdminKickPlayer disconnects the named player from the room engine immediately
+// (no reconnect grace). Returns the player's name for logging/event feed display.
 func (r *Room) AdminKickPlayer(playerID string) string {
 	r.mu.RLock()
 	p, exists := r.playerMap[playerID]
@@ -778,8 +1042,36 @@ func (r *Room) AdminKickPlayer(playerID string) string {
 	if !exists {
 		return playerID
 	}
-	r.DisconnectPlayer(playerID)
+	r.DisconnectPlayerImmediate(playerID)
 	return name
+}
+
+// AdminEndGame forcibly finishes the match and broadcasts standings.
+// If winnerID is empty, the current highest-XP player wins.
+func (r *Room) AdminEndGame(winnerID string) *GameOverPayload {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.finished {
+		return r.gameOver
+	}
+
+	chosen := winnerID
+	if chosen == "" || r.playerMap[chosen] == nil {
+		var best *Player
+		for _, p := range r.players {
+			if best == nil || p.XP > best.XP {
+				best = p
+			}
+		}
+		if best == nil {
+			r.finishGameLocked("", "admin")
+			return r.gameOver
+		}
+		chosen = best.ID
+	}
+	r.finishGameLocked(chosen, "admin")
+	return r.gameOver
 }
 
 // AdminSkipTurn forcibly ends the current active player's turn without
@@ -790,6 +1082,10 @@ func (r *Room) AdminKickPlayer(playerID string) string {
 func (r *Room) AdminSkipTurn(playerID string) string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if r.finished {
+		return ""
+	}
 
 	target := playerID
 	if target == "" {
@@ -805,28 +1101,6 @@ func (r *Room) AdminSkipTurn(playerID string) string {
 		name = p.Name
 	}
 
-	// Cancel any running timer without resolving the turn through the normal
-	// grading path so we don't double-broadcast answer_result.
-	r.cancelCurrentTurnLocked()
-
-	// Broadcast a synthetic "timed out" answer result so the frontend knows
-	// the turn ended cleanly.
-	if r.broadcaster != nil {
-		r.broadcaster.BroadcastRoom(r.ID, "answer_result", AnswerResultPayload{
-			PlayerID: target,
-			Correct:  false,
-			TimedOut: true,
-		})
-	}
-
-	if p != nil {
-		p.ChosenDifficulty = ""
-	}
-
-	if r.broadcaster != nil {
-		r.broadcaster.BroadcastRoom(r.ID, "turn_ended", TurnEndedPayload{PlayerID: target})
-	}
-	r.advanceTurnLocked()
-
+	r.forfeitActiveTurnLocked(target)
 	return name
 }

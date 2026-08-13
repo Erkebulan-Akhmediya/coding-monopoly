@@ -159,13 +159,12 @@ func (h *Hub) Run() {
 				log.Printf("[WS Hub] Client unregistered: %s (name: %s, room: %s)", client.id, client.GetName(), roomID)
 
 				if wasJoined && roomID != "" {
-					playerInfo := client.ToPlayerInfo(false)
-					h.broadcastPresence(roomID, "left", playerInfo)
-					h.broadcastStateSync(roomID)
-
 					if r, exists := h.roomInstances[roomID]; exists {
 						r.DisconnectPlayer(client.id)
 					}
+					playerInfo := client.ToPlayerInfo(false)
+					h.broadcastPresence(roomID, "left", playerInfo)
+					h.broadcastStateSync(roomID)
 				}
 			}
 
@@ -230,6 +229,22 @@ func (h *Hub) Run() {
 
 			// Broadcast state_sync to all clients in room (including the joining client)
 			h.broadcastStateSync(roomID)
+
+			// Mid-question resume: only the active player gets full question content,
+			// using the original deadline (remaining time), not a reset countdown.
+			if qPayload := r.GetActiveQuestionPayload(c.id); qPayload != nil {
+				qData, err := NewMessage(MessageTypeQuestionStarted, roomID, qPayload)
+				if err == nil {
+					c.SendBytes(qData)
+				}
+			}
+
+			if goPayload := r.GetGameOver(); goPayload != nil {
+				data, err := NewMessage(MessageTypeGameOver, roomID, goPayload)
+				if err == nil {
+					c.SendBytes(data)
+				}
+			}
 
 		case req := <-h.broadcast:
 			h.deliverToRoom(req.roomID, req.data)
@@ -395,43 +410,53 @@ func (h *Hub) sendStateSyncToClient(roomID string, target *Client) {
 
 // buildStateSyncPayload assembles the StateSyncPayload and the list of connected
 // clients for a room. Shared by broadcastStateSync and sendStateSyncToClient.
+// Players come from the room engine (including disconnected slots) so reconnect
+// clients recover exact position/XP/turn order.
 func (h *Hub) buildStateSyncPayload(roomID string) (StateSyncPayload, []*Client) {
 	h.mu.RLock()
-	var players []PlayerInfo
 	var targetClients []*Client
+	if roomClients, ok := h.rooms[roomID]; ok {
+		for c := range roomClients {
+			targetClients = append(targetClients, c)
+		}
+	}
+
+	var players []PlayerInfo
 	var cells []room.BoardCell
 	var currentTurnPlayer string
 	var questionActive bool
 	var deadline *time.Time
-	if roomClients, ok := h.rooms[roomID]; ok {
-		for c := range roomClients {
-			if c.IsJoined() {
-				players = append(players, c.ToPlayerInfo(true))
-			}
-			targetClients = append(targetClients, c)
-		}
-	}
+	var targetXP int
+	var gameOver *room.GameOverPayload
+
 	r, ok := h.roomInstances[roomID]
+	h.mu.RUnlock()
+
 	if ok {
 		cells = r.Board()
 		roomPlayers := r.GetPlayers()
-		playerMap := make(map[string]room.Player)
+		players = make([]PlayerInfo, 0, len(roomPlayers))
 		for _, rp := range roomPlayers {
-			playerMap[rp.ID] = rp
-		}
-		for i := range players {
-			if rp, found := playerMap[players[i].ID]; found {
-				players[i].Position = rp.Position
-				players[i].XP = rp.XP
-				players[i].InCodeFreeze = rp.InCodeFreeze
-				players[i].SkipNextTurn = rp.SkipNextTurn
-				players[i].DoubleXP = rp.DoubleXP
-				players[i].FreePasses = rp.FreePasses
-			}
+			players = append(players, PlayerInfo{
+				ID:           rp.ID,
+				Name:         rp.Name,
+				RoomID:       roomID,
+				JoinedAt:     rp.JoinedAt,
+				IsConnected:  rp.IsConnected,
+				Position:     rp.Position,
+				XP:           rp.XP,
+				InCodeFreeze: rp.InCodeFreeze,
+				SkipNextTurn: rp.SkipNextTurn,
+				DoubleXP:     rp.DoubleXP,
+				FreePasses:   rp.FreePasses,
+			})
 		}
 		currentTurnPlayer, questionActive, deadline = r.GetTurnState()
+		targetXP = r.GetTargetXP()
+		if r.IsFinished() {
+			gameOver = r.GetGameOver()
+		}
 	}
-	h.mu.RUnlock()
 
 	payload := StateSyncPayload{
 		RoomID:            roomID,
@@ -440,40 +465,39 @@ func (h *Hub) buildStateSyncPayload(roomID string) (StateSyncPayload, []*Client)
 		CurrentTurnPlayer: currentTurnPlayer,
 		QuestionActive:    questionActive,
 		Deadline:          deadline,
+		TargetXP:          targetXP,
+		GameOver:          gameOver,
 	}
 
 	return payload, targetClients
 }
 
-// GetRoomPlayers returns a snapshot of connected players in a room (thread-safe utility).
+// GetRoomPlayers returns a snapshot of all players in a room (including
+// disconnected slots) from the room engine.
 func (h *Hub) GetRoomPlayers(roomID string) []PlayerInfo {
 	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	var players []PlayerInfo
-	var playerMap map[string]room.Player
-	if r, ok := h.roomInstances[roomID]; ok {
-		playerMap = make(map[string]room.Player)
-		for _, rp := range r.GetPlayers() {
-			playerMap[rp.ID] = rp
-		}
+	r, ok := h.roomInstances[roomID]
+	h.mu.RUnlock()
+	if !ok {
+		return nil
 	}
 
-	if roomClients, ok := h.rooms[roomID]; ok {
-		for c := range roomClients {
-			if c.IsJoined() {
-				pi := c.ToPlayerInfo(true)
-				if rp, found := playerMap[c.id]; found {
-					pi.Position = rp.Position
-					pi.XP = rp.XP
-					pi.InCodeFreeze = rp.InCodeFreeze
-					pi.SkipNextTurn = rp.SkipNextTurn
-					pi.DoubleXP = rp.DoubleXP
-					pi.FreePasses = rp.FreePasses
-				}
-				players = append(players, pi)
-			}
-		}
+	roomPlayers := r.GetPlayers()
+	players := make([]PlayerInfo, 0, len(roomPlayers))
+	for _, rp := range roomPlayers {
+		players = append(players, PlayerInfo{
+			ID:           rp.ID,
+			Name:         rp.Name,
+			RoomID:       roomID,
+			JoinedAt:     rp.JoinedAt,
+			IsConnected:  rp.IsConnected,
+			Position:     rp.Position,
+			XP:           rp.XP,
+			InCodeFreeze: rp.InCodeFreeze,
+			SkipNextTurn: rp.SkipNextTurn,
+			DoubleXP:     rp.DoubleXP,
+			FreePasses:   rp.FreePasses,
+		})
 	}
 	return players
 }
