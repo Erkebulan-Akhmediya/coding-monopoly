@@ -2,8 +2,10 @@
 import { defineComponent } from 'vue'
 import { store } from '../store'
 import type { Player } from '../store'
+import { getTokenVisualPosition } from '../services/tokenMovement'
 import PlayerToken from './PlayerToken.vue'
 import DiceOverlay from './DiceOverlay.vue'
+import LandedCellPreview from './LandedCellPreview.vue'
 import Leaderboard from './Leaderboard.vue'
 import GameActionPanel from './GameActionPanel.vue'
 
@@ -11,7 +13,8 @@ export default defineComponent({
   name: 'BoardView',
   components: { 
     PlayerToken, 
-    DiceOverlay, 
+    DiceOverlay,
+    LandedCellPreview,
     Leaderboard, 
     GameActionPanel, 
   },
@@ -58,7 +61,13 @@ export default defineComponent({
       return this.cornerIndexes.includes(idx)
     },
     getPlayersAtCell(cellIndex: number): Player[] {
-      return store.players.filter(p => (p.position ?? 0) === cellIndex)
+      // Use animated visual positions so tokens hop cell-to-cell after dice settle.
+      return store.players.filter(
+        p => getTokenVisualPosition(p.id, p.position ?? 0) === cellIndex
+      )
+    },
+    isTokenHopping(playerId: string): boolean {
+      return store.hoppingPlayerId === playerId
     },
     getCellGridStyle(idx: number) {
       let row = 1
@@ -189,6 +198,7 @@ export default defineComponent({
             :key="p.id"
             :player="p"
             size="small"
+            :hopping="isTokenHopping(p.id)"
           />
         </div>
       </div>
@@ -207,7 +217,9 @@ export default defineComponent({
 
         <!-- Dice Roll & Effect Overlay Component -->
         <DiceOverlay />
-        
+
+        <!-- Magnified destination cell after token finishes hopping -->
+        <LandedCellPreview />
       </div>
     </div>
 
@@ -264,6 +276,12 @@ export default defineComponent({
   transform: scale(1.04);
   z-index: 5;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Let the hop jump paint above the cell edge */
+.board-cell:has(.player-token.hopping) {
+  overflow: visible;
+  z-index: 8;
 }
 
 .board-cell:hover .cell-tokens {

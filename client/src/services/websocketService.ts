@@ -10,6 +10,13 @@
  * `src/store.ts`.
  */
 import { store } from '../store'
+import {
+  clearLandedCellPreview,
+  onDiceAnimationComplete,
+  queueTokenMove,
+  removeTokenVisual,
+  syncTokenVisualPositions,
+} from './tokenMovement'
 
 interface Message {
   type: string
@@ -30,6 +37,8 @@ class WebSocketService {
   private clearDiceOverlay(): void {
     store.diceRolls = []
     store.lastEffect = ''
+    // Overlay gone — if hops were waiting on dice, let them run.
+    onDiceAnimationComplete()
   }
 
   private scheduleDiceOverlayClear(): void {
@@ -117,6 +126,7 @@ class WebSocketService {
           xp: p.xp ?? 0,
         }))
         store.boardCells = payload.board_cells || []
+        syncTokenVisualPositions()
         if (payload.current_turn_player !== undefined) {
           const activeP = store.players.find(p => p.id === payload.current_turn_player)
           store.currentTurnPlayer = activeP ? activeP.name : (payload.current_turn_player || '')
@@ -143,8 +153,11 @@ class WebSocketService {
           } else {
             store.players.push(newPlayer)
           }
+          store.tokenVisualPositions[newPlayer.id] = newPlayer.position
         } else if (payload.event === 'left') {
-          store.players = store.players.filter(player => payload.player.id !== player.id)
+          const leftId = payload.player.id
+          store.players = store.players.filter(player => leftId !== player.id)
+          removeTokenVisual(leftId)
         }
         break
       case 'turn':
@@ -166,8 +179,16 @@ class WebSocketService {
         break
       case 'roll_resolved': {
         const player = store.players.find(p => p.id === payload.player_id)
+        const oldPos =
+          typeof payload.old_position === 'number'
+            ? payload.old_position
+            : (player?.position ?? 0)
+        const newPos =
+          typeof payload.new_position === 'number'
+            ? payload.new_position
+            : (player?.position ?? oldPos)
         if (player) {
-          player.position = payload.new_position ?? player.position
+          player.position = newPos
           if (typeof payload.player_xp === 'number') {
             player.xp = payload.player_xp
           }
@@ -179,6 +200,25 @@ class WebSocketService {
             store.diceRolls.push(payload.die_roll)
           }
         }
+        queueTokenMove({
+          playerId: payload.player_id,
+          from: oldPos,
+          to: newPos,
+          dieRoll: typeof payload.die_roll === 'number' ? payload.die_roll : 0,
+        })
+        // Teleport (and similar) may leave logical position beyond dice landing.
+        const effectPos = payload.effect?.new_position
+        if (typeof effectPos === 'number' && effectPos !== newPos) {
+          if (player) {
+            player.position = effectPos
+          }
+          queueTokenMove({
+            playerId: payload.player_id,
+            from: newPos,
+            to: effectPos,
+            dieRoll: 0, // single jump to effect target
+          })
+        }
         if (payload.effect && payload.effect.description) {
           store.lastEffect = payload.effect.description
         } else if (payload.landed_cell && payload.landed_cell.name) {
@@ -188,13 +228,11 @@ class WebSocketService {
         break
       }
       case 'answer_result': {
+        // Positions already advanced via roll_resolved (+ hop queue). Only sync XP.
         const player = store.players.find(p => p.id === payload.player_id)
-        if (payload.rolls && Array.isArray(payload.rolls)) {
+        if (player && payload.rolls && Array.isArray(payload.rolls)) {
           payload.rolls.forEach((r: any) => {
-            if (player && typeof r.new_position === 'number') {
-              player.position = r.new_position
-            }
-            if (player && typeof r.player_xp === 'number') {
+            if (typeof r.player_xp === 'number') {
               player.xp = r.player_xp
             }
           })
@@ -208,6 +246,7 @@ class WebSocketService {
           this.diceClearTimer = null
         }
         this.clearDiceOverlay()
+        clearLandedCellPreview()
         store.questionActive = true
         store.deadline = typeof payload.deadline === 'number'
           ? payload.deadline
@@ -229,6 +268,7 @@ class WebSocketService {
           this.diceClearTimer = null
         }
         this.clearDiceOverlay()
+        clearLandedCellPreview()
         break
       default:
         console.warn('Unhandled message type', type)

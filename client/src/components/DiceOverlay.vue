@@ -2,6 +2,7 @@
 import { defineComponent } from 'vue'
 import rollADie from 'roll-a-die'
 import { store } from '../store'
+import { onDiceAnimationComplete } from '../services/tokenMovement'
 
 /** CSS animation in roll-a-die is fixed at 3s. */
 const ROLL_ANIMATION_MS = 3000
@@ -82,6 +83,9 @@ export default defineComponent({
       this.$nextTick(() => {
         const mount = this.$refs.diceMount as HTMLElement | undefined
         if (!mount) {
+          this.rolling = false
+          this.settled = true
+          onDiceAnimationComplete()
           return
         }
 
@@ -110,6 +114,7 @@ export default defineComponent({
           console.error('Dice animation failed', err)
           this.rolling = false
           this.settled = true
+          onDiceAnimationComplete()
           return
         }
 
@@ -117,6 +122,8 @@ export default defineComponent({
           this.settleTimer = null
           this.rolling = false
           this.settled = true
+          // Token hops start once dice have finished tumbling.
+          onDiceAnimationComplete()
         }, ROLL_ANIMATION_MS)
       })
     },
