@@ -51,5 +51,8 @@ export const store = reactive({
   tokenVisualPositions: {} as Record<string, number>,
   pendingTokenMoves: [] as PendingTokenMove[],
   hoppingPlayerId: '' as string,
+  /** Magnified destination cell shown in the board center after hops finish. */
+  landedCellIndex: null as number | null,
+  landedCellPlayerId: '' as string,
 })
 

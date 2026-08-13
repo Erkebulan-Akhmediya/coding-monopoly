@@ -5,6 +5,7 @@ import type { Player } from '../store'
 import { getTokenVisualPosition } from '../services/tokenMovement'
 import PlayerToken from './PlayerToken.vue'
 import DiceOverlay from './DiceOverlay.vue'
+import LandedCellPreview from './LandedCellPreview.vue'
 import Leaderboard from './Leaderboard.vue'
 import GameActionPanel from './GameActionPanel.vue'
 
@@ -12,7 +13,8 @@ export default defineComponent({
   name: 'BoardView',
   components: { 
     PlayerToken, 
-    DiceOverlay, 
+    DiceOverlay,
+    LandedCellPreview,
     Leaderboard, 
     GameActionPanel, 
   },
@@ -215,7 +217,9 @@ export default defineComponent({
 
         <!-- Dice Roll & Effect Overlay Component -->
         <DiceOverlay />
-        
+
+        <!-- Magnified destination cell after token finishes hopping -->
+        <LandedCellPreview />
       </div>
     </div>
 

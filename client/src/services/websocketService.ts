@@ -11,6 +11,7 @@
  */
 import { store } from '../store'
 import {
+  clearLandedCellPreview,
   onDiceAnimationComplete,
   queueTokenMove,
   removeTokenVisual,
@@ -245,6 +246,7 @@ class WebSocketService {
           this.diceClearTimer = null
         }
         this.clearDiceOverlay()
+        clearLandedCellPreview()
         store.questionActive = true
         store.deadline = typeof payload.deadline === 'number'
           ? payload.deadline
@@ -266,6 +268,7 @@ class WebSocketService {
           this.diceClearTimer = null
         }
         this.clearDiceOverlay()
+        clearLandedCellPreview()
         break
       default:
         console.warn('Unhandled message type', type)
