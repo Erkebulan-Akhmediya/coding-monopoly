@@ -2,7 +2,9 @@
  * Resolve HTTP/WS base URLs for both Vite-dev and the embedded production binary.
  *
  * - Dev: optional VITE_WS_BASE_URL, otherwise ws://localhost:8080/ws (Go API beside Vite).
- * - Production (embedded): same-origin from window.location so LAN IP access works.
+ * - Production (embedded): always same-origin from window.location so LAN IP access works.
+ *   VITE_WS_BASE_URL is intentionally ignored in production — baking localhost into the
+ *   binary would break every student browser on the classroom LAN.
  */
 
 function envWsBase(): string {
@@ -12,19 +14,23 @@ function envWsBase(): string {
 
 /** WebSocket URL for the player endpoint (.../ws). */
 export function getWsBaseUrl(): string {
+  // Production builds must never honor a bake-time override.
+  if (!import.meta.env.DEV) {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    return `${proto}//${window.location.host}/ws`
+  }
   const fromEnv = envWsBase()
   if (fromEnv) {
     return fromEnv
   }
-  if (import.meta.env.DEV) {
-    return 'ws://localhost:8080/ws'
-  }
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${proto}//${window.location.host}/ws`
+  return 'ws://localhost:8080/ws'
 }
 
 /** HTTP origin for REST (admin API), without a trailing slash. */
 export function getBaseHttpUrl(): string {
+  if (!import.meta.env.DEV) {
+    return window.location.origin
+  }
   const fromEnv = envWsBase()
   if (fromEnv) {
     return fromEnv
@@ -32,8 +38,5 @@ export function getBaseHttpUrl(): string {
       .replace(/^ws:/, 'http:')
       .replace(/\/ws$/, '')
   }
-  if (import.meta.env.DEV) {
-    return 'http://localhost:8080'
-  }
-  return window.location.origin
+  return 'http://localhost:8080'
 }

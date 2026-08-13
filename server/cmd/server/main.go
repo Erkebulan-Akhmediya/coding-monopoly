@@ -37,30 +37,15 @@ func main() {
 	hub := ws.NewHub(ws.NewDBQuestionProvider(db))
 	go hub.Run()
 
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/ws", ws.Handler(hub))
-
-	// Admin spectator WebSocket: token validated before upgrade, admin clients
-	// cannot trigger choose_level or submit_answer even if they try.
-	mux.HandleFunc("/ws/admin", ws.AdminHandler(hub, adminHandler.ValidateToken))
-
-	mux.Handle("/admin", adminHandler)
-	mux.Handle("/admin/", adminHandler)
-
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
-
-	// Vue SPA + static assets (embedded via embed.FS). Registered last so API
-	// and WebSocket routes always win.
-	mux.Handle("/", staticHandler())
+	handler := buildDeployMux(
+		hub,
+		adminHandler,
+		ws.AdminHandler(hub, adminHandler.ValidateToken),
+	)
 
 	addr := listenAddr()
 	log.Printf("Server listening on http://%s (LAN clients: use this host's IP)", addr)
-	if err := http.ListenAndServe(addr, corsMiddleware(mux)); err != nil {
+	if err := http.ListenAndServe(addr, handler); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
@@ -77,17 +62,4 @@ func listenAddr() string {
 		port = "8080"
 	}
 	return "0.0.0.0:" + port
-}
-
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }

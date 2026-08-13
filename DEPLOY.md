@@ -15,9 +15,19 @@ make seed          # board + sample questions
 make build         # builds Vue → embeds into bin/monopoly-server
 ```
 
-`make build` runs `npm run build`, copies assets into `server/cmd/server/dist`,
-then `go build`s with `//go:embed`. The result is `bin/monopoly-server` —
-no separate static file server and no Node process in production.
+`make build` runs `npm run build` with `VITE_WS_BASE_URL` cleared, copies
+assets into `server/cmd/server/dist`, refuses to ship if the JS contains
+`localhost` WS URLs, then `go build`s with `//go:embed`. The result is
+`bin/monopoly-server` — no separate static file server and no Node process
+in production. Always use `make build` (not bare `go build`) so the embed
+matches the latest client.
+
+After building, optionally re-check fairness on the deploy mux + embedded
+assets:
+
+```bash
+make smoke
+```
 
 ## Configure environment
 
@@ -28,8 +38,8 @@ Copy and edit `server/.env` (or export the same variables before launching):
 | `DATABASE_URL` | Postgres DSN for the **target** instance (see migrations below) |
 | `LISTEN_ADDR` | Bind address, e.g. `0.0.0.0:8080` (default if unset) |
 | `PORT` | Alternative to `LISTEN_ADDR`: port only, always on `0.0.0.0` |
-| `ADMIN_PASSWORD` | Admin panel / spectator login (change from the scaffold default) |
-| `ADMIN_TOKEN_SECRET` | HMAC secret for admin bearer tokens (long random string) |
+| `ADMIN_PASSWORD` | Admin panel / spectator login (**required**, no default — set before launch) |
+| `ADMIN_TOKEN_SECRET` | HMAC secret for admin bearer tokens (**required**, e.g. `openssl rand -hex 32`) |
 | `ADMIN_TOKEN_TTL` | Token lifetime (default `15m`) |
 
 `godotenv` autoloads `.env` from the **process working directory**. Either:
@@ -130,7 +140,7 @@ make migrate-down
 ## Run checklist
 
 1. Postgres healthy and migrated; questions published (seed or admin UI).
-2. Strong `ADMIN_PASSWORD` / `ADMIN_TOKEN_SECRET` set.
+2. Non-empty `ADMIN_PASSWORD` / `ADMIN_TOKEN_SECRET` set (server will not start if blank).
 3. `LISTEN_ADDR=0.0.0.0:8080` (or your LAN bind).
 4. Host firewall allows **8080/tcp**; Postgres not reachable from students.
 5. `./bin/monopoly-server` — confirm `/health` returns `ok`.
@@ -146,6 +156,11 @@ concurrent request throughput.
 make loadtest
 # or: cd server && go run ./cmd/loadtest -players 24 -correct-rate 0.8
 ```
+
+This drives the real sequential turn loop (join → choose → question → submit →
+next turn) over an in-process hub — the same engine the binary uses. It is not
+HTTP connect-spam; wall-clock is dominated by think time, which is what matters
+for fitting rotations into a class period.
 
 ### Scenario
 
@@ -187,9 +202,13 @@ Re-run anytime with `make loadtest` after engine changes.
 
 - Question **prompt/options** go only to the active player's socket; spectators
   get difficulty + deadline. Correct answers are private review for the solver
-  only (`json:"-"` on option correctness; redaction covered by WS tests).
+  only (`json:"-"` on option correctness). Re-verified on the **deploy mux**
+  (same route wiring as `bin/monopoly-server`) via `make smoke`.
+- Submit-vs-timeout race resolves exactly once on that deploy path (`make smoke`).
 - Admin spectator WS requires a validated token **before** upgrade; admin
   clients cannot `choose_level` / `submit_answer`.
 - Pause blocks choose/submit until resumed.
-- Production clients use same-origin WS URLs (no hardcoded `localhost`).
-- Change scaffold admin secrets before a real class. Keep Postgres off the LAN.
+- Production clients always use same-origin WS URLs; `VITE_WS_BASE_URL` is
+  ignored outside Vite dev so a stray env cannot break LAN play.
+- Set `ADMIN_PASSWORD` / `ADMIN_TOKEN_SECRET` before class (empty values refuse
+  startup). Keep Postgres off the LAN.
