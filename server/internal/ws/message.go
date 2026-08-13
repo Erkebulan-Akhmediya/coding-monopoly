@@ -23,6 +23,8 @@ const (
 	MessageTypeQuestionStarted = "question_started"
 	MessageTypeAnswerResult    = "answer_result"
 	MessageTypeStateRequest    = "state_request"
+	MessageTypeJoined          = "joined"
+	MessageTypeGameOver        = "game_over"
 
 	// Admin-only message types (sent by admin spectator clients).
 	MessageTypeAdminJoin      = "admin_join"      // authenticates the spectator WS connection
@@ -30,6 +32,7 @@ const (
 	MessageTypeAdminPause     = "admin_pause"     // pause / resume the game
 	MessageTypeAdminKick      = "admin_kick"      // remove a player from the room
 	MessageTypeAdminSkipTurn  = "admin_skip_turn" // manually advance past the active player's turn
+	MessageTypeAdminEndGame   = "admin_end_game"  // forcibly end the match
 
 	// Server → admin event feed entry.
 	MessageTypeGameEvent = "game_event"
@@ -57,8 +60,17 @@ type SubmitAnswerPayload struct {
 
 // JoinPayload represents the payload sent by a client to join a room.
 type JoinPayload struct {
-	Name   string `json:"name"`
-	RoomID string `json:"room_id,omitempty"`
+	Name     string `json:"name"`
+	RoomID   string `json:"room_id,omitempty"`
+	PlayerID string `json:"player_id,omitempty"` // reclaim prior slot on reconnect
+}
+
+// JoinedPayload is sent privately after a successful join/reconnect.
+type JoinedPayload struct {
+	PlayerID string `json:"player_id"`
+	Name     string `json:"name"`
+	RoomID   string `json:"room_id"`
+	Resumed  bool   `json:"resumed"` // true when an existing slot was reclaimed
 }
 
 // PlayerInfo represents player state sent over WebSocket.
@@ -78,12 +90,14 @@ type PlayerInfo struct {
 
 // StateSyncPayload represents the complete player list for a room.
 type StateSyncPayload struct {
-	RoomID            string           `json:"room_id"`
-	Players           []PlayerInfo     `json:"players"`
-	BoardCells        []room.BoardCell `json:"board_cells"`
-	CurrentTurnPlayer string           `json:"current_turn_player,omitempty"`
-	QuestionActive    bool             `json:"question_active"`
-	Deadline          *time.Time       `json:"deadline,omitempty"`
+	RoomID            string                `json:"room_id"`
+	Players           []PlayerInfo          `json:"players"`
+	BoardCells        []room.BoardCell      `json:"board_cells"`
+	CurrentTurnPlayer string                `json:"current_turn_player,omitempty"`
+	QuestionActive    bool                  `json:"question_active"`
+	Deadline          *time.Time            `json:"deadline,omitempty"`
+	TargetXP          int                   `json:"target_xp,omitempty"`
+	GameOver          *room.GameOverPayload `json:"game_over,omitempty"`
 }
 
 // PresencePayload represents a presence broadcast (join/leave).

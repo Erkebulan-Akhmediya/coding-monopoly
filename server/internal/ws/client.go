@@ -90,7 +90,16 @@ func NewClient(id string, hub *Hub, conn *websocket.Conn, opts ...ClientOptions)
 
 // GetID returns client unique ID.
 func (c *Client) GetID() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.id
+}
+
+// SetID updates the client's identity (used when reclaiming a prior player slot).
+func (c *Client) SetID(id string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.id = id
 }
 
 // SetJoined sets player name and room ID when joining.
@@ -265,6 +274,8 @@ func (c *Client) handleIncomingMessage(data []byte) {
 			c.handleAdminKickMessage(msg)
 		case MessageTypeAdminSkipTurn:
 			c.handleAdminSkipTurnMessage(msg)
+		case MessageTypeAdminEndGame:
+			c.handleAdminEndGameMessage(msg)
 		case MessageTypePing:
 			pong, _ := NewMessage(MessageTypePong, c.GetRoomID(), nil)
 			c.SendBytes(pong)
@@ -374,7 +385,25 @@ func (c *Client) handleJoinMessage(msg Message) {
 		roomID = "default"
 	}
 
+	claimedID := strings.TrimSpace(payload.PlayerID)
+	resumed := false
+	if claimedID != "" {
+		r := c.hub.GetRoomInstance(roomID)
+		if r.CanReclaimPlayer(claimedID) {
+			c.SetID(claimedID)
+			resumed = true
+		}
+	}
+
 	c.hub.JoinRoom(c, name, roomID)
+
+	joined, _ := NewMessage(MessageTypeJoined, roomID, JoinedPayload{
+		PlayerID: c.GetID(),
+		Name:     name,
+		RoomID:   roomID,
+		Resumed:  resumed,
+	})
+	c.SendBytes(joined)
 }
 
 func (c *Client) sendError(errMsg string) {
@@ -451,4 +480,26 @@ func (c *Client) handleAdminSkipTurnMessage(msg Message) {
 	skippedName := r.AdminSkipTurn(payload.PlayerID)
 	c.hub.broadcastGameEvent(roomID, "admin_action", "Admin skipped turn for: "+skippedName, map[string]string{"player_id": payload.PlayerID})
 	log.Printf("[WS Admin] Client %s skipped turn for player '%s' in room %s", c.id, skippedName, roomID)
+}
+
+func (c *Client) handleAdminEndGameMessage(msg Message) {
+	roomID := c.GetRoomID()
+	if roomID == "" {
+		c.sendError("admin: not watching any room")
+		return
+	}
+	var payload struct {
+		WinnerID string `json:"winner_id"`
+	}
+	if len(msg.Payload) > 0 {
+		_ = json.Unmarshal(msg.Payload, &payload)
+	}
+	r := c.hub.GetRoomInstance(roomID)
+	result := r.AdminEndGame(payload.WinnerID)
+	winner := ""
+	if result != nil {
+		winner = result.WinnerName
+	}
+	c.hub.broadcastGameEvent(roomID, "admin_action", "Admin ended the game. Winner: "+winner, result)
+	log.Printf("[WS Admin] Client %s ended game in room %s (winner=%s)", c.id, roomID, winner)
 }

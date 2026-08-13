@@ -27,6 +27,9 @@ export default defineComponent({
     lastEffect(): string {
       return store.lastEffect || ''
     },
+    lastEffectType(): string {
+      return store.lastEffectType || 'generic'
+    },
     shouldShow(): boolean {
       return this.diceRolls.length > 0 || this.lastEffect !== ''
     },
@@ -142,7 +145,11 @@ export default defineComponent({
       <span v-for="(v, i) in diceRolls" :key="i" class="dice-value">{{ v }}</span>
     </div>
 
-    <div v-if="lastEffect" class="effect" :class="{ visible: settled || !diceRolls.length }">
+    <div
+      v-if="lastEffect"
+      class="effect"
+      :class="['effect-' + lastEffectType, { visible: settled || !diceRolls.length }]"
+    >
       {{ lastEffect }}
     </div>
   </div>
@@ -214,4 +221,17 @@ export default defineComponent({
 .effect.visible {
   opacity: 1;
 }
+
+.effect-xp_gain { color: #86efac; }
+.effect-xp_loss { color: #fca5a5; }
+.effect-teleport { color: #67e8f9; }
+.effect-skip_next { color: #fdba74; }
+.effect-double_xp { color: #fde68a; }
+.effect-free_pass { color: #c4b5fd; }
+.effect-special_challenge { color: #f9a8d4; }
+.effect-mystery { color: #d8b4fe; }
+.effect-deploy { color: #86efac; }
+.effect-code_freeze { color: #a5f3fc; }
+.effect-coffee_break { color: #e7d3b0; }
+.effect-deadline { color: #fca5a5; }
 </style>
