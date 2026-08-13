@@ -18,6 +18,7 @@
 import { defineComponent } from 'vue'
 import { adminStore, type AdminPlayer, type GameEvent } from '../adminStore'
 import adminWS from '../services/adminWebsocketService'
+import { getBaseHttpUrl } from '../services/serverUrls'
 
 const CELL_ICONS: Record<string, string> = {
   deploy: '🚩',
@@ -129,10 +130,7 @@ export default defineComponent({
       this.loginLoading = true
       this.loginError = ''
       try {
-        const baseHttp = (import.meta.env.VITE_WS_BASE_URL ?? 'ws://localhost:8080/ws')
-          .replace(/^ws/, 'http')
-          .replace(/\/ws$/, '')
-        const res = await fetch(`${baseHttp}/admin/login`, {
+        const res = await fetch(`${getBaseHttpUrl()}/admin/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: this.loginPassword }),

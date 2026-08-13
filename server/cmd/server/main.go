@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/joho/godotenv/autoload"
@@ -53,17 +54,29 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("Monopoly Server Running"))
-	})
+	// Vue SPA + static assets (embedded via embed.FS). Registered last so API
+	// and WebSocket routes always win.
+	mux.Handle("/", staticHandler())
 
-	port := "8080"
-	log.Printf("Server starting on port %s...", port)
-	if err := http.ListenAndServe(":"+port, corsMiddleware(mux)); err != nil {
+	addr := listenAddr()
+	log.Printf("Server listening on http://%s (LAN clients: use this host's IP)", addr)
+	if err := http.ListenAndServe(addr, corsMiddleware(mux)); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
+}
+
+// listenAddr returns the TCP bind address.
+// Prefer LISTEN_ADDR (e.g. 0.0.0.0:8080 or 10.10.40.69:8080); otherwise
+// PORT (default 8080) bound on all interfaces so LAN clients can connect.
+func listenAddr() string {
+	if addr := strings.TrimSpace(os.Getenv("LISTEN_ADDR")); addr != "" {
+		return addr
+	}
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		port = "8080"
+	}
+	return "0.0.0.0:" + port
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

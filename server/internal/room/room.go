@@ -16,6 +16,7 @@ var (
 	ErrInvalidDifficulty  = errors.New("invalid difficulty level, must be 'easy', 'medium', or 'hard'")
 	ErrQuestionInProgress = errors.New("a question is already in progress")
 	ErrNoQuestion         = errors.New("no question is assigned for this turn")
+	ErrGamePaused         = errors.New("game is paused")
 )
 
 // Broadcaster provides an interface for Room to push messages to connected clients.
@@ -478,6 +479,13 @@ func (r *Room) ChooseLevel(clientID string, difficulty string) error {
 		return errors.New("game is over")
 	}
 
+	if r.paused {
+		if r.broadcaster != nil {
+			r.broadcaster.SendError(clientID, "Game is paused")
+		}
+		return ErrGamePaused
+	}
+
 	if clientID != r.activePlayerID {
 		if r.broadcaster != nil {
 			r.broadcaster.SendError(clientID, "Not your turn: only the active player can choose difficulty level")
@@ -564,6 +572,13 @@ func (r *Room) SubmitAnswer(clientID string, payload json.RawMessage) ([]RollRes
 			r.broadcaster.SendError(clientID, "Game is over")
 		}
 		return nil, errors.New("game is over")
+	}
+
+	if r.paused {
+		if r.broadcaster != nil {
+			r.broadcaster.SendError(clientID, "Game is paused")
+		}
+		return nil, ErrGamePaused
 	}
 
 	if clientID != r.activePlayerID {
