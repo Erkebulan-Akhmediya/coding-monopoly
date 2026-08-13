@@ -20,6 +20,13 @@ export interface Question {
   options?: Array<{ id: string; text: string }>
 }
 
+export interface PendingTokenMove {
+  playerId: string
+  from: number
+  to: number
+  dieRoll: number
+}
+
 // Simple global reactive store for the client app (Options API friendly)
 export const store = reactive({
   // Player state
@@ -39,5 +46,10 @@ export const store = reactive({
   activeQuestion: null as Question | null,
   diceRolls: [] as number[], // recent dice roll values
   lastEffect: '' as string, // description of latest effect
+
+  // Board token animation (visual cell ≠ logical position while hopping)
+  tokenVisualPositions: {} as Record<string, number>,
+  pendingTokenMoves: [] as PendingTokenMove[],
+  hoppingPlayerId: '' as string,
 })
 

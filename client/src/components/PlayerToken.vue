@@ -29,6 +29,10 @@ export default defineComponent({
       type: String,
       default: 'medium', // 'small' | 'medium' | 'large'
     },
+    hopping: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
     resolvedPlayer(): Player {
@@ -67,7 +71,7 @@ export default defineComponent({
 <template>
   <div
     class="player-token"
-    :class="[size, { 'active-turn': isCurrentTurn }]"
+    :class="[size, { 'active-turn': isCurrentTurn, hopping }]"
     :style="{ backgroundColor: playerColor }"
     :title="tooltipText"
   >
@@ -115,6 +119,27 @@ export default defineComponent({
   transform: scale(1.15);
   z-index: 10;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.player-token.hopping {
+  z-index: 20;
+  animation: token-hop 0.26s ease-in-out;
+}
+
+.player-token.hopping:hover {
+  transform: none;
+}
+
+@keyframes token-hop {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  45% {
+    transform: translateY(-12px) scale(1.18);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 
 .token-symbol {
