@@ -8,6 +8,7 @@
  */
 import { store } from '../store'
 import type { EffectToast, GameOverSummary, Player } from '../store'
+import { getWsBaseUrl } from './serverUrls'
 import {
   clearLandedCellPreview,
   onDiceAnimationComplete,
@@ -57,7 +58,6 @@ function pushEffectFeedback(effect: any, cellIndex: number | null): void {
 }
 
 class WebSocketService {
-  private url: string = import.meta.env.VITE_WS_BASE_URL
   private socket: WebSocket | null = null
   private reconnectAttempts: number = 0
   private _connectPromise?: Promise<void>
@@ -118,7 +118,7 @@ class WebSocketService {
     }
 
     this._connectPromise = new Promise<void>((resolve, reject) => {
-      this.socket = new WebSocket(this.url)
+      this.socket = new WebSocket(getWsBaseUrl())
       this.socket.onopen = () => {
         console.log('WebSocket connected')
         this.reconnectAttempts = 0

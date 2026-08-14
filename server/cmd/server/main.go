@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/joho/godotenv/autoload"
@@ -36,45 +37,29 @@ func main() {
 	hub := ws.NewHub(ws.NewDBQuestionProvider(db))
 	go hub.Run()
 
-	mux := http.NewServeMux()
+	handler := buildDeployMux(
+		hub,
+		adminHandler,
+		ws.AdminHandler(hub, adminHandler.ValidateToken),
+	)
 
-	mux.HandleFunc("/ws", ws.Handler(hub))
-
-	// Admin spectator WebSocket: token validated before upgrade, admin clients
-	// cannot trigger choose_level or submit_answer even if they try.
-	mux.HandleFunc("/ws/admin", ws.AdminHandler(hub, adminHandler.ValidateToken))
-
-	mux.Handle("/admin", adminHandler)
-	mux.Handle("/admin/", adminHandler)
-
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
-
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("Monopoly Server Running"))
-	})
-
-	port := "8080"
-	log.Printf("Server starting on port %s...", port)
-	if err := http.ListenAndServe(":"+port, corsMiddleware(mux)); err != nil {
+	addr := listenAddr()
+	log.Printf("Server listening on http://%s (LAN clients: use this host's IP)", addr)
+	if err := http.ListenAndServe(addr, handler); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+// listenAddr returns the TCP bind address.
+// Prefer LISTEN_ADDR (e.g. 0.0.0.0:8080 or 10.10.40.69:8080); otherwise
+// PORT (default 8080) bound on all interfaces so LAN clients can connect.
+func listenAddr() string {
+	if addr := strings.TrimSpace(os.Getenv("LISTEN_ADDR")); addr != "" {
+		return addr
+	}
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		port = "8080"
+	}
+	return "0.0.0.0:" + port
 }

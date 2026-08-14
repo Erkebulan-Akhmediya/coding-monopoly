@@ -71,3 +71,39 @@ func TestRoom_AdminKickPlayer(t *testing.T) {
 		t.Errorf("Expected Alice to be marked disconnected")
 	}
 }
+
+func TestRoom_PausedBlocksChooseAndSubmit(t *testing.T) {
+	mock := &MockBroadcaster{}
+	r := NewRoomWithQuestionProvider("pause-room", mock, testQuestionProvider{question: Question{
+		ID:     "q1",
+		Type:   "mcq",
+		Prompt: "paused?",
+		Options: []QuestionOption{
+			{ID: "a", Text: "yes", Correct: true},
+		},
+	}})
+	r.AddOrReconnectPlayer("c1", "Alice")
+	r.AddOrReconnectPlayer("c2", "Bob")
+
+	if paused := r.AdminTogglePause(); !paused {
+		t.Fatal("expected game to be paused")
+	}
+
+	if err := r.ChooseLevel("c1", "easy"); err != ErrGamePaused {
+		t.Fatalf("ChooseLevel while paused: got %v, want ErrGamePaused", err)
+	}
+
+	if paused := r.AdminTogglePause(); paused {
+		t.Fatal("expected game to resume")
+	}
+	if err := r.ChooseLevel("c1", "easy"); err != nil {
+		t.Fatalf("ChooseLevel after resume: %v", err)
+	}
+
+	if paused := r.AdminTogglePause(); !paused {
+		t.Fatal("expected game to be paused again")
+	}
+	if _, err := r.SubmitAnswer("c1", []byte(`{"answer":["a"]}`)); err != ErrGamePaused {
+		t.Fatalf("SubmitAnswer while paused: got %v, want ErrGamePaused", err)
+	}
+}

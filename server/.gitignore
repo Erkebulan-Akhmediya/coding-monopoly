@@ -1,3 +1,9 @@
-dist
+# Accidental copy from older Makefile target
+/dist
+
+# Embedded frontend: keep a stub index.html so go:embed always compiles;
+# hashed Vite assets are produced by `make build-client` and should not be committed.
+cmd/server/dist/**
+!cmd/server/dist/index.html
 
 .env

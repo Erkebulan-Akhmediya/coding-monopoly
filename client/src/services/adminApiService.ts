@@ -1,3 +1,5 @@
+import { getBaseHttpUrl } from './serverUrls'
+
 export interface OptionInput {
   text: string
   is_correct: boolean
@@ -36,11 +38,6 @@ export interface ProblemFilters {
   type?: string
   difficulty?: string
   is_published?: string
-}
-
-export function getBaseHttpUrl(): string {
-  const wsUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8080/ws'
-  return wsUrl.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:').replace(/\/ws$/, '')
 }
 
 export function validateProblemInput(input: ProblemInput): string[] {

@@ -7,6 +7,7 @@
  * admin tab and a player tab can coexist without interfering with each other.
  */
 import { adminStore } from '../adminStore'
+import { getWsBaseUrl } from './serverUrls'
 
 interface Message {
   type: string
@@ -14,7 +15,6 @@ interface Message {
 }
 
 class AdminWebSocketService {
-  private baseUrl: string = import.meta.env.VITE_WS_BASE_URL ?? 'ws://localhost:8080/ws'
   private socket: WebSocket | null = null
   private reconnectAttempts: number = 0
   private maxBackoff: number = 30000
@@ -110,7 +110,7 @@ class AdminWebSocketService {
 
   private buildUrl(): string {
     // Replace /ws with /ws/admin
-    const base = this.baseUrl.replace(/\/ws$/, '') + '/ws/admin'
+    const base = getWsBaseUrl().replace(/\/ws$/, '') + '/ws/admin'
     return `${base}?token=${encodeURIComponent(this._token)}&room_id=${encodeURIComponent(this._roomID)}`
   }
 
