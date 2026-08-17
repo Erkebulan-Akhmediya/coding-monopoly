@@ -219,11 +219,6 @@ export default defineComponent({
       <p class="login-subtitle">Enter the admin password to connect</p>
 
       <div class="login-field">
-        <label for="admin-room-id">Room ID</label>
-        <input id="admin-room-id" v-model="store.roomID" type="text" placeholder="default"
-               class="login-input" @keydown.enter="handleLogin" />
-      </div>
-      <div class="login-field">
         <label for="admin-password">Password</label>
         <input id="admin-password" v-model="loginPassword" type="password" placeholder="••••••••"
                class="login-input" autofocus @keydown.enter="handleLogin" />
@@ -352,8 +347,18 @@ export default defineComponent({
 
         <h2 class="section-title mt">🕹️ Game Controls</h2>
         <div class="controls-grid">
-          <button id="admin-start-btn" class="ctrl-btn btn-success" @click="startGame">▶ Start</button>
-          <button id="admin-pause-btn" class="ctrl-btn btn-warning" @click="togglePause">⏸ Pause/Resume</button>
+          <button
+            v-if="!store.isStarted"
+            id="admin-start-btn"
+            class="ctrl-btn btn-success"
+            @click="startGame"
+          >▶ Start Game</button>
+          <button
+            v-else
+            id="admin-pause-btn"
+            class="ctrl-btn btn-warning"
+            @click="togglePause"
+          >{{ store.isPaused ? '▶ Resume' : '⏸ Pause' }}</button>
           <button id="admin-skip-turn-btn" class="ctrl-btn btn-info"
                   :disabled="!store.currentTurnPlayer" @click="skipTurn()">
             ⏭ Skip Active Turn
@@ -569,7 +574,6 @@ export default defineComponent({
 }
 .ctrl-btn:hover:not(:disabled) { opacity: .85; transform: translateY(-1px); }
 .ctrl-btn:disabled { opacity: .4; cursor: not-allowed; }
-#admin-skip-turn-btn { grid-column: 1/-1; }
 
 .turn-strip {
   display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;

@@ -44,22 +44,25 @@ func TestRoom_JoinOrderAndActivePlayer(t *testing.T) {
 	r := NewRoom("test-room", mock)
 
 	// Add Alice
-	pA, isFirstA := r.AddOrReconnectPlayer("c1", "Alice")
-	if !isFirstA || pA.Name != "Alice" {
-		t.Fatalf("Expected Alice to be first connected player")
+	pA, err := r.AddOrReconnectPlayer("c1", "Alice")
+	if err != nil || pA.Name != "Alice" {
+		t.Fatalf("Expected Alice to join successfully: %v", err)
 	}
-	if r.GetActivePlayerID() != "c1" {
-		t.Errorf("Expected active player ID to be c1, got %s", r.GetActivePlayerID())
+	if r.GetActivePlayerID() != "" {
+		t.Errorf("Expected no active player before admin start, got %s", r.GetActivePlayerID())
 	}
 
 	// Add Bob
-	pB, isFirstB := r.AddOrReconnectPlayer("c2", "Bob")
-	if isFirstB || pB.Name != "Bob" {
-		t.Fatalf("Bob should not be first player")
+	pB, err := r.AddOrReconnectPlayer("c2", "Bob")
+	if err != nil || pB.Name != "Bob" {
+		t.Fatalf("Bob join failed: %v", err)
 	}
 
 	// Add Charlie
-	r.AddOrReconnectPlayer("c3", "Charlie")
+	pC, err := r.AddOrReconnectPlayer("c3", "Charlie")
+	if err != nil || pC.Name != "Charlie" {
+		t.Fatalf("Charlie join failed: %v", err)
+	}
 
 	// Verify join order
 	players := r.GetPlayers()
@@ -70,9 +73,17 @@ func TestRoom_JoinOrderAndActivePlayer(t *testing.T) {
 		t.Errorf("Players not in join order: %+v", players)
 	}
 
-	// Verify initial turn_started broadcast for Alice
+	// Admin starts game
+	if started := r.AdminStartGame(); !started {
+		t.Fatalf("Expected AdminStartGame to succeed")
+	}
+	if r.GetActivePlayerID() != "c1" {
+		t.Errorf("Expected active player ID to be c1, got %s", r.GetActivePlayerID())
+	}
+
+	// Verify turn_started broadcast for Alice
 	if len(mock.Broadcasts) < 1 {
-		t.Fatalf("Expected turn_started broadcast on first join")
+		t.Fatalf("Expected turn_started broadcast on admin start")
 	}
 	firstEvent := mock.Broadcasts[0]
 	if firstEvent.MsgType != "turn_started" {
@@ -90,6 +101,7 @@ func TestRoom_ActivePlayerEnforcement(t *testing.T) {
 
 	r.AddOrReconnectPlayer("c1", "Alice") // Active player
 	r.AddOrReconnectPlayer("c2", "Bob")   // Inactive player
+	r.AdminStartGame()
 
 	// Bob attempts choose_level
 	err := r.ChooseLevel("c2", "easy")
@@ -126,6 +138,7 @@ func TestRoom_DiceRollingAndDifficultyResolution(t *testing.T) {
 
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 
 	// Set difficulty: medium (2 rolls)
 	if err := r.ChooseLevel("c1", "medium"); err != nil {
@@ -230,6 +243,7 @@ func TestRoom_DisconnectAndReconnectTurnSkip(t *testing.T) {
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
 	r.AddOrReconnectPlayer("c3", "Charlie")
+	r.AdminStartGame()
 
 	if r.GetActivePlayerID() != "c1" {
 		t.Fatalf("Expected Alice to start active")
@@ -259,9 +273,9 @@ func TestRoom_DisconnectAndReconnectTurnSkip(t *testing.T) {
 	}
 
 	// Bob reconnects!
-	pBob, isFirst := r.AddOrReconnectPlayer("c2", "Bob")
-	if !pBob.IsConnected || isFirst {
-		t.Errorf("Bob reconnect failed: isConnected=%t, isFirst=%t", pBob.IsConnected, isFirst)
+	pBob, err := r.AddOrReconnectPlayer("c2", "Bob")
+	if err != nil || !pBob.IsConnected {
+		t.Errorf("Bob reconnect failed: err=%v, isConnected=%t", err, pBob.IsConnected)
 	}
 
 	// Charlie completes turn
@@ -293,6 +307,7 @@ func TestRoom_SkipNextTurnModifier(t *testing.T) {
 
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 
 	// Set Bob's SkipNextTurn flag
 	bob := r.playerMap["c2"]
@@ -320,6 +335,7 @@ func TestRoom_GetTurnState(t *testing.T) {
 	r := NewRoom("test-room-state", mock)
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 
 	// Initially c1 is active player, no question active
 	activeID, active, deadline := r.GetTurnState()
@@ -331,5 +347,57 @@ func TestRoom_GetTurnState(t *testing.T) {
 	}
 	if deadline != nil {
 		t.Errorf("Expected deadline to be nil initially")
+	}
+}
+
+func TestRoom_NameUniquenessConstraint(t *testing.T) {
+	mock := &MockBroadcaster{}
+	r := NewRoom("test-room-unique", mock)
+
+	_, err := r.AddOrReconnectPlayer("c1", "Alice")
+	if err != nil {
+		t.Fatalf("First Alice failed to join: %v", err)
+	}
+
+	// Different client tries to join with same name (exact)
+	_, err = r.AddOrReconnectPlayer("c2", "Alice")
+	if err != ErrNameTaken {
+		t.Fatalf("Expected ErrNameTaken for duplicate name 'Alice', got: %v", err)
+	}
+
+	// Different client tries to join with same name (case-insensitive)
+	_, err = r.AddOrReconnectPlayer("c3", "alice")
+	if err != ErrNameTaken {
+		t.Fatalf("Expected ErrNameTaken for case-insensitive duplicate name 'alice', got: %v", err)
+	}
+
+	// Reconnecting client with same clientID is allowed
+	r.DisconnectPlayer("c1")
+	_, err = r.AddOrReconnectPlayer("c1", "Alice")
+	if err != nil {
+		t.Fatalf("Reconnecting Alice failed: %v", err)
+	}
+}
+
+func TestRoom_MidGameJoinBlocked(t *testing.T) {
+	mock := &MockBroadcaster{}
+	r := NewRoom("test-room-midgame", mock)
+
+	r.AddOrReconnectPlayer("c1", "Alice")
+	r.AddOrReconnectPlayer("c2", "Bob")
+
+	r.AdminStartGame()
+
+	// New player Charlie tries to join mid-game
+	_, err := r.AddOrReconnectPlayer("c3", "Charlie")
+	if err != ErrGameInProgress {
+		t.Fatalf("Expected ErrGameInProgress for new player joining mid-game, got: %v", err)
+	}
+
+	// Reconnecting Bob should succeed
+	r.DisconnectPlayer("c2")
+	pBob, err := r.AddOrReconnectPlayer("c2", "Bob")
+	if err != nil || !pBob.IsConnected {
+		t.Fatalf("Reconnecting Bob failed mid-game: %v", err)
 	}
 }

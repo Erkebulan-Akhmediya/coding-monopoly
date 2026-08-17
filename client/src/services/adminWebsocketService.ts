@@ -154,6 +154,8 @@ class AdminWebSocketService {
                 ? new Date(payload.deadline).getTime()
                 : 0
         }
+        if (payload.is_started !== undefined) adminStore.isStarted = !!payload.is_started
+        if (payload.is_paused !== undefined) adminStore.isPaused = !!payload.is_paused
         break
 
       case 'presence':

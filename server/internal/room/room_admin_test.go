@@ -10,6 +10,7 @@ func TestRoom_AdminSkipTurn(t *testing.T) {
 
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 
 	if r.GetActivePlayerID() != "c1" {
 		t.Fatalf("Expected Alice (c1) to be active, got %s", r.GetActivePlayerID())
@@ -52,6 +53,7 @@ func TestRoom_AdminKickPlayer(t *testing.T) {
 
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 
 	if r.GetActivePlayerID() != "c1" {
 		t.Fatalf("Expected Alice (c1) to be active, got %s", r.GetActivePlayerID())
@@ -67,8 +69,8 @@ func TestRoom_AdminKickPlayer(t *testing.T) {
 	}
 
 	alice := r.playerMap["c1"]
-	if alice.IsConnected {
-		t.Errorf("Expected Alice to be marked disconnected")
+	if alice != nil {
+		t.Errorf("Expected Alice to be removed from room playerMap")
 	}
 }
 
@@ -84,6 +86,7 @@ func TestRoom_PausedBlocksChooseAndSubmit(t *testing.T) {
 	}})
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 
 	if paused := r.AdminTogglePause(); !paused {
 		t.Fatal("expected game to be paused")

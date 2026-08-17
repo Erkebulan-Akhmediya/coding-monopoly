@@ -14,6 +14,7 @@ func TestRoom_ActiveDisconnectGraceThenForfeit(t *testing.T) {
 
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 
 	if r.GetActivePlayerID() != "c1" {
 		t.Fatalf("expected Alice active")
@@ -47,15 +48,16 @@ func TestRoom_ActiveDisconnectReconnectWithinGrace(t *testing.T) {
 
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 
 	alice := r.playerMap["c1"]
 	alice.Position = 11
 	alice.XP = 120
 
 	r.DisconnectPlayer("c1")
-	p, isFirst := r.AddOrReconnectPlayer("c1", "Alice")
-	if isFirst || !p.IsConnected {
-		t.Fatalf("reconnect failed: first=%v connected=%v", isFirst, p.IsConnected)
+	p, err := r.AddOrReconnectPlayer("c1", "Alice")
+	if err != nil || !p.IsConnected {
+		t.Fatalf("reconnect failed: err=%v connected=%v", err, p.IsConnected)
 	}
 	if p.Position != 11 || p.XP != 120 {
 		t.Fatalf("expected preserved pos/xp, got pos=%d xp=%d", p.Position, p.XP)
@@ -85,6 +87,7 @@ func TestRoom_MidQuestionResumeKeepsDeadline(t *testing.T) {
 
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 
 	if err := r.ChooseLevel("c1", "easy"); err != nil {
 		t.Fatalf("ChooseLevel: %v", err)
@@ -149,6 +152,7 @@ func TestRoom_GameOverOnTargetXP(t *testing.T) {
 
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 	r.playerMap["c1"].ChosenDifficulty = "easy"
 	// High enough that even an unlucky cell effect still clears the threshold.
 	r.playerMap["c1"].XP = 200
@@ -182,6 +186,7 @@ func TestRoom_AdminEndGame(t *testing.T) {
 	r := NewRoom("admin-end", mock)
 	r.AddOrReconnectPlayer("c1", "Alice")
 	r.AddOrReconnectPlayer("c2", "Bob")
+	r.AdminStartGame()
 	r.playerMap["c2"].XP = 80
 
 	payload := r.AdminEndGame("")

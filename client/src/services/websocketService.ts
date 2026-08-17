@@ -19,6 +19,7 @@ import {
 interface Message {
   type: string
   payload: any
+  error?: string
 }
 
 let toastSeq = 1
@@ -99,7 +100,7 @@ class WebSocketService {
   private loadIdentity(): void {
     store.playerId = sessionStorage.getItem('playerId') || store.playerId || ''
     store.playerName = sessionStorage.getItem('playerName') || store.playerName || ''
-    store.roomId = sessionStorage.getItem('roomId') || store.roomId || 'default'
+    store.roomId = sessionStorage.getItem('roomId') || store.roomId || ''
     if (store.playerId && store.playerName) {
       this.hasJoined = true
     }
@@ -161,12 +162,10 @@ class WebSocketService {
       store.roomId = roomId
     }
     this.loadIdentity()
-    this.hasJoined = true
-    this.persistIdentity()
 
     const payload: Record<string, string> = {
       name: store.playerName,
-      room_id: store.roomId || 'default',
+      room_id: store.roomId,
     }
     if (store.playerId) {
       payload.player_id = store.playerId
@@ -180,6 +179,15 @@ class WebSocketService {
     } else {
       console.warn('WebSocket not open – message dropped', msg)
     }
+  }
+
+  /** Intentionally close the connection (e.g. return to lobby after game over). */
+  disconnect(): void {
+    this.intentionalClose = true
+    this.hasJoined = false
+    this.socket?.close()
+    this.socket = null
+    store.connected = false
   }
 
   private scheduleReconnect(): void {
@@ -209,6 +217,7 @@ class WebSocketService {
     const { type, payload } = msg
     switch (type) {
       case 'joined':
+        store.joinError = ''
         if (payload?.player_id) {
           store.playerId = payload.player_id
         }
@@ -246,7 +255,20 @@ class WebSocketService {
         if (payload.game_over) {
           store.gameOver = payload.game_over as GameOverSummary
         }
+        if (payload.is_started !== undefined) {
+          store.isStarted = !!payload.is_started
+        }
+        if (payload.is_paused !== undefined) {
+          store.isPaused = !!payload.is_paused
+        }
         break
+      case 'error': {
+        const errMsg = msg.error || 'Unknown error'
+        if (!store.boardCells.length) {
+          store.joinError = errMsg
+        }
+        break
+      }
       case 'presence':
         if (payload.event === 'joined') {
           const newPlayer: Player = {

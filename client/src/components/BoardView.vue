@@ -10,6 +10,7 @@ import Leaderboard from './Leaderboard.vue'
 import GameActionPanel from './GameActionPanel.vue'
 import EffectToastStack from './EffectToastStack.vue'
 import EndGameSummary from './EndGameSummary.vue'
+import PauseOverlay from './PauseOverlay.vue'
 
 export default defineComponent({
   name: 'BoardView',
@@ -21,6 +22,7 @@ export default defineComponent({
     GameActionPanel,
     EffectToastStack,
     EndGameSummary,
+    PauseOverlay,
   },
   data() {
     return {
@@ -238,6 +240,7 @@ export default defineComponent({
 
     <EffectToastStack />
     <EndGameSummary />
+    <PauseOverlay />
   </div>
 </template>
 

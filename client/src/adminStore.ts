@@ -35,6 +35,8 @@ export const adminStore = reactive({
   currentTurnPlayer: '' as string,
   questionActive: false as boolean,
   deadline: 0 as number,
+  isStarted: false as boolean,
+  isPaused: false as boolean,
 
   // Live event feed
   events: [] as GameEvent[],

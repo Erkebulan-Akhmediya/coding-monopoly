@@ -40,6 +40,16 @@ export interface ProblemFilters {
   is_published?: string
 }
 
+export interface RoomSummary {
+  room_id: string
+  player_count: number
+  is_started: boolean
+  is_paused: boolean
+  is_finished: boolean
+  active_turn: string
+  players: string[]
+}
+
 export function validateProblemInput(input: ProblemInput): string[] {
   const errors: string[] = []
 
@@ -196,5 +206,28 @@ export const adminApiService = {
       },
     })
     return handleResponse<Problem>(res)
+  },
+
+  async listRooms(token: string): Promise<RoomSummary[]> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/rooms`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await handleResponse<{ rooms: RoomSummary[] }>(res)
+    return data.rooms || []
+  },
+
+  async createRoom(token: string, roomID: string): Promise<{ room_id: string }> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/rooms`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ room_id: roomID.trim() }),
+    })
+    return handleResponse<{ room_id: string }>(res)
   },
 }

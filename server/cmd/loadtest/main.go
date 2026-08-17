@@ -99,6 +99,9 @@ func main() {
 
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
 	roomID := "loadtest-class"
+	if err := hub.CreateRoom(roomID); err != nil {
+		log.Fatalf("CreateRoom: %v", err)
+	}
 
 	bots := make([]*bot, *players)
 	for i := 0; i < *players; i++ {

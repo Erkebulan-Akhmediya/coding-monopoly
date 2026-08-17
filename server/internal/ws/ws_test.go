@@ -53,8 +53,19 @@ func connectClient(t *testing.T, server *httptest.Server) *websocket.Conn {
 	return conn
 }
 
-func sendJoin(t *testing.T, conn *websocket.Conn, name string, roomID string) {
+func ensureRoom(t *testing.T, hub *Hub, roomID string) {
 	t.Helper()
+	if hub.RoomExists(roomID) {
+		return
+	}
+	if err := hub.CreateRoom(roomID); err != nil {
+		t.Fatalf("CreateRoom(%q): %v", roomID, err)
+	}
+}
+
+func sendJoin(t *testing.T, hub *Hub, conn *websocket.Conn, name string, roomID string) {
+	t.Helper()
+	ensureRoom(t, hub, roomID)
 	joinPayload := JoinPayload{
 		Name:   name,
 		RoomID: roomID,
@@ -125,12 +136,12 @@ func readTypes(t *testing.T, conn *websocket.Conn, wanted ...string) map[string]
 }
 
 func TestWS_JoinFlowAndStateSync(t *testing.T) {
-	_, server := setupTestServer(t)
+	hub, server := setupTestServer(t)
 
 	connA := connectClient(t, server)
 	defer connA.Close()
 
-	sendJoin(t, connA, "Alice", "room-1")
+	sendJoin(t, hub, connA, "Alice", "room-1")
 
 	// Expect presence broadcast for Alice
 	_, msg1 := readUntilType(t, connA, MessageTypePresence)
@@ -160,19 +171,19 @@ func TestWS_JoinFlowAndStateSync(t *testing.T) {
 }
 
 func TestWS_MultiClientPresenceAndStateSync(t *testing.T) {
-	_, server := setupTestServer(t)
+	hub, server := setupTestServer(t)
 
 	// Connect Client A
 	connA := connectClient(t, server)
 	defer connA.Close()
-	sendJoin(t, connA, "Alice", "game-room")
+	sendJoin(t, hub, connA, "Alice", "game-room")
 	_, _ = readUntilType(t, connA, MessageTypePresence)  // presence A
 	_, _ = readUntilType(t, connA, MessageTypeStateSync) // state_sync [Alice]
 
 	// Connect Client B
 	connB := connectClient(t, server)
 	defer connB.Close()
-	sendJoin(t, connB, "Bob", "game-room")
+	sendJoin(t, hub, connB, "Bob", "game-room")
 
 	// Client A should receive presence for Bob joining
 	_, msgA_presence := readUntilType(t, connA, MessageTypePresence)
@@ -213,16 +224,16 @@ func TestWS_MultiClientPresenceAndStateSync(t *testing.T) {
 }
 
 func TestWS_GracefulDisconnect(t *testing.T) {
-	_, server := setupTestServer(t)
+	hub, server := setupTestServer(t)
 
 	connA := connectClient(t, server)
 	defer connA.Close()
-	sendJoin(t, connA, "Alice", "room-disconnect")
+	sendJoin(t, hub, connA, "Alice", "room-disconnect")
 	_, _ = readUntilType(t, connA, MessageTypePresence)
 	_, _ = readUntilType(t, connA, MessageTypeStateSync)
 
 	connB := connectClient(t, server)
-	sendJoin(t, connB, "Bob", "room-disconnect")
+	sendJoin(t, hub, connB, "Bob", "room-disconnect")
 	_, _ = readUntilType(t, connA, MessageTypePresence)  // presence B
 	_, _ = readUntilType(t, connA, MessageTypeStateSync) // state_sync [A, B]
 	_, _ = readUntilType(t, connB, MessageTypePresence)  // presence B
@@ -270,16 +281,16 @@ func TestWS_UngracefulDisconnect(t *testing.T) {
 		PongWait:   300 * time.Millisecond,
 		PingPeriod: 100 * time.Millisecond,
 	}
-	_, server := setupTestServer(t, opts)
+	hub, server := setupTestServer(t, opts)
 
 	connA := connectClient(t, server)
 	defer connA.Close()
-	sendJoin(t, connA, "Alice", "room-ungraceful")
+	sendJoin(t, hub, connA, "Alice", "room-ungraceful")
 	_, _ = readUntilType(t, connA, MessageTypePresence)
 	_, _ = readUntilType(t, connA, MessageTypeStateSync)
 
 	connB := connectClient(t, server)
-	sendJoin(t, connB, "Bob", "room-ungraceful")
+	sendJoin(t, hub, connB, "Bob", "room-ungraceful")
 	_, _ = readUntilType(t, connA, MessageTypePresence)  // presence B
 	_, _ = readUntilType(t, connA, MessageTypeStateSync) // state_sync [A, B]
 	_, _ = readUntilType(t, connB, MessageTypePresence)  // presence B
@@ -320,12 +331,12 @@ func TestWS_UngracefulDisconnect(t *testing.T) {
 }
 
 func TestWS_EmptyNameValidation(t *testing.T) {
-	_, server := setupTestServer(t)
+	hub, server := setupTestServer(t)
 
 	conn := connectClient(t, server)
 	defer conn.Close()
 
-	sendJoin(t, conn, "   ", "room-val")
+	sendJoin(t, hub, conn, "   ", "room-val")
 
 	msg := readMessageTimeout(t, conn, 2*time.Second)
 	if msg.Type != MessageTypeError {
@@ -342,7 +353,7 @@ func TestWS_MessageEnvelopeVersionAndType(t *testing.T) {
 	conn := connectClient(t, server)
 	defer conn.Close()
 
-	sendJoin(t, conn, "Alice", "room-envelope")
+	sendJoin(t, hub, conn, "Alice", "room-envelope")
 
 	// Read presence message
 	rawBytes, _ := readUntilType(t, conn, MessageTypePresence)
@@ -378,6 +389,9 @@ func TestWS_MessageEnvelopeVersionAndType(t *testing.T) {
 func TestWS_ConcurrentConnectDisconnectRace(t *testing.T) {
 	hub, server := setupTestServer(t)
 
+	ensureRoom(t, hub, "race-room-1")
+	ensureRoom(t, hub, "race-room-2")
+
 	const numClients = 15
 	done := make(chan struct{})
 
@@ -393,7 +407,7 @@ func TestWS_ConcurrentConnectDisconnectRace(t *testing.T) {
 			conn := connectClient(t, server)
 			defer conn.Close()
 
-			sendJoin(t, conn, strings.Repeat("User", 1)+string(rune('A'+id)), roomID)
+			sendJoin(t, hub, conn, strings.Repeat("User", 1)+string(rune('A'+id)), roomID)
 
 			// Perform concurrent reads & state checks
 			for j := 0; j < 5; j++ {
@@ -422,7 +436,7 @@ func TestWS_GoroutineLeakOnDisconnectAndShutdown(t *testing.T) {
 	var conns []*websocket.Conn
 	for i := 0; i < clientCount; i++ {
 		conn := connectClient(t, server)
-		sendJoin(t, conn, strings.Repeat("P", 1)+string(rune('1'+i)), "leak-room")
+		sendJoin(t, hub, conn, strings.Repeat("P", 1)+string(rune('1'+i)), "leak-room")
 		conns = append(conns, conn)
 	}
 
@@ -456,7 +470,7 @@ func TestWS_SlowClientBackpressure(t *testing.T) {
 	// Fast client
 	connFast := connectClient(t, server)
 	defer connFast.Close()
-	sendJoin(t, connFast, "FastUser", "backpressure-room")
+	sendJoin(t, hub, connFast, "FastUser", "backpressure-room")
 	_ = readMessageTimeout(t, connFast, 2*time.Second) // presence
 	_ = readMessageTimeout(t, connFast, 2*time.Second) // state_sync
 
@@ -464,7 +478,7 @@ func TestWS_SlowClientBackpressure(t *testing.T) {
 	// Or we can broadcast many messages rapidly
 	connSlow := connectClient(t, server)
 	defer connSlow.Close()
-	sendJoin(t, connSlow, "SlowUser", "backpressure-room")
+	sendJoin(t, hub, connSlow, "SlowUser", "backpressure-room")
 	_ = readMessageTimeout(t, connFast, 2*time.Second) // presence SlowUser
 	_ = readMessageTimeout(t, connFast, 2*time.Second) // state_sync [Fast, Slow]
 
@@ -493,15 +507,25 @@ func TestWS_SlowClientBackpressure(t *testing.T) {
 }
 
 func TestWS_TurnEngineIntegration(t *testing.T) {
-	_, server := setupTestServer(t)
+	hub, server := setupTestServer(t)
 
 	// Connect Alice
 	connA := connectClient(t, server)
 	defer connA.Close()
-	sendJoin(t, connA, "Alice", "ws-turn-room")
+	sendJoin(t, hub, connA, "Alice", "ws-turn-room")
 
-	initialMessages := readTypes(t, connA, MessageTypePresence, MessageTypeStateSync, MessageTypeTurnStarted)
-	msgStartA := initialMessages[MessageTypeTurnStarted]
+	// Connect Bob
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, hub, connB, "Bob", "ws-turn-room")
+
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
+	_, _ = readUntilType(t, connB, MessageTypeStateSync)
+
+	// Start game via AdminStartGame
+	hub.GetRoomInstance("ws-turn-room").AdminStartGame()
+
+	_, msgStartA := readUntilType(t, connA, MessageTypeTurnStarted)
 	if msgStartA.Type != MessageTypeTurnStarted {
 		t.Fatalf("Expected turn_started message, got %s", msgStartA.Type)
 	}
@@ -514,16 +538,8 @@ func TestWS_TurnEngineIntegration(t *testing.T) {
 		t.Errorf("Empty active_player_id in turn_started: %+v", turnStartedA)
 	}
 
-	// Connect Bob
-	connB := connectClient(t, server)
-	defer connB.Close()
-	sendJoin(t, connB, "Bob", "ws-turn-room")
-
-	_, _ = readUntilType(t, connA, MessageTypePresence)  // presence B
-	_, _ = readUntilType(t, connA, MessageTypeStateSync) // state_sync [A, B]
-
-	_, _ = readUntilType(t, connB, MessageTypePresence)  // presence B
-	_, _ = readUntilType(t, connB, MessageTypeStateSync) // state_sync [A, B]
+	// Drain turn_started message on Bob's connection
+	_, _ = readUntilType(t, connB, MessageTypeTurnStarted)
 
 	// Bob attempts choose_level (NOT active player) -> should be rejected with error
 	chooseMsg := Message{
@@ -535,12 +551,9 @@ func TestWS_TurnEngineIntegration(t *testing.T) {
 		t.Fatalf("Failed to send choose_level from Bob: %v", err)
 	}
 
-	errMsg := readMessageTimeout(t, connB, 2*time.Second)
-	if errMsg.Type != MessageTypeError {
-		t.Fatalf("Expected error message for Bob choose_level, got %s", errMsg.Type)
-	}
-	if !strings.Contains(errMsg.Error, "Not your turn") {
-		t.Errorf("Expected 'Not your turn' error, got: %s", errMsg.Error)
+	_, errMsg := readUntilType(t, connB, MessageTypeError)
+	if !strings.Contains(errMsg.Error, "not active player's turn") && !strings.Contains(errMsg.Error, "Not your turn") {
+		t.Errorf("Expected not active player turn error, got: %s", errMsg.Error)
 	}
 
 	// Alice (active player) selects difficulty hard (3 rolls)
@@ -594,18 +607,20 @@ func TestWS_QuestionContentAndCorrectAnswerStayOffSpectatorWire(t *testing.T) {
 			{ID: "SECRET_WRONG_OPTION_ID", Text: "SECRET_WRONG_OPTION_TEXT"},
 		},
 	}}
-	_, server := setupTestServerWithProvider(t, provider)
+	hub, server := setupTestServerWithProvider(t, provider)
 
 	connA := connectClient(t, server)
 	defer connA.Close()
 	connB := connectClient(t, server)
 	defer connB.Close()
 
-	sendJoin(t, connA, "Alice", "wire-room")
+	sendJoin(t, hub, connA, "Alice", "wire-room")
 	_, _ = readUntilType(t, connA, MessageTypeStateSync)
-	sendJoin(t, connB, "Bob", "wire-room")
+	sendJoin(t, hub, connB, "Bob", "wire-room")
 	_, _ = readUntilType(t, connA, MessageTypeStateSync)
 	_, _ = readUntilType(t, connB, MessageTypeStateSync)
+
+	hub.GetRoomInstance("wire-room").AdminStartGame()
 
 	choose := Message{
 		Type:    MessageTypeChooseLevel,
@@ -679,22 +694,39 @@ func TestWS_QuestionContentAndCorrectAnswerStayOffSpectatorWire(t *testing.T) {
 }
 
 func TestWS_StateSyncIncludesTurnState(t *testing.T) {
-	_, server := setupTestServer(t)
+	hub, server := setupTestServer(t)
 
 	connA := connectClient(t, server)
 	defer connA.Close()
-	sendJoin(t, connA, "Alice", "sync-turn-room")
+	sendJoin(t, hub, connA, "Alice", "sync-turn-room")
 
 	_, _ = readUntilType(t, connA, MessageTypePresence)
-	_, msgSyncA := readUntilType(t, connA, MessageTypeStateSync)
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
 
+	// Connect Client B
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, hub, connB, "Bob", "sync-turn-room")
+
+	_, _ = readUntilType(t, connB, MessageTypePresence)
+	_, _ = readUntilType(t, connB, MessageTypeStateSync)
+
+	// Alice also receives presence & state_sync from Bob joining
+	_, _ = readUntilType(t, connA, MessageTypePresence)
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
+
+	// Start game via Admin and broadcast sync
+	hub.GetRoomInstance("sync-turn-room").AdminStartGame()
+	hub.BroadcastStateSync("sync-turn-room")
+
+	_, msgSyncA := readUntilType(t, connA, MessageTypeStateSync)
 	var payloadA StateSyncPayload
 	if err := json.Unmarshal(msgSyncA.Payload, &payloadA); err != nil {
 		t.Fatalf("Failed to unmarshal state_sync: %v", err)
 	}
 
-	if len(payloadA.Players) != 1 {
-		t.Fatalf("Expected 1 player, got %d", len(payloadA.Players))
+	if len(payloadA.Players) != 2 {
+		t.Fatalf("Expected 2 players, got %d", len(payloadA.Players))
 	}
 	aliceID := payloadA.Players[0].ID
 	if payloadA.CurrentTurnPlayer != aliceID {
@@ -704,14 +736,7 @@ func TestWS_StateSyncIncludesTurnState(t *testing.T) {
 		t.Errorf("Expected question_active to be false")
 	}
 
-	// Connect Client B and verify state_sync sent to B
-	connB := connectClient(t, server)
-	defer connB.Close()
-	sendJoin(t, connB, "Bob", "sync-turn-room")
-
-	_, _ = readUntilType(t, connB, MessageTypePresence)
 	_, msgSyncB := readUntilType(t, connB, MessageTypeStateSync)
-
 	var payloadB StateSyncPayload
 	if err := json.Unmarshal(msgSyncB.Payload, &payloadB); err != nil {
 		t.Fatalf("Failed to unmarshal state_sync for B: %v", err)
@@ -751,7 +776,7 @@ func TestWS_ReconnectResumesSlotAndMidQuestion(t *testing.T) {
 	hub, server := setupTestServerWithProvider(t, provider)
 
 	connA := connectClient(t, server)
-	sendJoin(t, connA, "Alice", "resume-room")
+	sendJoin(t, hub, connA, "Alice", "resume-room")
 	_, joinedMsg := readUntilType(t, connA, MessageTypeJoined)
 	var joined JoinedPayload
 	_ = json.Unmarshal(joinedMsg.Payload, &joined)
@@ -763,13 +788,14 @@ func TestWS_ReconnectResumesSlotAndMidQuestion(t *testing.T) {
 
 	connB := connectClient(t, server)
 	defer connB.Close()
-	sendJoin(t, connB, "Bob", "resume-room")
+	sendJoin(t, hub, connB, "Bob", "resume-room")
 	_, _ = readUntilType(t, connB, MessageTypeJoined)
 	_, _ = readUntilType(t, connB, MessageTypeStateSync)
 
 	r := hub.GetRoomInstance("resume-room")
 	r.SetDeadlineDurations(3*time.Second, 3*time.Second, 3*time.Second)
 	r.SetDisconnectGrace(500 * time.Millisecond)
+	r.AdminStartGame()
 
 	// Start a question for Alice.
 	choosePayload, _ := json.Marshal(ChooseLevelPayload{Difficulty: "easy"})
@@ -821,6 +847,71 @@ func TestWS_ReconnectResumesSlotAndMidQuestion(t *testing.T) {
 	_ = json.Unmarshal(qResume.Payload, &qAfter)
 	if qAfter.Prompt != "resume me" || !qAfter.Deadline.Equal(qBefore.Deadline) {
 		t.Fatalf("question resume mismatch: %+v", qAfter)
+	}
+}
+
+func TestWS_MidGameJoinRejected(t *testing.T) {
+	hub, server := setupTestServer(t)
+
+	connA := connectClient(t, server)
+	defer connA.Close()
+	sendJoin(t, hub, connA, "Alice", "midgame-ws-room")
+	_, _ = readUntilType(t, connA, MessageTypeJoined)
+
+	// Admin starts game
+	hub.GetRoomInstance("midgame-ws-room").AdminStartGame()
+
+	// New player Bob tries to join mid-game
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, hub, connB, "Bob", "midgame-ws-room")
+
+	_, errMsg := readUntilType(t, connB, MessageTypeError)
+	if !strings.Contains(errMsg.Error, "in progress") {
+		t.Fatalf("expected game already in progress error, got: %s", errMsg.Error)
+	}
+}
+
+func TestWS_NameUniquenessConstraint(t *testing.T) {
+	hub, server := setupTestServer(t)
+
+	connA := connectClient(t, server)
+	defer connA.Close()
+	sendJoin(t, hub, connA, "Alice", "unique-ws-room")
+	_, _ = readUntilType(t, connA, MessageTypeJoined)
+
+	// Second client tries to join with same name
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, hub, connB, "alice", "unique-ws-room")
+
+	_, errMsg := readUntilType(t, connB, MessageTypeError)
+	if !strings.Contains(errMsg.Error, "already exists") {
+		t.Fatalf("expected name already exists error, got: %s", errMsg.Error)
+	}
+}
+
+func TestWS_JoinRejectsNonExistentRoom(t *testing.T) {
+	hub, server := setupTestServer(t)
+
+	conn := connectClient(t, server)
+	defer conn.Close()
+
+	joinPayload := JoinPayload{Name: "Alice", RoomID: "missing-room"}
+	payloadBytes, _ := json.Marshal(joinPayload)
+	if err := conn.WriteJSON(Message{Type: MessageTypeJoin, RoomID: "missing-room", Payload: payloadBytes}); err != nil {
+		t.Fatalf("join: %v", err)
+	}
+
+	msg := readMessageTimeout(t, conn, 2*time.Second)
+	if msg.Type != MessageTypeError {
+		t.Fatalf("expected error for missing room, got %s", msg.Type)
+	}
+	if !strings.Contains(msg.Error, "room not found") {
+		t.Fatalf("expected room not found error, got: %s", msg.Error)
+	}
+	if hub.RoomExists("missing-room") {
+		t.Fatal("joining a missing room should not create it")
 	}
 }
 
