@@ -162,8 +162,6 @@ class WebSocketService {
       store.roomId = roomId
     }
     this.loadIdentity()
-    this.hasJoined = true
-    this.persistIdentity()
 
     const payload: Record<string, string> = {
       name: store.playerName,
