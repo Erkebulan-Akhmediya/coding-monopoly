@@ -8,6 +8,7 @@
  */
 import { store } from '../store'
 import type { EffectToast, GameOverSummary, Player } from '../store'
+import { t } from '../i18n'
 import { getWsBaseUrl } from './serverUrls'
 import {
   clearLandedCellPreview,
@@ -27,7 +28,7 @@ let highlightClearTimer: ReturnType<typeof setTimeout> | null = null
 
 function pushEffectFeedback(effect: any, cellIndex: number | null): void {
   const effectType = (effect?.effect_type || 'generic') as string
-  const description = (effect?.description || store.lastEffect || 'Cell effect') as string
+  const description = (effect?.description || store.lastEffect || t('common.cellEffect')) as string
   const xpDelta = typeof effect?.xp_delta === 'number' ? effect.xp_delta : 0
 
   store.lastEffect = description
@@ -361,7 +362,7 @@ class WebSocketService {
           pushEffectFeedback(payload.effect, feedbackCell)
         } else if (payload.landed_cell?.name) {
           pushEffectFeedback(
-            { effect_type: payload.landed_cell.type || 'generic', description: `Landed on ${payload.landed_cell.name}` },
+            { effect_type: payload.landed_cell.type || 'generic', description: t('board.landedOn', { name: payload.landed_cell.name }) },
             feedbackCell,
           )
         }

@@ -17,42 +17,39 @@ export default defineComponent({
 
 <template>
   <div class="level-picker">
-    <h3 class="picker-title">CHOOSE YOUR CHALLENGE</h3>
+    <h3 class="picker-title">{{ $t('levelPicker.title') }}</h3>
     <p class="picker-desc">
-      Select a difficulty level to receive your coding task. Higher difficulty grants more dice rolls on a correct answer!
+      {{ $t('levelPicker.description') }}
     </p>
     
     <div class="difficulty-cards">
-      <!-- Easy Card -->
       <button class="diff-card easy" @click="selectDifficulty('easy')">
         <div class="card-glow"></div>
         <div class="diff-icon">🟢</div>
-        <span class="diff-label">EASY</span>
+        <span class="diff-label">{{ $t('levelPicker.easy') }}</span>
         <div class="diff-stats">
-          <span class="time-limit">⏱️ 30s limit</span>
-          <span class="reward">🎲 1 Roll</span>
+          <span class="time-limit">⏱️ {{ $t('levelPicker.timeLimit', { seconds: 30 }) }}</span>
+          <span class="reward">🎲 {{ $t('levelPicker.rolls', 1) }}</span>
         </div>
       </button>
 
-      <!-- Medium Card -->
       <button class="diff-card medium" @click="selectDifficulty('medium')">
         <div class="card-glow"></div>
         <div class="diff-icon">🟡</div>
-        <span class="diff-label">MEDIUM</span>
+        <span class="diff-label">{{ $t('levelPicker.medium') }}</span>
         <div class="diff-stats">
-          <span class="time-limit">⏱️ 45s limit</span>
-          <span class="reward">🎲 2 Rolls</span>
+          <span class="time-limit">⏱️ {{ $t('levelPicker.timeLimit', { seconds: 45 }) }}</span>
+          <span class="reward">🎲 {{ $t('levelPicker.rolls', 2) }}</span>
         </div>
       </button>
 
-      <!-- Hard Card -->
       <button class="diff-card hard" @click="selectDifficulty('hard')">
         <div class="card-glow"></div>
         <div class="diff-icon">🔴</div>
-        <span class="diff-label">HARD</span>
+        <span class="diff-label">{{ $t('levelPicker.hard') }}</span>
         <div class="diff-stats">
-          <span class="time-limit">⏱️ 60s limit</span>
-          <span class="reward">🎲 3 Rolls</span>
+          <span class="time-limit">⏱️ {{ $t('levelPicker.timeLimit', { seconds: 60 }) }}</span>
+          <span class="reward">🎲 {{ $t('levelPicker.rolls', 3) }}</span>
         </div>
       </button>
     </div>
@@ -144,7 +141,6 @@ export default defineComponent({
   transform: translateY(-1px);
 }
 
-/* Card Glow Effect */
 .card-glow {
   position: absolute;
   top: 0;
@@ -154,21 +150,18 @@ export default defineComponent({
   background: var(--card-accent);
 }
 
-/* Easy Color Theme */
 .diff-card.easy {
   --card-accent: #10b981;
   --card-accent-alpha: rgba(16, 185, 129, 0.15);
   --card-shadow: rgba(16, 185, 129, 0.3);
 }
 
-/* Medium Color Theme */
 .diff-card.medium {
   --card-accent: #fbbf24;
   --card-accent-alpha: rgba(251, 191, 36, 0.15);
   --card-shadow: rgba(251, 191, 36, 0.3);
 }
 
-/* Hard Color Theme */
 .diff-card.hard {
   --card-accent: #ef4444;
   --card-accent-alpha: rgba(239, 68, 68, 0.15);

@@ -2,21 +2,6 @@
 import { defineComponent } from 'vue'
 import { store, type EffectToast } from '../store'
 
-const EFFECT_LABELS: Record<string, string> = {
-  xp_gain: 'XP Gain',
-  xp_loss: 'XP Loss',
-  teleport: 'Teleport',
-  skip_next: 'Skip Turn',
-  double_xp: 'Double XP',
-  free_pass: 'Free Pass',
-  special_challenge: 'Bonus Challenge',
-  mystery: 'Mystery',
-  deploy: 'Deploy',
-  code_freeze: 'Code Freeze',
-  coffee_break: 'Coffee Break',
-  deadline: 'Deadline',
-}
-
 export default defineComponent({
   name: 'EffectToastStack',
   data() {
@@ -29,11 +14,12 @@ export default defineComponent({
   },
   methods: {
     labelFor(type: string): string {
-      return EFFECT_LABELS[type] || 'Effect'
+      const key = `effects.${type}`
+      return this.$te(key) ? this.$t(key) : this.$t('common.effect')
     },
     xpText(toast: EffectToast): string {
       if (!toast.xpDelta) return ''
-      return toast.xpDelta > 0 ? `+${toast.xpDelta} XP` : `${toast.xpDelta} XP`
+      return toast.xpDelta > 0 ? `+${toast.xpDelta} ${this.$t('common.xp')}` : `${toast.xpDelta} ${this.$t('common.xp')}`
     },
   },
 })

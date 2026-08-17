@@ -36,8 +36,8 @@ export default defineComponent({
 
 <template>
   <div class="leaderboard">
-    <h3>Live Standings</h3>
-    <p class="target">First to {{ targetXP }} XP</p>
+    <h3>{{ $t('leaderboard.title') }}</h3>
+    <p class="target">{{ $t('leaderboard.target', { xp: targetXP }) }}</p>
     <div class="player-list">
       <div
         v-for="(p, idx) in sortedPlayers"
@@ -53,15 +53,15 @@ export default defineComponent({
         <div class="player-info">
           <span class="player-name">
             {{ p.name }}
-            <span v-if="p.name === store.playerName" class="you-tag">(You)</span>
-            <span v-if="p.is_connected === false" class="offline-tag">offline</span>
+            <span v-if="p.name === store.playerName" class="you-tag">{{ $t('common.you') }}</span>
+            <span v-if="p.is_connected === false" class="offline-tag">{{ $t('common.offline') }}</span>
           </span>
-          <span class="player-pos">Cell #{{ p.position ?? 0 }}</span>
+          <span class="player-pos">{{ $t('leaderboard.cellPosition', { index: p.position ?? 0 }) }}</span>
           <div class="xp-bar" aria-hidden="true">
             <div class="xp-fill" :style="{ width: progress(p) + '%' }" />
           </div>
         </div>
-        <div class="player-xp-badge">{{ p.xp ?? 0 }} XP</div>
+        <div class="player-xp-badge">{{ p.xp ?? 0 }} {{ $t('common.xp') }}</div>
       </div>
     </div>
   </div>

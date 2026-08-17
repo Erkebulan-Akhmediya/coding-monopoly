@@ -33,12 +33,12 @@ export default defineComponent({
       <textarea
         v-model="textValue"
         class="text-input"
-        placeholder="Type your answer here..."
+        :placeholder="$t('problem.textPlaceholder')"
         :disabled="disabled"
         rows="4"
         @keydown.enter.ctrl.exact="submitAnswer"
       ></textarea>
-      <span class="input-hint">Press Ctrl+Enter to submit</span>
+      <span class="input-hint">{{ $t('problem.textHint') }}</span>
     </div>
 
     <div class="submit-action">
@@ -47,7 +47,7 @@ export default defineComponent({
         :disabled="disabled || !textValue.trim()"
         @click="submitAnswer"
       >
-        {{ disabled ? 'SUBMITTED' : 'SUBMIT ANSWER' }}
+        {{ disabled ? $t('problem.submitted') : $t('problem.submitAnswer') }}
       </button>
     </div>
   </div>

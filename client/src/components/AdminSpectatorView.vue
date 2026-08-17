@@ -215,11 +215,11 @@ export default defineComponent({
   <!-- LOGIN PANEL -->
   <div v-if="!isLoggedIn" class="login-backdrop">
     <div class="login-card">
-      <div class="login-logo">🛡️ Admin Spectator</div>
-      <p class="login-subtitle">Enter the admin password to connect</p>
+      <div class="login-logo">🛡️ {{ $t('admin.spectator') }}</div>
+      <p class="login-subtitle">{{ $t('admin.spectatorLoginSubtitle') }}</p>
 
       <div class="login-field">
-        <label for="admin-password">Password</label>
+        <label for="admin-password">{{ $t('admin.passwordShort') }}</label>
         <input id="admin-password" v-model="loginPassword" type="password" placeholder="••••••••"
                class="login-input" autofocus @keydown.enter="handleLogin" />
       </div>
@@ -227,8 +227,8 @@ export default defineComponent({
       <p v-if="loginError" class="login-error">{{ loginError }}</p>
 
       <button id="admin-login-btn" class="login-btn" :disabled="loginLoading || !loginPassword" @click="handleLogin">
-        <span v-if="loginLoading">Connecting…</span>
-        <span v-else>Connect as Admin</span>
+        <span v-if="loginLoading">{{ $t('admin.connecting') }}</span>
+        <span v-else>{{ $t('admin.connectAsAdmin') }}</span>
       </button>
     </div>
   </div>
@@ -239,15 +239,15 @@ export default defineComponent({
     <!-- Top bar -->
     <header class="admin-topbar">
       <div class="topbar-left">
-        <span class="topbar-logo">🛡️ Admin Spectator</span>
-        <span class="topbar-room">Room: {{ store.roomID }}</span>
+        <span class="topbar-logo">🛡️ {{ $t('admin.spectator') }}</span>
+        <span class="topbar-room">{{ $t('admin.roomLabel', { id: store.roomID }) }}</span>
         <span class="topbar-conn" :class="{ connected: store.connected }">
-          {{ store.connected ? '● Live' : '○ Disconnected' }}
+          {{ store.connected ? $t('admin.live') : $t('admin.disconnected') }}
         </span>
       </div>
       <div class="topbar-right">
         <span v-if="showCountdown" class="topbar-countdown">⏳ {{ remaining }}s</span>
-        <button id="admin-logout-btn" class="btn-secondary btn-sm" @click="handleLogout">Logout</button>
+        <button id="admin-logout-btn" class="btn-secondary btn-sm" @click="handleLogout">{{ $t('admin.logout') }}</button>
       </div>
     </header>
 
@@ -256,8 +256,8 @@ export default defineComponent({
 
       <!-- LEFT: read-only board -->
       <section class="col-board">
-        <h2 class="section-title">📋 Board</h2>
-        <div v-if="cells.length === 0" class="empty-hint">Waiting for the first player to join…</div>
+        <h2 class="section-title">📋 {{ $t('admin.board') }}</h2>
+        <div v-if="cells.length === 0" class="empty-hint">{{ $t('admin.waitingFirstPlayer') }}</div>
         <div v-else class="mini-board-grid">
           <div
             v-for="(cell, idx) in cells" :key="idx"
@@ -283,7 +283,7 @@ export default defineComponent({
                 🎯 {{ store.currentTurnPlayer }}
                 <span v-if="showCountdown" class="mini-timer">{{ remaining }}s</span>
               </template>
-              <template v-else>Waiting…</template>
+              <template v-else>{{ $t('admin.waiting') }}</template>
             </div>
           </div>
         </div>
@@ -291,7 +291,7 @@ export default defineComponent({
 
       <!-- CENTRE: event feed -->
       <section class="col-feed">
-        <h2 class="section-title">📡 Live Event Feed</h2>
+        <h2 class="section-title">📡 {{ $t('admin.liveEventFeed') }}</h2>
         <div class="event-feed" ref="eventFeed">
           <div v-for="evt in reversedEvents" :key="evt.id" class="event-entry">
             <span class="evt-time">{{ formatTime(evt.timestamp) }}</span>
@@ -299,14 +299,14 @@ export default defineComponent({
             <span class="evt-kind" :style="{ color: eventColor(evt.kind) }">{{ evt.kind }}</span>
             <span class="evt-msg">{{ evt.message }}</span>
           </div>
-          <div v-if="store.events.length === 0" class="empty-hint">No events yet…</div>
+          <div v-if="store.events.length === 0" class="empty-hint">{{ $t('admin.noEvents') }}</div>
         </div>
       </section>
 
       <!-- RIGHT: players + controls -->
       <section class="col-controls">
 
-        <h2 class="section-title">🎮 Players ({{ sortedPlayers.length }})</h2>
+        <h2 class="section-title">🎮 {{ $t('admin.players', { count: sortedPlayers.length }) }}</h2>
         <div class="player-list">
           <div
             v-for="p in sortedPlayers" :key="p.id"
@@ -316,61 +316,61 @@ export default defineComponent({
             <div class="p-info">
               <span class="p-name">{{ p.name }}</span>
               <span class="p-meta">
-                Cell #{{ p.position ?? 0 }} · {{ p.xp ?? 0 }} XP
-                <span v-if="!p.is_connected" class="p-offline">offline</span>
+                Cell #{{ p.position ?? 0 }} · {{ p.xp ?? 0 }} {{ $t('common.xp') }}
+                <span v-if="!p.is_connected" class="p-offline">{{ $t('common.offline') }}</span>
                 <span v-if="p.in_code_freeze" class="p-badge freeze">❄️ CF</span>
                 <span v-if="p.skip_next_turn" class="p-badge skip">⏭</span>
                 <span v-if="p.double_xp" class="p-badge double">⚡2x</span>
               </span>
             </div>
             <div class="p-actions">
-              <button class="btn-danger btn-xs" :id="`kick-${p.id}`" title="Kick player"
+              <button class="btn-danger btn-xs" :id="`kick-${p.id}`" :title="$t('admin.kickPlayer')"
                       @click="requestKick(p.id)">⛔</button>
-              <button class="btn-warning btn-xs" :id="`skip-${p.id}`" title="Skip this player's turn"
+              <button class="btn-warning btn-xs" :id="`skip-${p.id}`" :title="$t('admin.skipPlayerTurn')"
                       :disabled="p.name !== store.currentTurnPlayer"
                       @click="skipTurn(p.id)">⏭</button>
             </div>
           </div>
-          <div v-if="sortedPlayers.length === 0" class="empty-hint">No players yet.</div>
+          <div v-if="sortedPlayers.length === 0" class="empty-hint">{{ $t('admin.noPlayers') }}</div>
         </div>
 
         <!-- Kick confirm -->
         <div v-if="confirmKick" class="confirm-overlay">
           <div class="confirm-card">
-            <p>Kick <strong>{{ sortedPlayers.find(p => p.id === confirmKick)?.name ?? confirmKick }}</strong>?</p>
+            <p>{{ $t('admin.kickConfirm', { name: sortedPlayers.find(p => p.id === confirmKick)?.name ?? confirmKick }) }}</p>
             <div class="confirm-btns">
-              <button class="btn-danger ctrl-btn" id="confirm-kick-yes" @click="confirmKickAction">Yes, kick</button>
-              <button class="btn-secondary ctrl-btn" id="confirm-kick-no" @click="cancelKick">Cancel</button>
+              <button class="btn-danger ctrl-btn" id="confirm-kick-yes" @click="confirmKickAction">{{ $t('admin.yesKick') }}</button>
+              <button class="btn-secondary ctrl-btn" id="confirm-kick-no" @click="cancelKick">{{ $t('common.cancel') }}</button>
             </div>
           </div>
         </div>
 
-        <h2 class="section-title mt">🕹️ Game Controls</h2>
+        <h2 class="section-title mt">🕹️ {{ $t('admin.gameControls') }}</h2>
         <div class="controls-grid">
           <button
             v-if="!store.isStarted"
             id="admin-start-btn"
             class="ctrl-btn btn-success"
             @click="startGame"
-          >▶ Start Game</button>
+          >{{ $t('admin.startGame') }}</button>
           <button
             v-else
             id="admin-pause-btn"
             class="ctrl-btn btn-warning"
             @click="togglePause"
-          >{{ store.isPaused ? '▶ Resume' : '⏸ Pause' }}</button>
+          >{{ store.isPaused ? $t('admin.resume') : $t('admin.pause') }}</button>
           <button id="admin-skip-turn-btn" class="ctrl-btn btn-info"
                   :disabled="!store.currentTurnPlayer" @click="skipTurn()">
-            ⏭ Skip Active Turn
+            {{ $t('admin.skipActiveTurn') }}
           </button>
-          <button id="admin-end-btn" class="ctrl-btn btn-danger" @click="endGame">🏁 End Game</button>
+          <button id="admin-end-btn" class="ctrl-btn btn-danger" @click="endGame">{{ $t('admin.endGame') }}</button>
         </div>
 
         <div class="turn-strip" v-if="store.currentTurnPlayer">
-          <span class="turn-label">Active:</span>
+          <span class="turn-label">{{ $t('admin.active') }}</span>
           <span class="turn-name">{{ store.currentTurnPlayer }}</span>
-          <span v-if="store.questionActive" class="turn-qa">⏱ Question active</span>
-          <span v-else class="turn-nq">Awaiting level pick</span>
+          <span v-if="store.questionActive" class="turn-qa">{{ $t('admin.questionActive') }}</span>
+          <span v-else class="turn-nq">{{ $t('admin.awaitingLevelPick') }}</span>
         </div>
       </section>
 

@@ -186,8 +186,8 @@ export default defineComponent({
     <!-- Header & Create Actions -->
     <div class="list-header">
       <div class="header-left">
-        <h2 class="section-heading">📚 Question Bank Management</h2>
-        <span class="count-badge">{{ filteredProblems.length }} questions</span>
+        <h2 class="section-heading">📚 {{ $t('admin.questionBankManagement') }}</h2>
+        <span class="count-badge">{{ $t('admin.questionCount', { count: filteredProblems.length }) }}</span>
       </div>
       <div class="header-right">
         <button
@@ -195,14 +195,14 @@ export default defineComponent({
           class="btn-primary btn-sm"
           @click="openCreateModal('mcq')"
         >
-          + New MCQ
+          {{ $t('admin.newMcq') }}
         </button>
         <button
           id="create-text-btn"
           class="btn-secondary btn-sm"
           @click="openCreateModal('text')"
         >
-          + New Text
+          {{ $t('admin.newText') }}
         </button>
       </div>
     </div>
@@ -210,55 +210,55 @@ export default defineComponent({
     <!-- Filters Bar -->
     <div class="filters-bar">
       <div class="filter-group">
-        <label for="filter-type">Type</label>
+        <label for="filter-type">{{ $t('admin.filterType') }}</label>
         <select
           id="filter-type"
           v-model="filters.type"
           class="filter-select"
           @change="onFilterChange"
         >
-          <option value="">All Types</option>
+          <option value="">{{ $t('admin.allTypes') }}</option>
           <option value="mcq">MCQ</option>
           <option value="text">Text</option>
         </select>
       </div>
 
       <div class="filter-group">
-        <label for="filter-difficulty">Difficulty</label>
+        <label for="filter-difficulty">{{ $t('admin.filterDifficulty') }}</label>
         <select
           id="filter-difficulty"
           v-model="filters.difficulty"
           class="filter-select"
           @change="onFilterChange"
         >
-          <option value="">All Difficulties</option>
-          <option value="easy">Easy (30s)</option>
-          <option value="medium">Medium (45s)</option>
-          <option value="hard">Hard (60s)</option>
+          <option value="">{{ $t('admin.allDifficulties') }}</option>
+          <option value="easy">{{ $t('admin.easyTimed') }}</option>
+          <option value="medium">{{ $t('admin.mediumTimed') }}</option>
+          <option value="hard">{{ $t('admin.hardTimed') }}</option>
         </select>
       </div>
 
       <div class="filter-group">
-        <label for="filter-published">Status</label>
+        <label for="filter-published">{{ $t('admin.filterStatus') }}</label>
         <select
           id="filter-published"
           v-model="filters.is_published"
           class="filter-select"
           @change="onFilterChange"
         >
-          <option value="">All Statuses</option>
-          <option value="true">Published</option>
-          <option value="false">Draft</option>
+          <option value="">{{ $t('admin.allStatuses') }}</option>
+          <option value="true">{{ $t('admin.published') }}</option>
+          <option value="false">{{ $t('admin.draft') }}</option>
         </select>
       </div>
 
       <div class="filter-group flex-search">
-        <label for="search-input">Search</label>
+        <label for="search-input">{{ $t('admin.filterSearch') }}</label>
         <input
           id="search-input"
           v-model="searchQuery"
           type="text"
-          placeholder="Filter by title or prompt..."
+          :placeholder="$t('admin.searchPlaceholder')"
           class="search-input"
         />
       </div>
@@ -267,18 +267,18 @@ export default defineComponent({
     <!-- Error Banner -->
     <div v-if="error" class="error-box">
       <span>⚠️ {{ error }}</span>
-      <button class="btn-secondary btn-xs" @click="fetchProblems">Retry</button>
+      <button class="btn-secondary btn-xs" @click="fetchProblems">{{ $t('admin.retry') }}</button>
     </div>
 
     <!-- Loading state -->
     <div v-if="loading" class="loading-state">
-      Loading questions bank...
+      {{ $t('admin.loadingQuestions') }}
     </div>
 
     <!-- Empty state -->
     <div v-else-if="filteredProblems.length === 0" class="empty-state">
-      <p>No questions found matching the selected filters.</p>
-      <button class="btn-primary btn-sm" @click="openCreateModal('mcq')">Create First Question</button>
+      <p>{{ $t('admin.noQuestions') }}</p>
+      <button class="btn-primary btn-sm" @click="openCreateModal('mcq')">{{ $t('admin.createFirstQuestion') }}</button>
     </div>
 
     <!-- Questions Table / Grid -->
@@ -286,12 +286,12 @@ export default defineComponent({
       <table class="questions-table">
         <thead>
           <tr>
-            <th>Type</th>
-            <th>Difficulty</th>
-            <th>Title & Prompt</th>
-            <th>Answers / Options</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th>{{ $t('admin.colType') }}</th>
+            <th>{{ $t('admin.colDifficulty') }}</th>
+            <th>{{ $t('admin.colTitlePrompt') }}</th>
+            <th>{{ $t('admin.colAnswers') }}</th>
+            <th>{{ $t('admin.colStatus') }}</th>
+            <th>{{ $t('admin.colActions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -319,7 +319,7 @@ export default defineComponent({
             <!-- Content preview -->
             <td class="col-content">
               <div v-if="p.type === 'mcq'" class="mcq-preview">
-                <span class="meta-label">{{ p.options ? p.options.length : 0 }} options:</span>
+                <span class="meta-label">{{ $t('admin.optionsCount', { count: p.options ? p.options.length : 0 }) }}</span>
                 <ul class="preview-list">
                   <li
                     v-for="(opt, idx) in (p.options || []).slice(0, 3)"
@@ -329,12 +329,12 @@ export default defineComponent({
                     {{ opt.is_correct ? '✓ ' : '• ' }}{{ opt.text }}
                   </li>
                   <li v-if="(p.options || []).length > 3" class="more-hint">
-                    +{{ p.options!.length - 3 }} more...
+                    {{ $t('admin.moreOptions', { count: p.options!.length - 3 }) }}
                   </li>
                 </ul>
               </div>
               <div v-else-if="p.type === 'text'" class="text-preview">
-                <span class="meta-label">Accepted answers:</span>
+                <span class="meta-label">{{ $t('admin.acceptedAnswers') }}</span>
                 <div class="answers-tags">
                   <span
                     v-for="(ans, idx) in (p.accepted_answers || [])"
@@ -355,10 +355,10 @@ export default defineComponent({
                 :class="p.is_published ? 'status-published' : 'status-draft'"
                 :disabled="togglingPublishId === p.id"
                 @click="togglePublishStatus(p)"
-                :title="p.is_published ? 'Click to Unpublish (Draft)' : 'Click to Publish'"
+                :title="p.is_published ? $t('admin.clickUnpublish') : $t('admin.clickPublish')"
               >
                 <span v-if="togglingPublishId === p.id">...</span>
-                <span v-else>{{ p.is_published ? '🟢 Published' : '🟠 Draft' }}</span>
+                <span v-else>{{ p.is_published ? `🟢 ${$t('admin.publishedStatus')}` : `🟠 ${$t('admin.draftStatus')}` }}</span>
               </button>
             </td>
 
@@ -368,17 +368,17 @@ export default defineComponent({
                 :id="`edit-btn-${p.id}`"
                 class="btn-secondary btn-xs edit-problem-btn"
                 @click="openEditModal(p)"
-                title="Edit question"
+                :title="$t('admin.editQuestion')"
               >
-                ✏️ Edit
+                ✏️ {{ $t('admin.edit') }}
               </button>
               <button
                 :id="`delete-btn-${p.id}`"
                 class="btn-danger btn-xs delete-problem-btn"
                 @click="requestDelete(p)"
-                title="Delete question"
+                :title="$t('admin.deleteQuestion')"
               >
-                🗑️ Delete
+                🗑️ {{ $t('admin.delete') }}
               </button>
             </td>
           </tr>
@@ -398,14 +398,13 @@ export default defineComponent({
     <!-- Confirm Delete Modal -->
     <div v-if="confirmDeleteProblem" class="confirm-modal-backdrop">
       <div class="confirm-modal-card">
-        <h3>Delete Question?</h3>
+        <h3>{{ $t('admin.deleteConfirmTitle') }}</h3>
         <p>
-          Are you sure you want to delete <strong>"{{ confirmDeleteProblem.title }}"</strong>?
-          This action cannot be undone.
+          {{ $t('admin.deleteConfirmBody', { title: confirmDeleteProblem.title }) }}
         </p>
         <div class="confirm-modal-actions">
           <button class="btn-secondary" @click="cancelDelete" :disabled="deleting">
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button
             id="confirm-delete-btn"
@@ -413,8 +412,8 @@ export default defineComponent({
             @click="confirmDelete"
             :disabled="deleting"
           >
-            <span v-if="deleting">Deleting...</span>
-            <span v-else>Yes, Delete</span>
+            <span v-if="deleting">{{ $t('admin.deleting') }}</span>
+            <span v-else>{{ $t('admin.yesDelete') }}</span>
           </button>
         </div>
       </div>

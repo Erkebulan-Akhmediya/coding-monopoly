@@ -144,10 +144,10 @@ export default defineComponent({
     },
 
     roomStatusLabel(room: RoomSummary): string {
-      if (room.is_finished) return 'Finished'
-      if (room.is_paused) return 'Paused'
-      if (room.is_started) return 'In Progress'
-      return 'Waiting'
+      if (room.is_finished) return this.$t('admin.roomStatus.finished')
+      if (room.is_paused) return this.$t('admin.roomStatus.paused')
+      if (room.is_started) return this.$t('admin.roomStatus.inProgress')
+      return this.$t('admin.roomStatus.waiting')
     },
 
     roomStatusClass(room: RoomSummary): string {
@@ -180,11 +180,11 @@ export default defineComponent({
   <!-- LOGIN BACKDROP -->
   <div v-if="!isLoggedIn" class="login-backdrop">
     <div class="login-card">
-      <div class="login-logo">🛡️ Admin Portal</div>
-      <p class="login-subtitle">Enter admin password to manage content &amp; rooms</p>
+      <div class="login-logo">🛡️ {{ $t('admin.portal') }}</div>
+      <p class="login-subtitle">{{ $t('admin.loginSubtitle') }}</p>
 
       <div class="login-field">
-        <label for="admin-password">Admin Password</label>
+        <label for="admin-password">{{ $t('admin.password') }}</label>
         <input
           id="admin-password"
           v-model="loginPassword"
@@ -204,8 +204,8 @@ export default defineComponent({
         :disabled="loginLoading || !loginPassword"
         @click="handleLogin"
       >
-        <span v-if="loginLoading">Authenticating...</span>
-        <span v-else>Log In to Admin</span>
+        <span v-if="loginLoading">{{ $t('admin.authenticating') }}</span>
+        <span v-else>{{ $t('admin.logIn') }}</span>
       </button>
     </div>
   </div>
@@ -215,7 +215,7 @@ export default defineComponent({
     <!-- Top Navigation Bar -->
     <header class="admin-topbar">
       <div class="topbar-left">
-        <span class="topbar-logo">🛡️ Admin Panel</span>
+        <span class="topbar-logo">🛡️ {{ $t('admin.panel') }}</span>
         <nav class="admin-tabs">
           <button
             id="tab-questions"
@@ -223,7 +223,7 @@ export default defineComponent({
             :class="{ active: activeTab === 'questions' }"
             @click="switchTab('questions')"
           >
-            📚 Question Bank
+            📚 {{ $t('admin.questionBank') }}
           </button>
           <button
             id="tab-rooms"
@@ -231,15 +231,15 @@ export default defineComponent({
             :class="{ active: activeTab === 'rooms' }"
             @click="switchTab('rooms')"
           >
-            📡 Live Rooms
+            📡 {{ $t('admin.liveRooms') }}
           </button>
         </nav>
       </div>
 
       <div class="topbar-right">
-        <span v-if="isWatchingRoom" class="room-indicator">Room: {{ store.roomID }}</span>
+        <span v-if="isWatchingRoom" class="room-indicator">{{ $t('admin.roomLabel', { id: store.roomID }) }}</span>
         <button id="admin-logout-btn" class="btn-secondary btn-sm" @click="handleLogout">
-          Log Out
+          {{ $t('admin.logOut') }}
         </button>
       </div>
     </header>
@@ -256,11 +256,11 @@ export default defineComponent({
         <div v-if="isWatchingRoom" class="spectator-wrapper">
           <div class="spectator-back-bar">
             <button id="back-to-rooms-btn" class="back-btn" @click="backToRoomList">
-              ← All Rooms
+              ← {{ $t('admin.allRooms') }}
             </button>
-            <span class="spectator-room-label">Watching: <strong>{{ selectedRoom }}</strong></span>
+            <span class="spectator-room-label">{{ $t('admin.watching') }} <strong>{{ selectedRoom }}</strong></span>
             <span class="conn-pill" :class="{ connected: store.connected }">
-              {{ store.connected ? '● Live' : '○ Disconnected' }}
+              {{ store.connected ? $t('admin.live') : $t('admin.disconnected') }}
             </span>
           </div>
           <AdminSpectatorView :isEmbedded="true" />
@@ -269,14 +269,14 @@ export default defineComponent({
         <!-- ROOM LIST -->
         <div v-else class="rooms-tab">
           <div class="rooms-header">
-            <h2 class="rooms-title">🏠 Active Rooms</h2>
+            <h2 class="rooms-title">🏠 {{ $t('admin.activeRooms') }}</h2>
             <div class="rooms-header-actions">
               <form class="create-room-form" @submit.prevent="createRoom">
                 <input
                   id="new-room-id"
                   v-model="newRoomID"
                   type="text"
-                  placeholder="New room ID"
+                  :placeholder="$t('admin.newRoomPlaceholder')"
                   class="create-room-input"
                   :disabled="createRoomLoading"
                 />
@@ -286,11 +286,11 @@ export default defineComponent({
                   class="btn-primary btn-sm"
                   :disabled="createRoomLoading || !newRoomID.trim()"
                 >
-                  {{ createRoomLoading ? 'Creating…' : '+ Create Room' }}
+                  {{ createRoomLoading ? $t('admin.creating') : $t('admin.createRoom') }}
                 </button>
               </form>
               <button id="refresh-rooms-btn" class="btn-secondary btn-sm" :disabled="roomsLoading" @click="loadRooms">
-                {{ roomsLoading ? 'Refreshing…' : '↺ Refresh' }}
+                {{ roomsLoading ? $t('admin.refreshing') : $t('admin.refresh') }}
               </button>
             </div>
           </div>
@@ -300,7 +300,7 @@ export default defineComponent({
 
           <div v-if="rooms.length === 0 && !roomsLoading" class="rooms-empty">
             <div class="empty-icon">🌐</div>
-            <p>No rooms yet. Create a room above, then share its ID with players.</p>
+            <p>{{ $t('admin.noRooms') }}</p>
           </div>
 
           <div v-else class="rooms-grid">
@@ -322,11 +322,11 @@ export default defineComponent({
               <div class="room-card-stats">
                 <span class="stat">
                   <span class="stat-icon">👥</span>
-                  {{ room.player_count }} player{{ room.player_count !== 1 ? 's' : '' }}
+                  {{ room.player_count === 1 ? $t('admin.playerCountOne', { count: room.player_count }) : $t('admin.playerCount', { count: room.player_count }) }}
                 </span>
                 <span v-if="room.active_turn" class="stat">
                   <span class="stat-icon">🎯</span>
-                  {{ room.active_turn }}'s turn
+                  {{ $t('admin.playerTurn', { name: room.active_turn }) }}
                 </span>
               </div>
 
@@ -342,7 +342,7 @@ export default defineComponent({
               </div>
 
               <div class="room-card-footer">
-                <span class="view-room-link">View Room →</span>
+                <span class="view-room-link">{{ $t('admin.viewRoom') }}</span>
               </div>
             </div>
           </div>

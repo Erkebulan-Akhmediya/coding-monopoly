@@ -59,18 +59,18 @@ export default defineComponent({
 <template>
   <div class="lobby">
     <div class="lobby-card">
-      <div class="lobby-logo">🎲 Coding Monopoly</div>
-      <p class="lobby-subtitle">{{ reconnecting ? 'Rejoining your game…' : 'Enter your details to join' }}</p>
+      <div class="lobby-logo">🎲 {{ $t('lobby.title') }}</div>
+      <p class="lobby-subtitle">{{ reconnecting ? $t('lobby.subtitleRejoin') : $t('lobby.subtitleJoin') }}</p>
 
-      <p v-if="reconnecting" class="hint">Restoring your seat, XP, and position</p>
+      <p v-if="reconnecting" class="hint">{{ $t('lobby.hintRejoin') }}</p>
 
       <div class="field">
-        <label for="lobby-name">Your Name</label>
+        <label for="lobby-name">{{ $t('lobby.yourName') }}</label>
         <input
           id="lobby-name"
           v-model="nameInput"
           type="text"
-          placeholder="Alice"
+          :placeholder="$t('lobby.namePlaceholder')"
           class="lobby-input"
           :disabled="reconnecting || joining"
           @keydown.enter="join"
@@ -78,12 +78,12 @@ export default defineComponent({
       </div>
 
       <div class="field">
-        <label for="lobby-room">Room ID</label>
+        <label for="lobby-room">{{ $t('lobby.roomId') }}</label>
         <input
           id="lobby-room"
           v-model="roomInput"
           type="text"
-          placeholder="Ask your instructor for the room ID"
+          :placeholder="$t('lobby.roomPlaceholder')"
           class="lobby-input"
           :disabled="reconnecting || joining"
           @keydown.enter="join"
@@ -98,7 +98,7 @@ export default defineComponent({
         :disabled="(!nameInput.trim() || !roomInput.trim()) && !reconnecting || joining"
         @click="join"
       >
-        {{ reconnecting ? 'Join as New Player' : joining ? 'Joining…' : 'Join Game' }}
+        {{ reconnecting ? $t('lobby.joinAsNew') : joining ? $t('lobby.joining') : $t('lobby.joinGame') }}
       </button>
     </div>
   </div>

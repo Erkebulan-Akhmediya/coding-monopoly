@@ -21,8 +21,8 @@ export default defineComponent({
   <div v-if="visible" class="pause-overlay" aria-live="polite">
     <div class="pause-card">
       <div class="pause-icon">⏸</div>
-      <h2 class="pause-title">Game Paused</h2>
-      <p class="pause-message">An admin has paused this room. Please wait until the game resumes.</p>
+      <h2 class="pause-title">{{ $t('pause.title') }}</h2>
+      <p class="pause-message">{{ $t('pause.message') }}</p>
     </div>
   </div>
 </template>
