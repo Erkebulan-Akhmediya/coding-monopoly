@@ -574,7 +574,6 @@ export default defineComponent({
 }
 .ctrl-btn:hover:not(:disabled) { opacity: .85; transform: translateY(-1px); }
 .ctrl-btn:disabled { opacity: .4; cursor: not-allowed; }
-#admin-skip-turn-btn { grid-column: 1/-1; }
 
 .turn-strip {
   display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
