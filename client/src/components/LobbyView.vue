@@ -10,6 +10,8 @@ export default defineComponent({
       nameInput: '' as string,
       roomInput: '' as string,
       reconnecting: false as boolean,
+      joining: false as boolean,
+      store,
     }
   },
   created() {
@@ -27,21 +29,28 @@ export default defineComponent({
   methods: {
     async resume() {
       store.playerName = this.nameInput.trim() || sessionStorage.getItem('playerName') || ''
-      store.roomId = this.roomInput.trim() || sessionStorage.getItem('roomId') || 'default'
-      if (!store.playerName) {
+      store.roomId = this.roomInput.trim() || sessionStorage.getItem('roomId') || ''
+      if (!store.playerName || !store.roomId) {
         this.reconnecting = false
         return
       }
+      store.joinError = ''
+      this.joining = true
       await websocketService.connect()
       websocketService.sendJoin(store.playerName, store.roomId)
+      this.joining = false
     },
     async join() {
-      if (!this.nameInput.trim()) return
+      const name = this.nameInput.trim()
+      const roomId = this.roomInput.trim()
+      if (!name || !roomId) return
       this.reconnecting = false
-      const roomId = this.roomInput.trim() || 'default'
+      store.joinError = ''
       store.roomId = roomId
+      this.joining = true
       await websocketService.connect()
-      websocketService.sendJoin(this.nameInput.trim(), roomId)
+      websocketService.sendJoin(name, roomId)
+      this.joining = false
     },
   },
 })
@@ -63,7 +72,7 @@ export default defineComponent({
           type="text"
           placeholder="Alice"
           class="lobby-input"
-          :disabled="reconnecting"
+          :disabled="reconnecting || joining"
           @keydown.enter="join"
         />
       </div>
@@ -74,20 +83,22 @@ export default defineComponent({
           id="lobby-room"
           v-model="roomInput"
           type="text"
-          placeholder="default"
+          placeholder="Ask your instructor for the room ID"
           class="lobby-input"
-          :disabled="reconnecting"
+          :disabled="reconnecting || joining"
           @keydown.enter="join"
         />
       </div>
 
+      <p v-if="store.joinError" class="join-error">{{ store.joinError }}</p>
+
       <button
         id="lobby-join-btn"
         class="lobby-btn"
-        :disabled="!nameInput.trim() && !reconnecting"
+        :disabled="(!nameInput.trim() || !roomInput.trim()) && !reconnecting || joining"
         @click="join"
       >
-        {{ reconnecting ? 'Join as New Player' : 'Join Game' }}
+        {{ reconnecting ? 'Join as New Player' : joining ? 'Joining…' : 'Join Game' }}
       </button>
     </div>
   </div>
@@ -139,6 +150,13 @@ export default defineComponent({
   font-size: 0.8rem;
   margin: -0.75rem 0 0.75rem 0;
   font-style: italic;
+}
+
+.join-error {
+  text-align: center;
+  color: #f87171;
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem 0;
 }
 
 .field {

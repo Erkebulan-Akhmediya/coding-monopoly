@@ -181,6 +181,10 @@ func TestDeployMux_QuestionContentStaysOffSpectatorWire(t *testing.T) {
 	connB := dialDeployWS(t, server)
 	defer connB.Close()
 
+	if err := hub.CreateRoom("deploy-redact"); err != nil {
+		t.Fatalf("CreateRoom: %v", err)
+	}
+
 	deploySendJoin(t, connA, "Alice", "deploy-redact")
 	_, _ = deployReadUntil(t, connA, ws.MessageTypeStateSync)
 	deploySendJoin(t, connB, "Bob", "deploy-redact")
@@ -267,6 +271,9 @@ func TestDeployMux_TimeoutThenLateSubmitResolvesOnce(t *testing.T) {
 	defer connB.Close()
 
 	const roomID = "deploy-timeout"
+	if err := hub.CreateRoom(roomID); err != nil {
+		t.Fatalf("CreateRoom: %v", err)
+	}
 	deploySendJoin(t, connA, "Alice", roomID)
 	_, _ = deployReadUntil(t, connA, ws.MessageTypeStateSync)
 	deploySendJoin(t, connB, "Bob", roomID)
@@ -347,6 +354,9 @@ func TestDeployMux_SubmitWinsAndStaleTimerDoesNotDoubleResolve(t *testing.T) {
 	defer connB.Close()
 
 	const roomID = "deploy-submit"
+	if err := hub.CreateRoom(roomID); err != nil {
+		t.Fatalf("CreateRoom: %v", err)
+	}
 	deploySendJoin(t, connA, "Alice", roomID)
 	_, _ = deployReadUntil(t, connA, ws.MessageTypeStateSync)
 	deploySendJoin(t, connB, "Bob", roomID)

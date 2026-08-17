@@ -32,7 +32,7 @@ func TestWS_AdminClientRejectsPlayerActions(t *testing.T) {
 		t.Fatalf("Failed to connect Alice: %v", err)
 	}
 	defer connAlice.Close()
-	sendJoin(t, connAlice, "Alice", "admin-test-room")
+	sendJoin(t, hub, connAlice, "Alice", "admin-test-room")
 
 	// Wait for presence
 	_ = readMessageTimeout(t, connAlice, 2*time.Second)
@@ -115,7 +115,7 @@ func TestWS_AdminKickPlayerClosesConnection(t *testing.T) {
 		t.Fatalf("connect Alice: %v", err)
 	}
 	defer connAlice.Close()
-	sendJoin(t, connAlice, "Alice", "kick-room")
+	sendJoin(t, hub, connAlice, "Alice", "kick-room")
 
 	_, joinedMsg := readUntilType(t, connAlice, MessageTypeJoined)
 	var joined JoinedPayload
@@ -128,7 +128,7 @@ func TestWS_AdminKickPlayerClosesConnection(t *testing.T) {
 		t.Fatalf("connect Bob: %v", err)
 	}
 	defer connBob.Close()
-	sendJoin(t, connBob, "Bob", "kick-room")
+	sendJoin(t, hub, connBob, "Bob", "kick-room")
 	_, _ = readUntilType(t, connBob, MessageTypeJoined)
 	_, _ = readUntilType(t, connBob, MessageTypeStateSync)
 
@@ -182,7 +182,7 @@ func TestWS_AdminPauseAndResumeSyncs(t *testing.T) {
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
 	connAlice, _, _ := websocket.DefaultDialer.Dial(wsURL, nil)
 	defer connAlice.Close()
-	sendJoin(t, connAlice, "Alice", "pause-test-room")
+	sendJoin(t, hub, connAlice, "Alice", "pause-test-room")
 	_, _ = readUntilType(t, connAlice, MessageTypeJoined)
 	_, _ = readUntilType(t, connAlice, MessageTypeStateSync)
 

@@ -326,6 +326,10 @@ func (c *Client) handleChooseLevelMessage(msg Message) {
 	}
 
 	r := c.hub.GetRoomInstance(roomID)
+	if r == nil {
+		c.sendError(ErrRoomNotFound.Error())
+		return
+	}
 	if err := r.ChooseLevel(c.GetID(), payload.Difficulty); err != nil {
 		log.Printf("[WS Client] ChooseLevel rejected for client %s: %v", c.id, err)
 	}
@@ -339,6 +343,10 @@ func (c *Client) handleSubmitAnswerMessage(msg Message) {
 	}
 
 	r := c.hub.GetRoomInstance(roomID)
+	if r == nil {
+		c.sendError(ErrRoomNotFound.Error())
+		return
+	}
 	if _, err := r.SubmitAnswer(c.GetID(), msg.Payload); err != nil {
 		log.Printf("[WS Client] SubmitAnswer rejected for client %s: %v", c.id, err)
 	}
@@ -379,31 +387,24 @@ func (c *Client) handleJoinMessage(msg Message) {
 
 	roomID := strings.TrimSpace(payload.RoomID)
 	if roomID == "" {
-		roomID = msg.RoomID
+		roomID = strings.TrimSpace(msg.RoomID)
 	}
 	if roomID == "" {
-		roomID = "default"
+		c.sendError("Room id is required to join")
+		return
 	}
 
 	claimedID := strings.TrimSpace(payload.PlayerID)
 	resumed := false
 	if claimedID != "" {
 		r := c.hub.GetRoomInstance(roomID)
-		if r.CanReclaimPlayer(claimedID) {
+		if r != nil && r.CanReclaimPlayer(claimedID) {
 			c.SetID(claimedID)
 			resumed = true
 		}
 	}
 
-	c.hub.JoinRoom(c, name, roomID)
-
-	joined, _ := NewMessage(MessageTypeJoined, roomID, JoinedPayload{
-		PlayerID: c.GetID(),
-		Name:     name,
-		RoomID:   roomID,
-		Resumed:  resumed,
-	})
-	c.SendBytes(joined)
+	c.hub.JoinRoom(c, name, roomID, resumed)
 }
 
 func (c *Client) sendError(errMsg string) {
@@ -422,6 +423,10 @@ func (c *Client) handleAdminStartMessage(msg Message) {
 		return
 	}
 	r := c.hub.GetRoomInstance(roomID)
+	if r == nil {
+		c.sendError(ErrRoomNotFound.Error())
+		return
+	}
 	started := r.AdminStartGame()
 	if started {
 		c.hub.broadcastGameEvent(roomID, "admin_action", "Admin started the game", nil)
@@ -437,6 +442,10 @@ func (c *Client) handleAdminPauseMessage(msg Message) {
 		return
 	}
 	r := c.hub.GetRoomInstance(roomID)
+	if r == nil {
+		c.sendError(ErrRoomNotFound.Error())
+		return
+	}
 	paused := r.AdminTogglePause()
 	action := "Admin resumed the game"
 	if paused {
@@ -480,6 +489,10 @@ func (c *Client) handleAdminSkipTurnMessage(msg Message) {
 		_ = json.Unmarshal(msg.Payload, &payload)
 	}
 	r := c.hub.GetRoomInstance(roomID)
+	if r == nil {
+		c.sendError(ErrRoomNotFound.Error())
+		return
+	}
 	skippedName := r.AdminSkipTurn(payload.PlayerID)
 	c.hub.broadcastGameEvent(roomID, "admin_action", "Admin skipped turn for: "+skippedName, map[string]string{"player_id": payload.PlayerID})
 	log.Printf("[WS Admin] Client %s skipped turn for player '%s' in room %s", c.id, skippedName, roomID)
@@ -498,6 +511,10 @@ func (c *Client) handleAdminEndGameMessage(msg Message) {
 		_ = json.Unmarshal(msg.Payload, &payload)
 	}
 	r := c.hub.GetRoomInstance(roomID)
+	if r == nil {
+		c.sendError(ErrRoomNotFound.Error())
+		return
+	}
 	result := r.AdminEndGame(payload.WinnerID)
 	winner := ""
 	if result != nil {

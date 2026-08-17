@@ -83,6 +83,11 @@ export const store = reactive({
   targetXP: 500 as number,
   gameOver: null as GameOverSummary | null,
 
+  // Room / game control state from server
+  isStarted: false as boolean,
+  isPaused: false as boolean,
+  joinError: '' as string,
+
   // Board token animation (visual cell ≠ logical position while hopping)
   tokenVisualPositions: {} as Record<string, number>,
   pendingTokenMoves: [] as PendingTokenMove[],

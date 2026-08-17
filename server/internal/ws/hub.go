@@ -1,11 +1,18 @@
 package ws
 
 import (
+	"errors"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
 	"server/internal/room"
+)
+
+var (
+	ErrRoomNotFound      = errors.New("room not found")
+	ErrRoomAlreadyExists = errors.New("room already exists")
 )
 
 // Authoritative Connection Set Concurrency Model:
@@ -16,9 +23,10 @@ import (
 // This guarantees race-free, synchronized hub operations without needing coarse mutex locks.
 
 type joinRequest struct {
-	client *Client
-	name   string
-	roomID string
+	client  *Client
+	name    string
+	roomID  string
+	resumed bool
 }
 
 type broadcastRequest struct {
@@ -179,13 +187,18 @@ func (h *Hub) Run() {
 				continue
 			}
 
-			roomID := req.roomID
+			roomID := strings.TrimSpace(req.roomID)
 			if roomID == "" {
-				roomID = "default"
+				c.sendError("Room id is required to join")
+				continue
 			}
 
-			// Update room engine state FIRST to check if join is allowed
 			r := h.GetRoomInstance(roomID)
+			if r == nil {
+				c.sendError(ErrRoomNotFound.Error())
+				continue
+			}
+
 			_, err := r.AddOrReconnectPlayer(c.id, req.name)
 			if err != nil {
 				log.Printf("[WS Hub] Join rejected for client %s (%s) in room %s: %v", c.id, req.name, roomID, err)
@@ -227,6 +240,16 @@ func (h *Hub) Run() {
 			}
 
 			log.Printf("[WS Hub] Client %s (%s) joined room: %s", c.id, req.name, roomID)
+
+			joined, err := NewMessage(MessageTypeJoined, roomID, JoinedPayload{
+				PlayerID: c.id,
+				Name:     req.name,
+				RoomID:   roomID,
+				Resumed:  req.resumed,
+			})
+			if err == nil {
+				c.SendBytes(joined)
+			}
 
 			playerInfo := c.ToPlayerInfo(true)
 			// Broadcast presence (joined) to room
@@ -295,12 +318,13 @@ func (h *Hub) UnregisterClient(c *Client) {
 }
 
 // JoinRoom queues a join request for a client.
-func (h *Hub) JoinRoom(c *Client, name string, roomID string) {
+func (h *Hub) JoinRoom(c *Client, name string, roomID string, resumed bool) {
 	select {
 	case h.join <- &joinRequest{
-		client: c,
-		name:   name,
-		roomID: roomID,
+		client:  c,
+		name:    name,
+		roomID:  roomID,
+		resumed: resumed,
 	}:
 	case <-h.stopChan:
 	}
@@ -519,24 +543,64 @@ func (h *Hub) GetRoomPlayers(roomID string) []PlayerInfo {
 	return players
 }
 
-// GetRoomInstance retrieves an existing room.Room instance or creates a new one thread-safely.
-func (h *Hub) GetRoomInstance(roomID string) *room.Room {
+// CreateRoom creates a new empty room. Returns ErrRoomAlreadyExists if the id is taken.
+func (h *Hub) CreateRoom(roomID string) error {
+	roomID = strings.TrimSpace(roomID)
+	if err := validateRoomID(roomID); err != nil {
+		return err
+	}
+
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	r, ok := h.roomInstances[roomID]
-	if !ok {
-		hb := &HubBroadcaster{hub: h}
-		r = room.NewRoomWithQuestionProvider(roomID, hb, h.questionProvider)
-		h.roomInstances[roomID] = r
+	if _, ok := h.roomInstances[roomID]; ok {
+		return ErrRoomAlreadyExists
 	}
-	return r
+
+	hb := &HubBroadcaster{hub: h}
+	h.roomInstances[roomID] = room.NewRoomWithQuestionProvider(roomID, hb, h.questionProvider)
+	return nil
+}
+
+// RoomExists reports whether a room has been created by an admin.
+func (h *Hub) RoomExists(roomID string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	_, ok := h.roomInstances[strings.TrimSpace(roomID)]
+	return ok
+}
+
+// GetRoomInstance retrieves an existing room.Room instance, or nil if the room was never created.
+func (h *Hub) GetRoomInstance(roomID string) *room.Room {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.roomInstances[strings.TrimSpace(roomID)]
+}
+
+func validateRoomID(roomID string) error {
+	if roomID == "" {
+		return errors.New("room id is required")
+	}
+	if len(roomID) > 64 {
+		return errors.New("room id exceeds maximum length of 64 characters")
+	}
+	return nil
 }
 
 // RegisterAdminClient registers an already-authenticated admin spectator client
 // and adds it to the named room's client set so it receives all broadcasts.
 // Unlike the regular JoinRoom flow, no player record is created in the room engine.
 func (h *Hub) RegisterAdminClient(c *Client, roomID string) {
+	roomID = strings.TrimSpace(roomID)
+	if h.GetRoomInstance(roomID) == nil {
+		h.mu.Lock()
+		h.clients[c] = true
+		h.mu.Unlock()
+		c.sendError(ErrRoomNotFound.Error())
+		log.Printf("[WS Hub] Admin client %s rejected: room %s not found", c.id, roomID)
+		return
+	}
+
 	h.mu.Lock()
 	h.clients[c] = true
 	if h.rooms[roomID] == nil {
@@ -545,10 +609,6 @@ func (h *Hub) RegisterAdminClient(c *Client, roomID string) {
 	h.rooms[roomID][c] = true
 	h.mu.Unlock()
 
-	// Ensure a room engine exists so state_sync works.
-	_ = h.GetRoomInstance(roomID)
-
-	// Send an immediate state snapshot to the new admin spectator.
 	h.sendStateSyncToClient(roomID, c)
 	log.Printf("[WS Hub] Admin client %s registered in room %s", c.id, roomID)
 }
@@ -589,6 +649,9 @@ func (h *Hub) broadcastToAdmins(roomID string, data []byte) {
 // KickClient disconnects and kicks the specified player from a room and closes their connection.
 func (h *Hub) KickClient(roomID string, playerID string) string {
 	r := h.GetRoomInstance(roomID)
+	if r == nil {
+		return playerID
+	}
 	name := r.AdminKickPlayer(playerID)
 
 	h.mu.Lock()

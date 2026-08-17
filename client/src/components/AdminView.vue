@@ -26,6 +26,10 @@ export default defineComponent({
       roomsLoading: false as boolean,
       roomsError: '' as string,
       roomsRefreshInterval: null as number | null,
+      // create room
+      newRoomID: '' as string,
+      createRoomLoading: false as boolean,
+      createRoomError: '' as string,
       // selected room for spectating
       selectedRoom: null as string | null,
     }
@@ -152,6 +156,22 @@ export default defineComponent({
       if (room.is_started) return 'status-active'
       return 'status-waiting'
     },
+
+    async createRoom() {
+      const roomID = this.newRoomID.trim()
+      if (!roomID) return
+      this.createRoomLoading = true
+      this.createRoomError = ''
+      try {
+        await adminApiService.createRoom(adminStore.token, roomID)
+        this.newRoomID = ''
+        await this.loadRooms()
+      } catch (err: any) {
+        this.createRoomError = err.message || 'Failed to create room'
+      } finally {
+        this.createRoomLoading = false
+      }
+    },
   },
 })
 </script>
@@ -250,16 +270,37 @@ export default defineComponent({
         <div v-else class="rooms-tab">
           <div class="rooms-header">
             <h2 class="rooms-title">🏠 Active Rooms</h2>
-            <button id="refresh-rooms-btn" class="btn-secondary btn-sm" :disabled="roomsLoading" @click="loadRooms">
-              {{ roomsLoading ? 'Refreshing…' : '↺ Refresh' }}
-            </button>
+            <div class="rooms-header-actions">
+              <form class="create-room-form" @submit.prevent="createRoom">
+                <input
+                  id="new-room-id"
+                  v-model="newRoomID"
+                  type="text"
+                  placeholder="New room ID"
+                  class="create-room-input"
+                  :disabled="createRoomLoading"
+                />
+                <button
+                  id="create-room-btn"
+                  type="submit"
+                  class="btn-primary btn-sm"
+                  :disabled="createRoomLoading || !newRoomID.trim()"
+                >
+                  {{ createRoomLoading ? 'Creating…' : '+ Create Room' }}
+                </button>
+              </form>
+              <button id="refresh-rooms-btn" class="btn-secondary btn-sm" :disabled="roomsLoading" @click="loadRooms">
+                {{ roomsLoading ? 'Refreshing…' : '↺ Refresh' }}
+              </button>
+            </div>
           </div>
 
+          <p v-if="createRoomError" class="rooms-error">{{ createRoomError }}</p>
           <p v-if="roomsError" class="rooms-error">{{ roomsError }}</p>
 
           <div v-if="rooms.length === 0 && !roomsLoading" class="rooms-empty">
             <div class="empty-icon">🌐</div>
-            <p>No rooms found. Rooms appear here once the first player connects.</p>
+            <p>No rooms yet. Create a room above, then share its ID with players.</p>
           </div>
 
           <div v-else class="rooms-grid">
@@ -545,8 +586,46 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1.25rem;
+  flex-wrap: wrap;
 }
+.rooms-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.create-room-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.create-room-input {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  color: #f1f5f9;
+  font-size: 0.82rem;
+  font-family: monospace;
+  outline: none;
+  width: 160px;
+}
+.create-room-input:focus {
+  border-color: #60a5fa;
+}
+.btn-primary {
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-weight: 700;
+}
+.btn-primary:hover:not(:disabled) { opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 .rooms-title {
   margin: 0;
   font-size: 1rem;

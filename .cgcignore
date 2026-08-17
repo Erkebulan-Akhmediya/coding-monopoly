@@ -1,0 +1,8 @@
+bin/
+
+client/.vscode/
+client/dist/
+client/node_modules/
+client/public/
+
+venv/

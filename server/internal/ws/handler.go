@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -71,9 +72,11 @@ func ServeAdminWS(hub *Hub, validate TokenValidator, w http.ResponseWriter, r *h
 	}
 
 	roomID := r.URL.Query().Get("room_id")
-	if roomID == "" {
-		roomID = "default"
+	if strings.TrimSpace(roomID) == "" {
+		http.Error(w, "room_id is required", http.StatusBadRequest)
+		return
 	}
+	roomID = strings.TrimSpace(roomID)
 
 	conn, err := defaultUpgrader.Upgrade(w, r, nil)
 	if err != nil {
