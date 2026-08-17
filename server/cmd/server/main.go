@@ -29,13 +29,13 @@ func main() {
 		log.Fatalf("Connect to database: %v", err)
 	}
 
-	adminHandler, err := admin.NewHandler(db, admin.ConfigFromEnv())
+	hub := ws.NewHub(ws.NewDBQuestionProvider(db))
+	go hub.Run()
+
+	adminHandler, err := admin.NewHandler(db, admin.ConfigFromEnv(), hub)
 	if err != nil {
 		log.Fatalf("Configure admin API: %v", err)
 	}
-
-	hub := ws.NewHub(ws.NewDBQuestionProvider(db))
-	go hub.Run()
 
 	handler := buildDeployMux(
 		hub,

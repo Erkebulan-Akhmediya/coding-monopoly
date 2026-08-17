@@ -17,6 +17,9 @@ var (
 	ErrQuestionInProgress = errors.New("a question is already in progress")
 	ErrNoQuestion         = errors.New("no question is assigned for this turn")
 	ErrGamePaused         = errors.New("game is paused")
+	ErrGameInProgress     = errors.New("game is already in progress; new players cannot join")
+	ErrNameTaken          = errors.New("a player with this name already exists in this room")
+	ErrGameNotStarted     = errors.New("game has not started yet")
 )
 
 // Broadcaster provides an interface for Room to push messages to connected clients.
@@ -155,6 +158,7 @@ type Room struct {
 	questionProvider  QuestionProvider
 	currentTurn       *activeTurn
 	deadlineDurations map[string]time.Duration
+	started           bool // set by AdminStartGame
 	paused            bool // set by AdminTogglePause
 	finished          bool
 	gameOver          *GameOverPayload
@@ -221,6 +225,13 @@ func (r *Room) SetTargetXP(xp int) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.targetXP = xp
+}
+
+// IsStarted reports whether the game has been started by an admin.
+func (r *Room) IsStarted() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.started
 }
 
 // IsFinished reports whether the game has ended.
@@ -334,9 +345,9 @@ func (r *Room) GetActiveQuestionPayload(clientID string) *QuestionStartedPayload
 }
 
 // AddOrReconnectPlayer handles player join or reconnect, maintaining strict join order.
-// A reconnecting player keeps the same slot, position, XP, and modifiers. If they are
-// still the active player mid-question, the existing deadline is left untouched.
-func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, bool) {
+// A reconnecting player keeps the same slot, position, XP, and modifiers.
+// New players can only join before the game is started by an admin, and player names must be unique within the room.
+func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -347,9 +358,8 @@ func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, bool
 			p.Name = name
 		}
 
-		// If the room had no eligible active player, resume turn order from this slot
-		// when it is their place — otherwise pick the next connected player.
-		if r.activePlayerID == "" && !r.finished {
+		// If the game is started and had no eligible active player, resume turn order
+		if r.started && r.activePlayerID == "" && !r.finished {
 			if r.turnIdx >= 0 && r.turnIdx < len(r.players) && r.players[r.turnIdx].ID == clientID {
 				r.activePlayerID = p.ID
 				r.broadcastTurnStartedLocked()
@@ -358,32 +368,33 @@ func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, bool
 			}
 		}
 
-		return p, false
+		return p, nil
+	}
+
+	trimmedName := strings.TrimSpace(name)
+
+	// Check name uniqueness among existing players in the room (case-insensitive)
+	for _, p := range r.players {
+		if strings.EqualFold(strings.TrimSpace(p.Name), trimmedName) {
+			return nil, ErrNameTaken
+		}
 	}
 
 	if r.finished {
-		player := NewPlayer(clientID, name)
-		// Spectate-only late join after game over: still track them, but do not
-		// start a turn.
-		r.players = append(r.players, player)
-		r.playerMap[clientID] = player
-		return player, false
+		return nil, errors.New("game is over")
 	}
 
-	// New player joining
+	// Mid-game join restriction: only reconnecting players can join a started game
+	if r.started {
+		return nil, ErrGameInProgress
+	}
+
+	// New player joining before game starts
 	player := NewPlayer(clientID, name)
 	r.players = append(r.players, player)
 	r.playerMap[clientID] = player
 
-	// First connected player becomes active player
-	isFirst := len(r.players) == 1 || r.activePlayerID == ""
-	if isFirst {
-		r.turnIdx = len(r.players) - 1
-		r.activePlayerID = player.ID
-		r.broadcastTurnStartedLocked()
-	}
-
-	return player, isFirst
+	return player, nil
 }
 
 // DisconnectPlayer marks a player as disconnected without removing their slot.
@@ -479,6 +490,13 @@ func (r *Room) ChooseLevel(clientID string, difficulty string) error {
 		return errors.New("game is over")
 	}
 
+	if !r.started {
+		if r.broadcaster != nil {
+			r.broadcaster.SendError(clientID, "Game has not started yet")
+		}
+		return ErrGameNotStarted
+	}
+
 	if r.paused {
 		if r.broadcaster != nil {
 			r.broadcaster.SendError(clientID, "Game is paused")
@@ -572,6 +590,13 @@ func (r *Room) SubmitAnswer(clientID string, payload json.RawMessage) ([]RollRes
 			r.broadcaster.SendError(clientID, "Game is over")
 		}
 		return nil, errors.New("game is over")
+	}
+
+	if !r.started {
+		if r.broadcaster != nil {
+			r.broadcaster.SendError(clientID, "Game has not started yet")
+		}
+		return nil, ErrGameNotStarted
 	}
 
 	if r.paused {
@@ -984,26 +1009,26 @@ func (r *Room) Board() []BoardCell {
 // Admin control methods
 // ---------------------------------------------------------------------------
 
-// AdminStartGame is a hook for admin "start" control. Currently the room
-// starts implicitly when the first player joins; this method exists so the
-// admin WS handler has something to call and so future gating (e.g. minimum
-// player count) can be inserted here without changing the WS layer.
-func (r *Room) AdminStartGame() {
+// AdminStartGame starts the game in the room manually.
+// Can only be started if the game has not already started or finished, and at least 1 connected player exists.
+func (r *Room) AdminStartGame() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	// If there is already an active player, nothing to do.
-	if r.activePlayerID != "" {
-		return
+
+	if r.started || r.finished {
+		return false
 	}
-	// Find the first connected player and make them active.
+
 	for i, p := range r.players {
 		if p.IsConnected {
 			r.turnIdx = i
 			r.activePlayerID = p.ID
+			r.started = true
 			r.broadcastTurnStartedLocked()
-			return
+			return true
 		}
 	}
+	return false
 }
 
 // AdminTogglePause pauses or unpauses the game. Returns true if the game is
@@ -1043,21 +1068,36 @@ func (r *Room) IsPaused() bool {
 	return r.paused
 }
 
-// AdminKickPlayer disconnects the named player from the room engine immediately
-// (no reconnect grace). Returns the player's name for logging/event feed display.
+// AdminKickPlayer disconnects and removes the named player from the room engine immediately.
+// Returns the player's name for logging/event feed display.
 func (r *Room) AdminKickPlayer(playerID string) string {
-	r.mu.RLock()
-	p, exists := r.playerMap[playerID]
-	name := ""
-	if exists {
-		name = p.Name
-	}
-	r.mu.RUnlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
+	p, exists := r.playerMap[playerID]
 	if !exists {
 		return playerID
 	}
-	r.DisconnectPlayerImmediate(playerID)
+	name := p.Name
+
+	r.clearGraceTimerLocked(playerID)
+	p.IsConnected = false
+
+	// Remove from players slice and map
+	newPlayers := make([]*Player, 0, len(r.players)-1)
+	for _, pl := range r.players {
+		if pl.ID != playerID {
+			newPlayers = append(newPlayers, pl)
+		}
+	}
+	r.players = newPlayers
+	delete(r.playerMap, playerID)
+
+	// If this was the active player, forfeit active turn and advance
+	if r.activePlayerID == playerID && !r.finished {
+		r.forfeitActiveTurnLocked(playerID)
+	}
+
 	return name
 }
 

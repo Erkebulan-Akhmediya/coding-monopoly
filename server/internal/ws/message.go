@@ -98,6 +98,8 @@ type StateSyncPayload struct {
 	Deadline          *time.Time            `json:"deadline,omitempty"`
 	TargetXP          int                   `json:"target_xp,omitempty"`
 	GameOver          *room.GameOverPayload `json:"game_over,omitempty"`
+	IsStarted         bool                  `json:"is_started"`
+	IsPaused          bool                  `json:"is_paused"`
 }
 
 // PresencePayload represents a presence broadcast (join/leave).

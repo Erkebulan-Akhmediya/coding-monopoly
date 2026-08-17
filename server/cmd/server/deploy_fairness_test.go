@@ -174,7 +174,7 @@ func TestDeployMux_QuestionContentStaysOffSpectatorWire(t *testing.T) {
 			{ID: "DEPLOY_SECRET_WRONG", Text: "DEPLOY_SECRET_WRONG_TEXT"},
 		},
 	}}
-	_, server := setupDeployServer(t, provider)
+	hub, server := setupDeployServer(t, provider)
 
 	connA := dialDeployWS(t, server)
 	defer connA.Close()
@@ -186,6 +186,8 @@ func TestDeployMux_QuestionContentStaysOffSpectatorWire(t *testing.T) {
 	deploySendJoin(t, connB, "Bob", "deploy-redact")
 	_, _ = deployReadUntil(t, connA, ws.MessageTypeStateSync)
 	_, _ = deployReadUntil(t, connB, ws.MessageTypeStateSync)
+
+	hub.GetRoomInstance("deploy-redact").AdminStartGame()
 
 	choose, _ := json.Marshal(ws.ChooseLevelPayload{Difficulty: "easy"})
 	if err := connA.WriteJSON(ws.Message{Type: ws.MessageTypeChooseLevel, RoomID: "deploy-redact", Payload: choose}); err != nil {
@@ -210,11 +212,11 @@ func TestDeployMux_QuestionContentStaysOffSpectatorWire(t *testing.T) {
 	}
 	var spectatorPayload map[string]any
 	if err := json.Unmarshal(spectatorQ.Payload, &spectatorPayload); err != nil {
-		t.Fatalf("spectator payload: %v", err)
+		t.Fatalf("invalid spectator question payload: %v", err)
 	}
-	for _, forbidden := range []string{"problem_id", "type", "prompt", "options"} {
-		if _, ok := spectatorPayload[forbidden]; ok {
-			t.Fatalf("spectator payload has %q: %s", forbidden, spectatorQ.Payload)
+	for _, forbiddenField := range []string{"problem_id", "type", "prompt", "options"} {
+		if _, present := spectatorPayload[forbiddenField]; present {
+			t.Fatalf("spectator question payload contains forbidden field %q: %s", forbiddenField, spectatorQ.Payload)
 		}
 	}
 
@@ -224,30 +226,38 @@ func TestDeployMux_QuestionContentStaysOffSpectatorWire(t *testing.T) {
 		t.Fatalf("submit: %v", err)
 	}
 
-	resultRaw, resultMsg := deployReadUntil(t, connB, ws.MessageTypeAnswerResult)
-	for _, secret := range []string{"correct_answer", "DEPLOY_SECRET_CORRECT", "DEPLOY_SECRET_PROMPT"} {
-		if bytes.Contains(resultRaw, []byte(secret)) {
-			t.Fatalf("deploy mux answer_result leaked %q: %s", secret, resultRaw)
+	spectatorResultRaw, spectatorResult := deployReadUntil(t, connB, ws.MessageTypeAnswerResult)
+	for _, secret := range []string{
+		"correct_answer",
+		"DEPLOY_SECRET_CORRECT",
+		"DEPLOY_SECRET_CORRECT_TEXT",
+		"DEPLOY_SECRET_PROMPT",
+	} {
+		if bytes.Contains(spectatorResultRaw, []byte(secret)) {
+			t.Fatalf("spectator answer_result wire payload leaked %q: %s", secret, spectatorResultRaw)
 		}
 	}
 	var publicResult map[string]any
-	if err := json.Unmarshal(resultMsg.Payload, &publicResult); err != nil {
-		t.Fatalf("public result: %v", err)
+	if err := json.Unmarshal(spectatorResult.Payload, &publicResult); err != nil {
+		t.Fatalf("invalid spectator answer_result payload: %v", err)
 	}
-	if _, ok := publicResult["correct_answer"]; ok {
-		t.Fatalf("spectator saw correct_answer: %s", resultMsg.Payload)
+	if _, present := publicResult["correct_answer"]; present {
+		t.Fatalf("spectator answer_result contains correct_answer: %s", spectatorResult.Payload)
+	}
+
+	_, _ = deployReadUntil(t, connA, ws.MessageTypeAnswerResult)
+	privateResultRaw, _ := deployReadUntil(t, connA, ws.MessageTypeAnswerResult)
+	if !bytes.Contains(privateResultRaw, []byte("DEPLOY_SECRET_CORRECT")) {
+		t.Fatalf("active player did not receive private correct answer review: %s", privateResultRaw)
 	}
 }
 
 func TestDeployMux_TimeoutThenLateSubmitResolvesOnce(t *testing.T) {
 	provider := deployQuestionProvider{question: room.Question{
-		ID:     "q-deploy-timeout",
-		Type:   "mcq",
-		Prompt: "timeout path",
-		Options: []room.QuestionOption{
-			{ID: "correct", Text: "yes", Correct: true},
-			{ID: "wrong", Text: "no"},
-		},
+		ID:      "q-deploy-timeout",
+		Type:    "mcq",
+		Prompt:  "timeout path",
+		Options: []room.QuestionOption{{ID: "correct", Text: "yes", Correct: true}, {ID: "wrong", Text: "no"}},
 	}}
 	hub, server := setupDeployServer(t, provider)
 
@@ -265,6 +275,7 @@ func TestDeployMux_TimeoutThenLateSubmitResolvesOnce(t *testing.T) {
 
 	r := hub.GetRoomInstance(roomID)
 	r.SetDeadlineDurations(40*time.Millisecond, 40*time.Millisecond, 40*time.Millisecond)
+	r.AdminStartGame()
 
 	choose, _ := json.Marshal(ws.ChooseLevelPayload{Difficulty: "easy"})
 	if err := connA.WriteJSON(ws.Message{Type: ws.MessageTypeChooseLevel, RoomID: roomID, Payload: choose}); err != nil {
@@ -344,6 +355,7 @@ func TestDeployMux_SubmitWinsAndStaleTimerDoesNotDoubleResolve(t *testing.T) {
 
 	r := hub.GetRoomInstance(roomID)
 	r.SetDeadlineDurations(120*time.Millisecond, 120*time.Millisecond, 120*time.Millisecond)
+	r.AdminStartGame()
 
 	choose, _ := json.Marshal(ws.ChooseLevelPayload{Difficulty: "easy"})
 	if err := connA.WriteJSON(ws.Message{Type: ws.MessageTypeChooseLevel, RoomID: roomID, Payload: choose}); err != nil {

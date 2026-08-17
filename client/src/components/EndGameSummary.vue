@@ -1,6 +1,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { store, type GameOverSummary, type PlayerStanding } from '../store'
+import websocketService from '../services/websocketService'
 
 export default defineComponent({
   name: 'EndGameSummary',
@@ -18,6 +19,26 @@ export default defineComponent({
       if (!this.summary) return ''
       if (this.summary.reason === 'admin') return 'Match ended by admin'
       return `First to ${this.summary.target_xp} XP`
+    },
+  },
+  methods: {
+    returnToLobby() {
+      // Disconnect the current session and clear identity so the player
+      // can enter a new name and room from the lobby.
+      websocketService.disconnect()
+      store.gameOver = null
+      store.players = []
+      store.boardCells = []
+      store.currentTurnPlayer = ''
+      store.questionActive = false
+      store.activeQuestion = null
+      store.diceRolls = []
+      store.playerId = ''
+      store.playerName = ''
+      store.roomId = 'default'
+      sessionStorage.removeItem('playerId')
+      sessionStorage.removeItem('playerName')
+      sessionStorage.removeItem('roomId')
     },
   },
 })
@@ -44,6 +65,10 @@ export default defineComponent({
           <span class="xp">{{ row.xp }} XP</span>
         </li>
       </ol>
+
+      <button id="return-to-lobby-btn" class="lobby-btn" @click="returnToLobby">
+        🔄 Return to Lobby
+      </button>
     </div>
   </div>
 </template>
@@ -70,6 +95,9 @@ export default defineComponent({
   color: #f8fafc;
   text-align: center;
   animation: rise 0.35s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .eyebrow {
@@ -94,7 +122,7 @@ export default defineComponent({
 
 .standings {
   list-style: none;
-  margin: 0;
+  margin: 0 0 1.25rem 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -136,6 +164,24 @@ export default defineComponent({
 .xp {
   font-weight: 800;
   color: #34d399;
+}
+
+.lobby-btn {
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: linear-gradient(90deg, #1e40af, #3b82f6);
+  color: white;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.lobby-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 @keyframes rise {

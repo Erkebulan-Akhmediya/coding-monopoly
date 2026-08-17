@@ -493,15 +493,25 @@ func TestWS_SlowClientBackpressure(t *testing.T) {
 }
 
 func TestWS_TurnEngineIntegration(t *testing.T) {
-	_, server := setupTestServer(t)
+	hub, server := setupTestServer(t)
 
 	// Connect Alice
 	connA := connectClient(t, server)
 	defer connA.Close()
 	sendJoin(t, connA, "Alice", "ws-turn-room")
 
-	initialMessages := readTypes(t, connA, MessageTypePresence, MessageTypeStateSync, MessageTypeTurnStarted)
-	msgStartA := initialMessages[MessageTypeTurnStarted]
+	// Connect Bob
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, connB, "Bob", "ws-turn-room")
+
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
+	_, _ = readUntilType(t, connB, MessageTypeStateSync)
+
+	// Start game via AdminStartGame
+	hub.GetRoomInstance("ws-turn-room").AdminStartGame()
+
+	_, msgStartA := readUntilType(t, connA, MessageTypeTurnStarted)
 	if msgStartA.Type != MessageTypeTurnStarted {
 		t.Fatalf("Expected turn_started message, got %s", msgStartA.Type)
 	}
@@ -514,16 +524,8 @@ func TestWS_TurnEngineIntegration(t *testing.T) {
 		t.Errorf("Empty active_player_id in turn_started: %+v", turnStartedA)
 	}
 
-	// Connect Bob
-	connB := connectClient(t, server)
-	defer connB.Close()
-	sendJoin(t, connB, "Bob", "ws-turn-room")
-
-	_, _ = readUntilType(t, connA, MessageTypePresence)  // presence B
-	_, _ = readUntilType(t, connA, MessageTypeStateSync) // state_sync [A, B]
-
-	_, _ = readUntilType(t, connB, MessageTypePresence)  // presence B
-	_, _ = readUntilType(t, connB, MessageTypeStateSync) // state_sync [A, B]
+	// Drain turn_started message on Bob's connection
+	_, _ = readUntilType(t, connB, MessageTypeTurnStarted)
 
 	// Bob attempts choose_level (NOT active player) -> should be rejected with error
 	chooseMsg := Message{
@@ -535,12 +537,9 @@ func TestWS_TurnEngineIntegration(t *testing.T) {
 		t.Fatalf("Failed to send choose_level from Bob: %v", err)
 	}
 
-	errMsg := readMessageTimeout(t, connB, 2*time.Second)
-	if errMsg.Type != MessageTypeError {
-		t.Fatalf("Expected error message for Bob choose_level, got %s", errMsg.Type)
-	}
-	if !strings.Contains(errMsg.Error, "Not your turn") {
-		t.Errorf("Expected 'Not your turn' error, got: %s", errMsg.Error)
+	_, errMsg := readUntilType(t, connB, MessageTypeError)
+	if !strings.Contains(errMsg.Error, "not active player's turn") && !strings.Contains(errMsg.Error, "Not your turn") {
+		t.Errorf("Expected not active player turn error, got: %s", errMsg.Error)
 	}
 
 	// Alice (active player) selects difficulty hard (3 rolls)
@@ -594,7 +593,7 @@ func TestWS_QuestionContentAndCorrectAnswerStayOffSpectatorWire(t *testing.T) {
 			{ID: "SECRET_WRONG_OPTION_ID", Text: "SECRET_WRONG_OPTION_TEXT"},
 		},
 	}}
-	_, server := setupTestServerWithProvider(t, provider)
+	hub, server := setupTestServerWithProvider(t, provider)
 
 	connA := connectClient(t, server)
 	defer connA.Close()
@@ -606,6 +605,8 @@ func TestWS_QuestionContentAndCorrectAnswerStayOffSpectatorWire(t *testing.T) {
 	sendJoin(t, connB, "Bob", "wire-room")
 	_, _ = readUntilType(t, connA, MessageTypeStateSync)
 	_, _ = readUntilType(t, connB, MessageTypeStateSync)
+
+	hub.GetRoomInstance("wire-room").AdminStartGame()
 
 	choose := Message{
 		Type:    MessageTypeChooseLevel,
@@ -679,22 +680,39 @@ func TestWS_QuestionContentAndCorrectAnswerStayOffSpectatorWire(t *testing.T) {
 }
 
 func TestWS_StateSyncIncludesTurnState(t *testing.T) {
-	_, server := setupTestServer(t)
+	hub, server := setupTestServer(t)
 
 	connA := connectClient(t, server)
 	defer connA.Close()
 	sendJoin(t, connA, "Alice", "sync-turn-room")
 
 	_, _ = readUntilType(t, connA, MessageTypePresence)
-	_, msgSyncA := readUntilType(t, connA, MessageTypeStateSync)
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
 
+	// Connect Client B
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, connB, "Bob", "sync-turn-room")
+
+	_, _ = readUntilType(t, connB, MessageTypePresence)
+	_, _ = readUntilType(t, connB, MessageTypeStateSync)
+
+	// Alice also receives presence & state_sync from Bob joining
+	_, _ = readUntilType(t, connA, MessageTypePresence)
+	_, _ = readUntilType(t, connA, MessageTypeStateSync)
+
+	// Start game via Admin and broadcast sync
+	hub.GetRoomInstance("sync-turn-room").AdminStartGame()
+	hub.BroadcastStateSync("sync-turn-room")
+
+	_, msgSyncA := readUntilType(t, connA, MessageTypeStateSync)
 	var payloadA StateSyncPayload
 	if err := json.Unmarshal(msgSyncA.Payload, &payloadA); err != nil {
 		t.Fatalf("Failed to unmarshal state_sync: %v", err)
 	}
 
-	if len(payloadA.Players) != 1 {
-		t.Fatalf("Expected 1 player, got %d", len(payloadA.Players))
+	if len(payloadA.Players) != 2 {
+		t.Fatalf("Expected 2 players, got %d", len(payloadA.Players))
 	}
 	aliceID := payloadA.Players[0].ID
 	if payloadA.CurrentTurnPlayer != aliceID {
@@ -704,14 +722,7 @@ func TestWS_StateSyncIncludesTurnState(t *testing.T) {
 		t.Errorf("Expected question_active to be false")
 	}
 
-	// Connect Client B and verify state_sync sent to B
-	connB := connectClient(t, server)
-	defer connB.Close()
-	sendJoin(t, connB, "Bob", "sync-turn-room")
-
-	_, _ = readUntilType(t, connB, MessageTypePresence)
 	_, msgSyncB := readUntilType(t, connB, MessageTypeStateSync)
-
 	var payloadB StateSyncPayload
 	if err := json.Unmarshal(msgSyncB.Payload, &payloadB); err != nil {
 		t.Fatalf("Failed to unmarshal state_sync for B: %v", err)
@@ -770,6 +781,7 @@ func TestWS_ReconnectResumesSlotAndMidQuestion(t *testing.T) {
 	r := hub.GetRoomInstance("resume-room")
 	r.SetDeadlineDurations(3*time.Second, 3*time.Second, 3*time.Second)
 	r.SetDisconnectGrace(500 * time.Millisecond)
+	r.AdminStartGame()
 
 	// Start a question for Alice.
 	choosePayload, _ := json.Marshal(ChooseLevelPayload{Difficulty: "easy"})
@@ -821,6 +833,47 @@ func TestWS_ReconnectResumesSlotAndMidQuestion(t *testing.T) {
 	_ = json.Unmarshal(qResume.Payload, &qAfter)
 	if qAfter.Prompt != "resume me" || !qAfter.Deadline.Equal(qBefore.Deadline) {
 		t.Fatalf("question resume mismatch: %+v", qAfter)
+	}
+}
+
+func TestWS_MidGameJoinRejected(t *testing.T) {
+	hub, server := setupTestServer(t)
+
+	connA := connectClient(t, server)
+	defer connA.Close()
+	sendJoin(t, connA, "Alice", "midgame-ws-room")
+	_, _ = readUntilType(t, connA, MessageTypeJoined)
+
+	// Admin starts game
+	hub.GetRoomInstance("midgame-ws-room").AdminStartGame()
+
+	// New player Bob tries to join mid-game
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, connB, "Bob", "midgame-ws-room")
+
+	_, errMsg := readUntilType(t, connB, MessageTypeError)
+	if !strings.Contains(errMsg.Error, "in progress") {
+		t.Fatalf("expected game already in progress error, got: %s", errMsg.Error)
+	}
+}
+
+func TestWS_NameUniquenessConstraint(t *testing.T) {
+	_, server := setupTestServer(t)
+
+	connA := connectClient(t, server)
+	defer connA.Close()
+	sendJoin(t, connA, "Alice", "unique-ws-room")
+	_, _ = readUntilType(t, connA, MessageTypeJoined)
+
+	// Second client tries to join with same name
+	connB := connectClient(t, server)
+	defer connB.Close()
+	sendJoin(t, connB, "alice", "unique-ws-room")
+
+	_, errMsg := readUntilType(t, connB, MessageTypeError)
+	if !strings.Contains(errMsg.Error, "already exists") {
+		t.Fatalf("expected name already exists error, got: %s", errMsg.Error)
 	}
 }
 

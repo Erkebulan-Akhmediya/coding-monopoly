@@ -182,6 +182,15 @@ class WebSocketService {
     }
   }
 
+  /** Intentionally close the connection (e.g. return to lobby after game over). */
+  disconnect(): void {
+    this.intentionalClose = true
+    this.hasJoined = false
+    this.socket?.close()
+    this.socket = null
+    store.connected = false
+  }
+
   private scheduleReconnect(): void {
     this.reconnectAttempts++
     const backoff = Math.min(1000 * 2 ** (this.reconnectAttempts - 1), this.maxBackoff)

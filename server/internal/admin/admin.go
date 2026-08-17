@@ -20,6 +20,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"server/internal/ws"
 )
 
 const defaultTokenTTL = 15 * time.Minute
@@ -40,13 +41,19 @@ func ConfigFromEnv() Config {
 	return Config{Password: os.Getenv("ADMIN_PASSWORD"), TokenSecret: os.Getenv("ADMIN_TOKEN_SECRET"), TokenTTL: ttl}
 }
 
-type Handler struct {
-	db     *pgxpool.Pool
-	config Config
-	now    func() time.Time
+// RoomLister provides room summary listings for the admin rooms endpoint.
+type RoomLister interface {
+	GetRoomsSummary() []ws.RoomSummary
 }
 
-func NewHandler(db *pgxpool.Pool, config Config) (*Handler, error) {
+type Handler struct {
+	db         *pgxpool.Pool
+	config     Config
+	roomLister RoomLister
+	now        func() time.Time
+}
+
+func NewHandler(db *pgxpool.Pool, config Config, roomListers ...RoomLister) (*Handler, error) {
 	if db == nil {
 		return nil, errors.New("admin database pool is required")
 	}
@@ -59,7 +66,15 @@ func NewHandler(db *pgxpool.Pool, config Config) (*Handler, error) {
 	if config.TokenTTL <= 0 {
 		config.TokenTTL = defaultTokenTTL
 	}
-	return &Handler{db: db, config: config, now: time.Now}, nil
+	var lister RoomLister
+	if len(roomListers) > 0 {
+		lister = roomListers[0]
+	}
+	return &Handler{db: db, config: config, roomLister: lister, now: time.Now}, nil
+}
+
+func (h *Handler) SetRoomLister(lister RoomLister) {
+	h.roomLister = lister
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +90,24 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "admin authentication required")
 		return
 	}
+	if r.URL.Path == "/admin/rooms" || r.URL.Path == "/admin/rooms/" {
+		if r.Method != http.MethodGet {
+			methodNotAllowed(w)
+			return
+		}
+		h.listRooms(w, r)
+		return
+	}
 	h.problems(w, r)
+}
+
+func (h *Handler) listRooms(w http.ResponseWriter, r *http.Request) {
+	if h.roomLister == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"rooms": []any{}})
+		return
+	}
+	rooms := h.roomLister.GetRoomsSummary()
+	writeJSON(w, http.StatusOK, map[string]any{"rooms": rooms})
 }
 
 type loginRequest struct {

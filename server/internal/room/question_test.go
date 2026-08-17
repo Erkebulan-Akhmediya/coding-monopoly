@@ -68,6 +68,7 @@ func TestRoom_AssignsAndGradesTextQuestionPrivately(t *testing.T) {
 	r.SetDeadlineDurations(200*time.Millisecond, 200*time.Millisecond, 200*time.Millisecond)
 	r.AddOrReconnectPlayer("alice", "Alice")
 	r.AddOrReconnectPlayer("bob", "Bob")
+	r.AdminStartGame()
 
 	if err := r.ChooseLevel("alice", "easy"); err != nil {
 		t.Fatalf("ChooseLevel failed: %v", err)
@@ -122,6 +123,7 @@ func TestRoom_TimeoutWinsWithZeroRolls(t *testing.T) {
 	r.SetDeadlineDurations(25*time.Millisecond, 25*time.Millisecond, 25*time.Millisecond)
 	r.AddOrReconnectPlayer("alice", "Alice")
 	r.AddOrReconnectPlayer("bob", "Bob")
+	r.AdminStartGame()
 	if err := r.ChooseLevel("alice", "easy"); err != nil {
 		t.Fatalf("ChooseLevel failed: %v", err)
 	}
@@ -150,6 +152,7 @@ func TestRoom_MCQRequiresExactOptionSet(t *testing.T) {
 	r.SetDeadlineDurations(time.Second, time.Second, time.Second)
 	r.AddOrReconnectPlayer("alice", "Alice")
 	r.AddOrReconnectPlayer("bob", "Bob")
+	r.AdminStartGame()
 	if err := r.ChooseLevel("alice", "easy"); err != nil {
 		t.Fatal(err)
 	}
@@ -174,6 +177,7 @@ func TestRoom_SubmitAndTimeoutRaceResolvesExactlyOnce(t *testing.T) {
 		r.SetDeadlineDurations(time.Hour, time.Hour, time.Hour)
 		r.AddOrReconnectPlayer("alice", "Alice")
 		r.AddOrReconnectPlayer("bob", "Bob")
+		r.AdminStartGame()
 		if err := r.ChooseLevel("alice", "easy"); err != nil {
 			t.Fatalf("attempt %d: ChooseLevel failed: %v", attempt, err)
 		}

@@ -422,9 +422,12 @@ func (c *Client) handleAdminStartMessage(msg Message) {
 		return
 	}
 	r := c.hub.GetRoomInstance(roomID)
-	r.AdminStartGame()
-	c.hub.broadcastGameEvent(roomID, "admin_action", "Admin started the game", nil)
-	log.Printf("[WS Admin] Client %s started game in room %s", c.id, roomID)
+	started := r.AdminStartGame()
+	if started {
+		c.hub.broadcastGameEvent(roomID, "admin_action", "Admin started the game", nil)
+		c.hub.broadcastStateSync(roomID)
+		log.Printf("[WS Admin] Client %s started game in room %s", c.id, roomID)
+	}
 }
 
 func (c *Client) handleAdminPauseMessage(msg Message) {
@@ -440,6 +443,7 @@ func (c *Client) handleAdminPauseMessage(msg Message) {
 		action = "Admin paused the game"
 	}
 	c.hub.broadcastGameEvent(roomID, "admin_action", action, nil)
+	c.hub.broadcastStateSync(roomID)
 	log.Printf("[WS Admin] Client %s toggled pause (paused=%v) in room %s", c.id, paused, roomID)
 }
 
@@ -460,8 +464,7 @@ func (c *Client) handleAdminKickMessage(msg Message) {
 		c.sendError("admin: kick requires player_id")
 		return
 	}
-	r := c.hub.GetRoomInstance(roomID)
-	name := r.AdminKickPlayer(payload.PlayerID)
+	name := c.hub.KickClient(roomID, payload.PlayerID)
 	c.hub.broadcastGameEvent(roomID, "admin_action", "Admin kicked player: "+name, map[string]string{"player_id": payload.PlayerID})
 	log.Printf("[WS Admin] Client %s kicked player %s from room %s", c.id, payload.PlayerID, roomID)
 }

@@ -184,6 +184,15 @@ func (h *Hub) Run() {
 				roomID = "default"
 			}
 
+			// Update room engine state FIRST to check if join is allowed
+			r := h.GetRoomInstance(roomID)
+			_, err := r.AddOrReconnectPlayer(c.id, req.name)
+			if err != nil {
+				log.Printf("[WS Hub] Join rejected for client %s (%s) in room %s: %v", c.id, req.name, roomID, err)
+				c.sendError(err.Error())
+				continue
+			}
+
 			// If client was previously in a different room, clean up old room
 			oldRoomID := c.GetRoomID()
 			wasJoined := c.IsJoined()
@@ -196,8 +205,8 @@ func (h *Hub) Run() {
 						delete(h.rooms, oldRoomID)
 					}
 				}
-				if r, exists := h.roomInstances[oldRoomID]; exists {
-					r.DisconnectPlayer(c.id)
+				if oldR, exists := h.roomInstances[oldRoomID]; exists {
+					oldR.DisconnectPlayer(c.id)
 				}
 			}
 
@@ -210,10 +219,6 @@ func (h *Hub) Run() {
 
 			// Update client state
 			c.SetJoined(req.name, roomID)
-
-			// Update room engine state
-			r := h.GetRoomInstance(roomID)
-			r.AddOrReconnectPlayer(c.id, req.name)
 
 			if oldRoomID != "" && oldRoomID != roomID && wasJoined {
 				playerInfo := c.ToPlayerInfo(false)
@@ -366,6 +371,11 @@ func (h *Hub) broadcastPresence(roomID string, event string, player PlayerInfo) 
 	}
 }
 
+// BroadcastStateSync broadcasts state_sync to all clients connected to the room.
+func (h *Hub) BroadcastStateSync(roomID string) {
+	h.broadcastStateSync(roomID)
+}
+
 // Internal helper to broadcast state_sync to a room.
 func (h *Hub) broadcastStateSync(roomID string) {
 	payload, targetClients := h.buildStateSyncPayload(roomID)
@@ -429,10 +439,15 @@ func (h *Hub) buildStateSyncPayload(roomID string) (StateSyncPayload, []*Client)
 	var targetXP int
 	var gameOver *room.GameOverPayload
 
+	var isStarted bool
+	var isPaused bool
+
 	r, ok := h.roomInstances[roomID]
 	h.mu.RUnlock()
 
 	if ok {
+		isStarted = r.IsStarted()
+		isPaused = r.IsPaused()
 		cells = r.Board()
 		roomPlayers := r.GetPlayers()
 		players = make([]PlayerInfo, 0, len(roomPlayers))
@@ -467,6 +482,8 @@ func (h *Hub) buildStateSyncPayload(roomID string) (StateSyncPayload, []*Client)
 		Deadline:          deadline,
 		TargetXP:          targetXP,
 		GameOver:          gameOver,
+		IsStarted:         isStarted,
+		IsPaused:          isPaused,
 	}
 
 	return payload, targetClients
@@ -567,6 +584,93 @@ func (h *Hub) broadcastToAdmins(roomID string, data []byte) {
 	for _, c := range targets {
 		c.SendBytes(data)
 	}
+}
+
+// KickClient disconnects and kicks the specified player from a room and closes their connection.
+func (h *Hub) KickClient(roomID string, playerID string) string {
+	r := h.GetRoomInstance(roomID)
+	name := r.AdminKickPlayer(playerID)
+
+	h.mu.Lock()
+	var targetClient *Client
+	if roomClients, ok := h.rooms[roomID]; ok {
+		for c := range roomClients {
+			if c.GetID() == playerID {
+				targetClient = c
+				delete(roomClients, c)
+				break
+			}
+		}
+		if len(roomClients) == 0 {
+			delete(h.rooms, roomID)
+		}
+	}
+	if targetClient != nil {
+		delete(h.clients, targetClient)
+	}
+	h.mu.Unlock()
+
+	if targetClient != nil {
+		targetClient.sendError("You have been kicked by the admin")
+		targetClient.CloseSendChannel()
+		_ = targetClient.conn.Close()
+	}
+
+	playerInfo := PlayerInfo{
+		ID:     playerID,
+		Name:   name,
+		RoomID: roomID,
+	}
+	h.broadcastPresence(roomID, "left", playerInfo)
+	h.broadcastStateSync(roomID)
+
+	return name
+}
+
+// RoomSummary represents a summary of a room's state for admin room listing.
+type RoomSummary struct {
+	RoomID      string   `json:"room_id"`
+	PlayerCount int      `json:"player_count"`
+	IsStarted   bool     `json:"is_started"`
+	IsPaused    bool     `json:"is_paused"`
+	IsFinished  bool     `json:"is_finished"`
+	ActiveTurn  string   `json:"active_turn,omitempty"`
+	Players     []string `json:"players"`
+}
+
+// GetRoomsSummary returns a summary of all active/known rooms in the hub.
+func (h *Hub) GetRoomsSummary() []RoomSummary {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	summaries := make([]RoomSummary, 0, len(h.roomInstances))
+	for roomID, r := range h.roomInstances {
+		players := r.GetPlayers()
+		playerNames := make([]string, 0, len(players))
+		for _, p := range players {
+			playerNames = append(playerNames, p.Name)
+		}
+
+		activeID, _, _ := r.GetTurnState()
+		activeName := ""
+		for _, p := range players {
+			if p.ID == activeID {
+				activeName = p.Name
+				break
+			}
+		}
+
+		summaries = append(summaries, RoomSummary{
+			RoomID:      roomID,
+			PlayerCount: len(players),
+			IsStarted:   r.IsStarted(),
+			IsPaused:    r.IsPaused(),
+			IsFinished:  r.IsFinished(),
+			ActiveTurn:  activeName,
+			Players:     playerNames,
+		})
+	}
+	return summaries
 }
 
 // timeNow is a replaceable clock for testing.
