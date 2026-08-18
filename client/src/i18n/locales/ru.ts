@@ -2,9 +2,9 @@ export default {
   language: {
     switch: 'Сменить язык',
     switchTo: 'Переключить на {language}',
-    en: 'English',
+    en: 'Английский',
     ru: 'Русский',
-    kk: 'Қазақша',
+    kk: 'Казахский',
   },
   common: {
     you: '(Вы)',
@@ -41,8 +41,8 @@ export default {
     waitingFor: 'Ожидание: {player}',
     countdownLeft: 'осталось {seconds}с',
     cellFallback: 'Клетка {index}',
-    landedOnLabel: 'Приземление на',
-    landedOn: 'Приземление на {name}',
+    landedOnLabel: 'Попадание на',
+    landedOn: 'Попадание на {name}',
     cellSubtitle: {
       deploy: 'СТАРТ (+100)',
       double_xp: '2x XP',
