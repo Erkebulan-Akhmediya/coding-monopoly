@@ -338,15 +338,18 @@ class WebSocketService {
             store.diceRolls.push(payload.die_roll)
           }
         }
+        const effectPos = payload.effect?.new_position
+        const hasTeleport = typeof effectPos === 'number' && effectPos !== newPos
+
         queueTokenMove({
           playerId: payload.player_id,
           from: oldPos,
           to: newPos,
           dieRoll: typeof payload.die_roll === 'number' ? payload.die_roll : 0,
+          effect: hasTeleport ? undefined : payload.effect,
         })
-        const effectPos = payload.effect?.new_position
         let feedbackCell = newPos
-        if (typeof effectPos === 'number' && effectPos !== newPos) {
+        if (hasTeleport) {
           if (player) {
             player.position = effectPos
           }
@@ -355,6 +358,7 @@ class WebSocketService {
             from: newPos,
             to: effectPos,
             dieRoll: 0,
+            effect: payload.effect,
           })
           feedbackCell = effectPos
         }
