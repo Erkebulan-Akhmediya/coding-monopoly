@@ -59,17 +59,14 @@ export default defineComponent({
       const cell = this.cell
       if (!cell) return ''
       if (cell.params && typeof cell.params.amount === 'number') {
-        if (cell.type === 'xp_gain') return `+${cell.params.amount} XP`
-        if (cell.type === 'xp_loss') return `-${cell.params.amount} XP`
+        if (cell.type === 'xp_gain') return `+${cell.params.amount} ${this.$t('common.xp')}`
+        if (cell.type === 'xp_loss') return `-${cell.params.amount} ${this.$t('common.xp')}`
       }
-      if (cell.type === 'deploy') return 'START (+100)'
-      if (cell.type === 'double_xp') return '2x XP'
-      if (cell.type === 'skip_next') return 'Skip Turn'
-      if (cell.type === 'free_pass') return 'CI Shield'
-      if (cell.type === 'teleport') return 'Fast-Track'
       if (cell.type === 'special_challenge') {
-        return cell.params?.bonus ? `+${cell.params.bonus} XP` : 'Bonus'
+        return cell.params?.bonus ? `+${cell.params.bonus} ${this.$t('common.xp')}` : this.$t('board.cellSubtitle.bonus')
       }
+      const key = `board.cellSubtitle.${cell.type}`
+      if (this.$te(key)) return this.$t(key)
       return ''
     },
     effectText(): string {
@@ -81,7 +78,7 @@ export default defineComponent({
 
 <template>
   <div v-if="visible" class="landed-preview" aria-live="polite">
-    <p class="landed-label">Landed on</p>
+    <p class="landed-label">{{ $t('board.landedOnLabel') }}</p>
     <div
       class="landed-cell"
       :class="[cellTypeClass, xpGainClass, { corner: isCorner }]"
@@ -91,7 +88,7 @@ export default defineComponent({
         <span class="landed-icon">{{ cellIcon }}</span>
       </div>
       <div class="landed-body">
-        <span class="landed-name">{{ cell.name || ('Cell ' + cellIndex) }}</span>
+        <span class="landed-name">{{ cell.name || $t('board.cellFallback', { index: cellIndex }) }}</span>
         <span v-if="cellSubtitle" class="landed-subtitle">{{ cellSubtitle }}</span>
       </div>
       <div v-if="player" class="landed-token">

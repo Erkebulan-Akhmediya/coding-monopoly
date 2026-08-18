@@ -133,7 +133,9 @@ export default defineComponent({
       // Client-side validation mirroring Phase 4 server-side rules
       const errors = validateProblemInput(payload)
       if (errors.length > 0) {
-        this.validationErrors = errors
+        this.validationErrors = errors.map((err) =>
+          this.$t(`admin.validation.${err.key}`, err.params || {})
+        )
         return
       }
 
@@ -164,67 +166,67 @@ export default defineComponent({
   <div class="modal-backdrop" @click.self="handleCancel">
     <div class="modal-card">
       <header class="modal-header">
-        <h2>{{ isEdit ? 'Edit Question' : 'Create New Question' }}</h2>
+        <h2>{{ isEdit ? $t('admin.editQuestionTitle') : $t('admin.createQuestionTitle') }}</h2>
         <button class="close-btn" @click="handleCancel">✕</button>
       </header>
 
       <form @submit.prevent="handleSubmit" class="modal-body">
         <!-- Client-side & server validation errors -->
         <div v-if="validationErrors.length > 0" class="error-banner" id="form-validation-errors">
-          <strong>Validation Errors:</strong>
+          <strong>{{ $t('admin.validationErrors') }}</strong>
           <ul>
             <li v-for="(err, i) in validationErrors" :key="i">{{ err }}</li>
           </ul>
         </div>
         <div v-if="serverError" class="error-banner" id="form-server-error">
-          <strong>Server Error:</strong> {{ serverError }}
+          <strong>{{ $t('admin.serverError') }}</strong> {{ serverError }}
         </div>
 
         <!-- Question Type & Difficulty Row -->
         <div class="form-row">
           <div class="form-group flex-1">
-            <label for="problem-type">Question Type</label>
+            <label for="problem-type">{{ $t('admin.questionType') }}</label>
             <select
               id="problem-type"
               v-model="form.type"
               class="form-input"
               @change="handleTypeChange"
             >
-              <option value="mcq">MCQ (Multiple Choice)</option>
-              <option value="text">Text Answer</option>
+              <option value="mcq">{{ $t('admin.mcqOption') }}</option>
+              <option value="text">{{ $t('admin.textOption') }}</option>
             </select>
           </div>
 
           <div class="form-group flex-1">
-            <label for="problem-difficulty">Difficulty Level</label>
+            <label for="problem-difficulty">{{ $t('admin.difficultyLevel') }}</label>
             <select id="problem-difficulty" v-model="form.difficulty" class="form-input">
-              <option value="easy">Easy (30s countdown)</option>
-              <option value="medium">Medium (45s countdown)</option>
-              <option value="hard">Hard (60s countdown)</option>
+              <option value="easy">{{ $t('admin.easyCountdown') }}</option>
+              <option value="medium">{{ $t('admin.mediumCountdown') }}</option>
+              <option value="hard">{{ $t('admin.hardCountdown') }}</option>
             </select>
           </div>
         </div>
 
         <!-- Title -->
         <div class="form-group">
-          <label for="problem-title">Title</label>
+          <label for="problem-title">{{ $t('admin.title') }}</label>
           <input
             id="problem-title"
             v-model="form.title"
             type="text"
-            placeholder="e.g. Array indexing in C"
+            :placeholder="$t('admin.titlePlaceholder')"
             class="form-input"
           />
         </div>
 
         <!-- Prompt -->
         <div class="form-group">
-          <label for="problem-prompt">Prompt / Code Snippet / Question Text</label>
+          <label for="problem-prompt">{{ $t('admin.prompt') }}</label>
           <textarea
             id="problem-prompt"
             v-model="form.prompt"
             rows="4"
-            placeholder="Enter the question prompt or code listing..."
+            :placeholder="$t('admin.promptPlaceholder')"
             class="form-input code-font"
           ></textarea>
         </div>
@@ -238,21 +240,21 @@ export default defineComponent({
               type="checkbox"
               class="toggle-checkbox"
             />
-            <span class="toggle-text">Publish immediately (visible in game pools)</span>
+            <span class="toggle-text">{{ $t('admin.publishImmediately') }}</span>
           </label>
         </div>
 
         <!-- MCQ OPTIONS SUB-FORM -->
         <div v-if="form.type === 'mcq'" class="subform-section">
           <div class="subform-header">
-            <h3>MCQ Options (at least 2 required, check correct answer(s))</h3>
+            <h3>{{ $t('admin.mcqOptionsHeader') }}</h3>
             <button
               id="add-option-btn"
               type="button"
               class="btn-secondary btn-sm"
               @click="addOption"
             >
-              + Add Option
+              {{ $t('admin.addOption') }}
             </button>
           </div>
 
@@ -266,7 +268,7 @@ export default defineComponent({
               <input
                 v-model="opt.text"
                 type="text"
-                :placeholder="`Option ${idx + 1} text...`"
+                :placeholder="$t('admin.optionPlaceholder', { index: idx + 1 })"
                 class="form-input option-text-input"
               />
               <label class="correct-checkbox-label">
@@ -275,14 +277,14 @@ export default defineComponent({
                   type="checkbox"
                   class="option-correct-checkbox"
                 />
-                <span :class="{ 'text-correct': opt.is_correct }">Correct</span>
+                <span :class="{ 'text-correct': opt.is_correct }">{{ $t('admin.correct') }}</span>
               </label>
               <button
                 type="button"
                 class="btn-danger btn-xs remove-option-btn"
                 :disabled="form.options.length <= 2"
                 @click="removeOption(idx)"
-                title="Remove option"
+                :title="$t('admin.removeOption')"
               >
                 ✕
               </button>
@@ -293,14 +295,14 @@ export default defineComponent({
         <!-- TEXT ACCEPTED ANSWERS SUB-FORM -->
         <div v-else-if="form.type === 'text'" class="subform-section">
           <div class="subform-header">
-            <h3>Accepted Answers (at least 1 required, case-folded & trimmed)</h3>
+            <h3>{{ $t('admin.acceptedAnswersHeader') }}</h3>
             <button
               id="add-answer-btn"
               type="button"
               class="btn-secondary btn-sm"
               @click="addAnswer"
             >
-              + Add Accepted Answer
+              {{ $t('admin.addAnswer') }}
             </button>
           </div>
 
@@ -314,7 +316,7 @@ export default defineComponent({
               <input
                 v-model="form.accepted_answers[idx]"
                 type="text"
-                :placeholder="`Accepted answer variant ${idx + 1}...`"
+                :placeholder="$t('admin.answerPlaceholder', { index: idx + 1 })"
                 class="form-input answer-text-input"
               />
               <button
@@ -322,7 +324,7 @@ export default defineComponent({
                 class="btn-danger btn-xs remove-answer-btn"
                 :disabled="form.accepted_answers.length <= 1"
                 @click="removeAnswer(idx)"
-                title="Remove answer"
+                :title="$t('admin.removeAnswer')"
               >
                 ✕
               </button>
@@ -338,7 +340,7 @@ export default defineComponent({
             class="btn-secondary"
             @click="handleCancel"
           >
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button
             id="save-problem-btn"
@@ -346,8 +348,8 @@ export default defineComponent({
             class="btn-primary"
             :disabled="saving"
           >
-            <span v-if="saving">Saving...</span>
-            <span v-else>{{ isEdit ? 'Update Question' : 'Create Question' }}</span>
+            <span v-if="saving">{{ $t('admin.saving') }}</span>
+            <span v-else>{{ isEdit ? $t('admin.updateQuestion') : $t('admin.createQuestion') }}</span>
           </button>
         </footer>
       </form>

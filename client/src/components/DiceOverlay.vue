@@ -141,7 +141,7 @@ export default defineComponent({
     </div>
 
     <div v-if="settled && diceRolls.length" class="dice-result">
-      Rolled
+      {{ $t('dice.rolled') }}
       <span v-for="(v, i) in diceRolls" :key="i" class="dice-value">{{ v }}</span>
     </div>
 

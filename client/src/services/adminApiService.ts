@@ -50,47 +50,52 @@ export interface RoomSummary {
   players: string[]
 }
 
-export function validateProblemInput(input: ProblemInput): string[] {
-  const errors: string[] = []
+export interface ValidationError {
+  key: string
+  params?: Record<string, number | string>
+}
+
+export function validateProblemInput(input: ProblemInput): ValidationError[] {
+  const errors: ValidationError[] = []
 
   if (input.type !== 'mcq' && input.type !== 'text') {
-    errors.push('Type must be mcq or text')
+    errors.push({ key: 'invalidType' })
   }
   if (!['easy', 'medium', 'hard'].includes(input.difficulty)) {
-    errors.push('Difficulty must be easy, medium, or hard')
+    errors.push({ key: 'invalidDifficulty' })
   }
   if (!input.title || input.title.trim() === '') {
-    errors.push('Title is required')
+    errors.push({ key: 'titleRequired' })
   }
   if (!input.prompt || input.prompt.trim() === '') {
-    errors.push('Prompt is required')
+    errors.push({ key: 'promptRequired' })
   }
 
   if (input.type === 'mcq') {
     const opts = input.options || []
     if (opts.length < 2) {
-      errors.push('MCQ requires at least two options')
+      errors.push({ key: 'mcqMinOptions' })
     }
     let hasCorrect = false
     opts.forEach((opt, idx) => {
       if (!opt.text || opt.text.trim() === '') {
-        errors.push(`Option ${idx + 1} text is required`)
+        errors.push({ key: 'optionTextRequired', params: { index: idx + 1 } })
       }
       if (opt.is_correct) {
         hasCorrect = true
       }
     })
     if (!hasCorrect) {
-      errors.push('MCQ requires at least one correct option')
+      errors.push({ key: 'mcqCorrectRequired' })
     }
   } else if (input.type === 'text') {
     const answers = input.accepted_answers || []
     if (answers.length === 0) {
-      errors.push('Text requires at least one accepted answer')
+      errors.push({ key: 'textMinAnswers' })
     }
     answers.forEach((ans, idx) => {
       if (!ans || ans.trim() === '') {
-        errors.push(`Accepted answer ${idx + 1} is required`)
+        errors.push({ key: 'answerRequired', params: { index: idx + 1 } })
       }
     })
   }

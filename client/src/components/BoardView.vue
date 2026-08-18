@@ -42,11 +42,11 @@ export default defineComponent({
       return store.currentTurnPlayer === store.playerName && store.playerName !== ''
     },
     turnMessage(): string {
-      if (!store.currentTurnPlayer) return 'Waiting for game turn...'
+      if (!store.currentTurnPlayer) return this.$t('board.waitingTurn')
       if (this.isMyTurn) {
-        return '⚡ Your turn!'
+        return `⚡ ${this.$t('board.yourTurn')}`
       }
-      return `Waiting for ${store.currentTurnPlayer}`
+      return this.$t('board.waitingFor', { player: store.currentTurnPlayer })
     },
     showCountdown(): boolean {
       return store.questionActive && store.deadline > 0
@@ -116,15 +116,14 @@ export default defineComponent({
     getCellSubtitle(cell: any): string {
       if (!cell) return ''
       if (cell.params && typeof cell.params.amount === 'number') {
-        if (cell.type === 'xp_gain') return `+${cell.params.amount} XP`
-        if (cell.type === 'xp_loss') return `-${cell.params.amount} XP`
+        if (cell.type === 'xp_gain') return `+${cell.params.amount} ${this.$t('common.xp')}`
+        if (cell.type === 'xp_loss') return `-${cell.params.amount} ${this.$t('common.xp')}`
       }
-      if (cell.type === 'deploy') return 'START (+100)'
-      if (cell.type === 'double_xp') return '2x XP'
-      if (cell.type === 'skip_next') return 'Skip Turn'
-      if (cell.type === 'free_pass') return 'CI Shield'
-      if (cell.type === 'teleport') return 'Fast-Track'
-      if (cell.type === 'special_challenge') return cell.params?.bonus ? `+${cell.params.bonus} XP` : 'Bonus'
+      if (cell.type === 'special_challenge') {
+        return cell.params?.bonus ? `+${cell.params.bonus} ${this.$t('common.xp')}` : this.$t('board.cellSubtitle.bonus')
+      }
+      const key = `board.cellSubtitle.${cell.type}`
+      if (this.$te(key)) return this.$t(key)
       return ''
     },
     getXpGainClass(cell: any): string {
@@ -194,7 +193,7 @@ export default defineComponent({
         </div>
 
         <div class="cell-body">
-          <span class="cell-name">{{ cell.name || ('Cell ' + idx) }}</span>
+          <span class="cell-name">{{ cell.name || $t('board.cellFallback', { index: idx }) }}</span>
           <span v-if="getCellSubtitle(cell)" class="cell-subtitle">
             {{ getCellSubtitle(cell) }}
           </span>
@@ -215,11 +214,11 @@ export default defineComponent({
       <!-- Center Hub Area (Grid Rows 2-8, Cols 2-8) -->
       <div class="board-center-hub">
         <div class="hub-header">
-          <h1 class="game-logo">⚡ CODING MONOPOLY ⚡</h1>
+          <h1 class="game-logo">⚡ {{ $t('board.gameLogo') }} ⚡</h1>
           <div class="turn-card" :class="{ 'my-turn': isMyTurn }">
             <span class="turn-text">{{ turnMessage }}</span>
             <div v-if="showCountdown" class="countdown-badge">
-              ⏳ {{ remaining }}s left
+              ⏳ {{ $t('board.countdownLeft', { seconds: remaining }) }}
             </div>
           </div>
         </div>

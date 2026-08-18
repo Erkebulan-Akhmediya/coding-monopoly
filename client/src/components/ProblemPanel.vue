@@ -40,7 +40,9 @@ export default defineComponent({
       return `diff-${difficulty.toLowerCase()}`
     },
     difficultyLabel(): string {
-      return (store.activeQuestion?.difficulty || 'unknown').toUpperCase()
+      const difficulty = (store.activeQuestion?.difficulty || 'unknown').toLowerCase()
+      const key = `difficulty.${difficulty}`
+      return this.$te(key) ? this.$t(key) : difficulty.toUpperCase()
     }
   },
   watch: {
@@ -100,7 +102,7 @@ export default defineComponent({
     <!-- Header: shows countdown timer and difficulty level -->
     <div class="problem-header" :class="difficultyClass">
       <div class="header-left">
-        <span class="header-badge">CHALLENGE ACTIVE</span>
+        <span class="header-badge">{{ $t('problem.challengeActive') }}</span>
         <span class="difficulty-tag">{{ difficultyLabel }}</span>
       </div>
       <div class="header-timer" :class="{ 'warning-time': remainingTime <= 10 }">
@@ -113,7 +115,7 @@ export default defineComponent({
     <div v-if="isMyTurn" class="problem-active-panel">
       <div v-if="!store.activeQuestion" class="waiting-question">
         <div class="spinner"></div>
-        <p>Loading question details...</p>
+        <p>{{ $t('problem.loading') }}</p>
       </div>
       <div v-else class="question-content">
         <!-- Render prompt -->
@@ -122,10 +124,10 @@ export default defineComponent({
         </div>
 
         <div v-if="isTimedOut && !submitted" class="timeout-overlay">
-          <p class="timeout-msg">⏳ TIME IS UP!</p>
+          <p class="timeout-msg">⏳ {{ $t('problem.timeUp') }}</p>
         </div>
         <div v-else-if="submitted" class="submitting-overlay">
-          <p class="submitting-msg">🚀 Answer submitted. Processing rolls...</p>
+          <p class="submitting-msg">🚀 {{ $t('problem.answerSubmitted') }}</p>
         </div>
 
         <!-- Computed dynamic component -->
@@ -143,9 +145,9 @@ export default defineComponent({
     <div v-else class="problem-spectator-panel">
       <div class="spectator-visual">
         <div class="redacted-lock">🔒</div>
-        <h4>Spectating Round</h4>
+        <h4>{{ $t('problem.spectating') }}</h4>
         <p class="spectator-hint">
-          Question contents are hidden. Only <strong>{{ store.currentTurnPlayer }}</strong> can view and solve it to prevent answers leakage.
+          {{ $t('problem.spectatorHint', { player: store.currentTurnPlayer }) }}
         </p>
       </div>
     </div>

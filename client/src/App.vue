@@ -3,11 +3,12 @@ import { defineComponent } from 'vue'
 import LobbyView from './components/LobbyView.vue'
 import BoardView from './components/BoardView.vue'
 import AdminView from './components/AdminView.vue'
+import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import { store } from './store'
 
 export default defineComponent({
   name: 'App',
-  components: { LobbyView, BoardView, AdminView },
+  components: { LobbyView, BoardView, AdminView, LanguageSwitcher },
   data() {
     return {
       isAdmin: false,
@@ -25,6 +26,7 @@ export default defineComponent({
 </script>
 
 <template>
+  <LanguageSwitcher />
   <!-- Admin area mode: open the page with ?admin=1 -->
   <AdminView v-if="isAdmin" />
   <template v-else>

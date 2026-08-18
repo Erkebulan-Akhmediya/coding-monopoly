@@ -17,8 +17,8 @@ export default defineComponent({
     },
     reasonText(): string {
       if (!this.summary) return ''
-      if (this.summary.reason === 'admin') return 'Match ended by admin'
-      return `First to ${this.summary.target_xp} XP`
+      if (this.summary.reason === 'admin') return this.$t('endGame.reasonAdmin')
+      return this.$t('endGame.reasonTarget', { xp: this.summary.target_xp })
     },
   },
   methods: {
@@ -47,8 +47,8 @@ export default defineComponent({
 <template>
   <div v-if="summary" class="end-overlay" role="dialog" aria-modal="true">
     <div class="end-card">
-      <p class="eyebrow">Match complete</p>
-      <h2 class="winner">{{ summary.winner_name || 'Winner' }} wins</h2>
+      <p class="eyebrow">{{ $t('endGame.matchComplete') }}</p>
+      <h2 class="winner">{{ $t('endGame.wins', { name: summary.winner_name || $t('endGame.winnerFallback') }) }}</h2>
       <p class="reason">{{ reasonText }}</p>
 
       <ol class="standings">
@@ -60,14 +60,14 @@ export default defineComponent({
           <span class="rank">#{{ row.rank }}</span>
           <span class="name">
             {{ row.name }}
-            <span v-if="row.name === store.playerName" class="you">(You)</span>
+            <span v-if="row.name === store.playerName" class="you">{{ $t('common.you') }}</span>
           </span>
-          <span class="xp">{{ row.xp }} XP</span>
+          <span class="xp">{{ row.xp }} {{ $t('common.xp') }}</span>
         </li>
       </ol>
 
       <button id="return-to-lobby-btn" class="lobby-btn" @click="returnToLobby">
-        🔄 Return to Lobby
+        🔄 {{ $t('endGame.returnToLobby') }}
       </button>
     </div>
   </div>

@@ -63,7 +63,7 @@ export default defineComponent({
         :disabled="disabled || selectedIDs.length === 0"
         @click="submitAnswer"
       >
-        {{ disabled ? 'SUBMITTED' : 'SUBMIT ANSWER' }}
+        {{ disabled ? $t('problem.submitted') : $t('problem.submitAnswer') }}
       </button>
     </div>
   </div>
