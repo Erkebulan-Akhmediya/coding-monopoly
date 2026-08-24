@@ -138,10 +138,11 @@ function buildPath(from: number, to: number, dieRoll: number): number[] {
 }
 
 async function animateMove(move: TokenMove): Promise<void> {
+  const hearSfx = move.playerId === store.playerId
   const path = buildPath(move.from, move.to, move.dieRoll)
   if (!path.length) {
     store.tokenVisualPositions[move.playerId] = move.to
-    if (move.effect) {
+    if (hearSfx && move.effect) {
       playEffectSound(move.effect)
     }
     return
@@ -150,13 +151,15 @@ async function animateMove(move: TokenMove): Promise<void> {
   for (const cell of path) {
     store.hoppingPlayerId = move.playerId
     store.tokenVisualPositions[move.playerId] = cell
-    playMoveSound()
+    if (hearSfx) {
+      playMoveSound()
+    }
     await sleep(HOP_MS)
     store.hoppingPlayerId = ''
     await sleep(STOP_MS)
   }
 
-  if (move.effect) {
+  if (hearSfx && move.effect) {
     playEffectSound(move.effect)
   }
 }
