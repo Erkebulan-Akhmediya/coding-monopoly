@@ -5,6 +5,7 @@
  * - /move.mp3: Token movement / landing on a new square.
  * - /good.mp3: Positive / rewarding effects (XP gain, double XP, free pass, bonus, deploy).
  * - /bad.mp3: Negative / penalty effects (XP loss, code freeze, skip turn).
+ * - /ping.mp3: This client just became the active player.
  * - Neutral squares (coffee break, teleport, regular landing) have no sound effect.
  */
 
@@ -12,6 +13,7 @@ const SOUND_PATHS = {
   move: '/move.mp3',
   good: '/good.mp3',
   bad: '/bad.mp3',
+  ping: '/ping.mp3',
 } as const
 
 export type SoundEffect = keyof typeof SOUND_PATHS
@@ -30,7 +32,7 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Play one of the sound effects (/move.mp3, /good.mp3, /bad.mp3).
+ * Play one of the sound effects (/move.mp3, /good.mp3, /bad.mp3, /ping.mp3).
  */
 export function playSound(effect: SoundEffect): void {
   try {
@@ -50,6 +52,11 @@ export function playSound(effect: SoundEffect): void {
  */
 export function playMoveSound(): void {
   playSound('move')
+}
+
+/** Helper to play the “it’s your turn” notification. */
+export function playTurnPingSound(): void {
+  playSound('ping')
 }
 
 /**
