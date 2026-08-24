@@ -4,12 +4,14 @@
  * rules (grid of tokens in a cell) stay unchanged.
  */
 import { store } from '../store'
+import { playMoveSound, playEffectSound } from './soundService'
 
 export interface TokenMove {
   playerId: string
   from: number
   to: number
   dieRoll: number
+  effect?: any
 }
 
 const BOARD_SIZE = 32
@@ -136,18 +138,29 @@ function buildPath(from: number, to: number, dieRoll: number): number[] {
 }
 
 async function animateMove(move: TokenMove): Promise<void> {
+  const hearSfx = move.playerId === store.playerId
   const path = buildPath(move.from, move.to, move.dieRoll)
   if (!path.length) {
     store.tokenVisualPositions[move.playerId] = move.to
+    if (hearSfx && move.effect) {
+      playEffectSound(move.effect)
+    }
     return
   }
 
   for (const cell of path) {
     store.hoppingPlayerId = move.playerId
     store.tokenVisualPositions[move.playerId] = cell
+    if (hearSfx) {
+      playMoveSound()
+    }
     await sleep(HOP_MS)
     store.hoppingPlayerId = ''
     await sleep(STOP_MS)
+  }
+
+  if (hearSfx && move.effect) {
+    playEffectSound(move.effect)
   }
 }
 

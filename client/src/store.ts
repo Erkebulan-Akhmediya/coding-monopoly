@@ -26,6 +26,7 @@ export interface PendingTokenMove {
   from: number
   to: number
   dieRoll: number
+  effect?: any
 }
 
 export interface EffectToast {

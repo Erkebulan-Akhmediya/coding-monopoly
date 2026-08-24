@@ -10,6 +10,7 @@ import { store } from '../store'
 import type { EffectToast, GameOverSummary, Player } from '../store'
 import { t } from '../i18n'
 import { getWsBaseUrl } from './serverUrls'
+import { playTurnPingSound } from './soundService'
 import {
   clearLandedCellPreview,
   onDiceAnimationComplete,
@@ -25,6 +26,8 @@ interface Message {
 
 let toastSeq = 1
 let highlightClearTimer: ReturnType<typeof setTimeout> | null = null
+/** Last `turn_started` active player id seen on this client (avoids ping on reconnect). */
+let lastActivePlayerId = ''
 
 function pushEffectFeedback(effect: any, cellIndex: number | null): void {
   const effectType = (effect?.effect_type || 'generic') as string
@@ -307,10 +310,15 @@ class WebSocketService {
         store.activeQuestion = null
         break
       case 'turn_started': {
-        const activeP = store.players.find((p) => p.id === payload.active_player_id)
-        store.currentTurnPlayer = activeP ? activeP.name : payload.active_player_id || ''
+        const activeId = payload.active_player_id || ''
+        const activeP = store.players.find((p) => p.id === activeId)
+        store.currentTurnPlayer = activeP ? activeP.name : activeId
         store.questionActive = false
         store.activeQuestion = null
+        if (activeId && activeId === store.playerId && lastActivePlayerId !== activeId) {
+          playTurnPingSound()
+        }
+        lastActivePlayerId = activeId
         break
       }
       case 'turn_ended':
@@ -338,15 +346,18 @@ class WebSocketService {
             store.diceRolls.push(payload.die_roll)
           }
         }
+        const effectPos = payload.effect?.new_position
+        const hasTeleport = typeof effectPos === 'number' && effectPos !== newPos
+
         queueTokenMove({
           playerId: payload.player_id,
           from: oldPos,
           to: newPos,
           dieRoll: typeof payload.die_roll === 'number' ? payload.die_roll : 0,
+          effect: hasTeleport ? undefined : payload.effect,
         })
-        const effectPos = payload.effect?.new_position
         let feedbackCell = newPos
-        if (typeof effectPos === 'number' && effectPos !== newPos) {
+        if (hasTeleport) {
           if (player) {
             player.position = effectPos
           }
@@ -355,6 +366,7 @@ class WebSocketService {
             from: newPos,
             to: effectPos,
             dieRoll: 0,
+            effect: payload.effect,
           })
           feedbackCell = effectPos
         }
