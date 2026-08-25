@@ -13,6 +13,7 @@ import { getWsBaseUrl } from './serverUrls'
 import { playTurnPingSound } from './soundService'
 import {
   clearLandedCellPreview,
+  checkAnimationFinished,
   onDiceAnimationComplete,
   queueTokenMove,
   syncTokenVisualPositions,
@@ -68,7 +69,7 @@ class WebSocketService {
   private _connectPromise?: Promise<void>
   private maxBackoff: number = 30000
   private diceClearTimer: ReturnType<typeof setTimeout> | null = null
-  private static readonly DICE_DISPLAY_MS = 5500
+  private static readonly FALLBACK_DICE_CLEAR_MS = 20000
   private intentionalClose = false
   private hasJoined = false
 
@@ -77,6 +78,7 @@ class WebSocketService {
     store.lastEffect = ''
     store.lastEffectType = ''
     onDiceAnimationComplete()
+    checkAnimationFinished()
   }
 
   private scheduleDiceOverlayClear(): void {
@@ -86,7 +88,7 @@ class WebSocketService {
     this.diceClearTimer = setTimeout(() => {
       this.diceClearTimer = null
       this.clearDiceOverlay()
-    }, WebSocketService.DICE_DISPLAY_MS)
+    }, WebSocketService.FALLBACK_DICE_CLEAR_MS)
   }
 
   private persistIdentity(): void {
@@ -315,8 +317,17 @@ class WebSocketService {
         store.currentTurnPlayer = activeP ? activeP.name : activeId
         store.questionActive = false
         store.activeQuestion = null
-        if (activeId && activeId === store.playerId && lastActivePlayerId !== activeId) {
-          playTurnPingSound()
+        if (activeId && activeId === store.playerId) {
+          if (!store.isMoveAnimating) {
+            store.pendingTurnNotification = false
+            if (lastActivePlayerId !== activeId) {
+              playTurnPingSound()
+            }
+          } else {
+            store.pendingTurnNotification = true
+          }
+        } else {
+          store.pendingTurnNotification = false
         }
         lastActivePlayerId = activeId
         break
@@ -400,6 +411,8 @@ class WebSocketService {
         }
         this.clearDiceOverlay()
         clearLandedCellPreview()
+        store.pendingTurnNotification = false
+        store.isMoveAnimating = false
         store.questionActive = true
         // Genuine remaining time: use server deadline as-is (never reset locally).
         store.deadline =
@@ -432,6 +445,8 @@ class WebSocketService {
         store.questionActive = false
         store.activeQuestion = null
         store.currentTurnPlayer = ''
+        store.pendingTurnNotification = false
+        store.isMoveAnimating = false
         break
       default:
         console.warn('Unhandled message type', type)

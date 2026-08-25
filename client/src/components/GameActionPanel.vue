@@ -20,15 +20,24 @@ export default defineComponent({
         store.playerName !== ''
       )
     },
+    showLevelPicker(): boolean {
+      return this.isMyTurn && !store.questionActive && !store.isMoveAnimating
+    },
+    showProblemPanel(): boolean {
+      return this.isMyTurn && store.questionActive
+    },
+    showOverlay(): boolean {
+      return this.showLevelPicker || this.showProblemPanel
+    },
   },
 });
 </script>
 
 <template>
   <!-- Game Action Panel: LevelPicker, ProblemPanel -->
-  <div v-if="isMyTurn" class="game-action-container">
-    <LevelPicker v-if="!store.questionActive" />
-    <ProblemPanel v-else />
+  <div v-if="showOverlay" class="game-action-container">
+    <LevelPicker v-if="showLevelPicker" />
+    <ProblemPanel v-else-if="showProblemPanel" />
   </div>
 </template>
 

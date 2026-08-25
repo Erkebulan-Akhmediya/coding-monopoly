@@ -4,7 +4,7 @@
  * rules (grid of tokens in a cell) stay unchanged.
  */
 import { store } from '../store'
-import { playMoveSound, playEffectSound } from './soundService'
+import { playMoveSound, playEffectSound, playTurnPingSound } from './soundService'
 
 export interface TokenMove {
   playerId: string
@@ -57,6 +57,25 @@ export function clearLandedCellPreview(): void {
   store.landedCellPlayerId = ''
 }
 
+export function checkAnimationFinished(): void {
+  if (
+    !store.pendingTokenMoves.length &&
+    !waitingForDice &&
+    !running &&
+    store.landedCellIndex === null
+  ) {
+    store.isMoveAnimating = false
+    if (
+      store.pendingTurnNotification &&
+      store.playerId &&
+      store.currentTurnPlayer === store.playerName
+    ) {
+      store.pendingTurnNotification = false
+      playTurnPingSound()
+    }
+  }
+}
+
 function showLandedCellPreview(cellIndex: number, playerId: string): void {
   clearPreviewTimer()
   store.landedCellIndex = cellIndex
@@ -65,6 +84,10 @@ function showLandedCellPreview(cellIndex: number, playerId: string): void {
     previewTimer = null
     store.landedCellIndex = null
     store.landedCellPlayerId = ''
+    store.diceRolls = []
+    store.lastEffect = ''
+    store.lastEffectType = ''
+    checkAnimationFinished()
   }, LANDED_PREVIEW_MS)
 }
 
@@ -81,6 +104,10 @@ export function syncTokenVisualPositions(): void {
   running = false
   clearStepTimer()
   clearLandedCellPreview()
+  store.diceRolls = []
+  store.lastEffect = ''
+  store.lastEffectType = ''
+  store.isMoveAnimating = false
 }
 
 /** Drop a player from visual maps (presence left). */
@@ -93,6 +120,7 @@ export function removeTokenVisual(playerId: string): void {
   if (store.landedCellPlayerId === playerId) {
     clearLandedCellPreview()
   }
+  checkAnimationFinished()
 }
 
 /**
@@ -101,6 +129,7 @@ export function removeTokenVisual(playerId: string): void {
  */
 export function queueTokenMove(move: TokenMove): void {
   if (!move.playerId) return
+  store.isMoveAnimating = true
   clearLandedCellPreview()
   if (store.tokenVisualPositions[move.playerId] === undefined) {
     store.tokenVisualPositions[move.playerId] = move.from
@@ -166,7 +195,10 @@ async function animateMove(move: TokenMove): Promise<void> {
 
 async function pumpMoves(): Promise<void> {
   if (running || waitingForDice) return
-  if (!store.pendingTokenMoves.length) return
+  if (!store.pendingTokenMoves.length) {
+    checkAnimationFinished()
+    return
+  }
 
   running = true
   let lastMove: TokenMove | null = null
@@ -186,6 +218,8 @@ async function pumpMoves(): Promise<void> {
   // Final resting cell after this hop wave — show a large center copy.
   if (lastMove && !waitingForDice) {
     showLandedCellPreview(lastMove.to, lastMove.playerId)
+  } else {
+    checkAnimationFinished()
   }
 }
 
