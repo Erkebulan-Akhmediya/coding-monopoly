@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"server/internal/locale"
 )
 
 var (
@@ -43,9 +45,9 @@ type ExcludingBroadcaster interface {
 // QuestionOption is an option shown to the active player. Correct is kept out
 // of JSON so it can never leak through a question_started payload.
 type QuestionOption struct {
-	ID      string `json:"id"`
-	Text    string `json:"text"`
-	Correct bool   `json:"-"`
+	ID      string      `json:"id"`
+	Text    locale.Text `json:"text"`
+	Correct bool        `json:"-"`
 }
 
 // Question is the server-side representation of an assigned question.
@@ -53,9 +55,9 @@ type Question struct {
 	ID              string
 	Type            string
 	Difficulty      string
-	Prompt          string
+	Prompt          locale.Text
 	Options         []QuestionOption
-	AcceptedAnswers []string
+	AcceptedAnswers []locale.Text
 }
 
 // QuestionProvider assigns one published question for a difficulty.
@@ -70,7 +72,7 @@ type QuestionStartedPayload struct {
 	Type       string           `json:"type,omitempty"`
 	Difficulty string           `json:"difficulty"`
 	Deadline   time.Time        `json:"deadline"`
-	Prompt     string           `json:"prompt,omitempty"`
+	Prompt     *locale.Text     `json:"prompt,omitempty"`
 	Options    []QuestionOption `json:"options,omitempty"`
 }
 
@@ -332,12 +334,13 @@ func (r *Room) GetActiveQuestionPayload(clientID string) *QuestionStartedPayload
 	defer r.mu.RUnlock()
 
 	if r.activePlayerID == clientID && r.currentTurn != nil && !r.currentTurn.resolved {
+		prompt := r.currentTurn.question.Prompt
 		return &QuestionStartedPayload{
 			ProblemID:  r.currentTurn.question.ID,
 			Type:       r.currentTurn.question.Type,
 			Difficulty: r.currentTurn.difficulty,
 			Deadline:   r.currentTurn.deadline,
-			Prompt:     r.currentTurn.question.Prompt,
+			Prompt:     &prompt,
 			Options:    r.currentTurn.question.Options,
 		}
 	}
@@ -567,12 +570,13 @@ func (r *Room) ChooseLevel(clientID string, difficulty string) error {
 			r.broadcaster.BroadcastRoom(r.ID, "question_started", redacted)
 		}
 		if private, ok := r.broadcaster.(PrivateBroadcaster); ok {
+			prompt := question.Prompt
 			private.SendToPlayer(r.ID, clientID, "question_started", QuestionStartedPayload{
 				ProblemID:  question.ID,
 				Type:       question.Type,
 				Difficulty: difficulty,
 				Deadline:   deadline,
-				Prompt:     question.Prompt,
+				Prompt:     &prompt,
 				Options:    question.Options,
 			})
 		}
@@ -730,8 +734,10 @@ func gradeQuestion(question Question, payload json.RawMessage, timedOut bool) bo
 		return false
 	}
 	for _, accepted := range question.AcceptedAnswers {
-		if strings.EqualFold(strings.TrimSpace(submitted), strings.TrimSpace(accepted)) {
-			return true
+		for _, variant := range accepted.All() {
+			if strings.EqualFold(strings.TrimSpace(submitted), strings.TrimSpace(variant)) {
+				return true
+			}
 		}
 	}
 	return false

@@ -12,6 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 
 	"server/internal/room"
+
+	"server/internal/locale"
 )
 
 func setupTestServer(t *testing.T, clientOpts ...ClientOptions) (*Hub, *httptest.Server) {
@@ -601,10 +603,10 @@ func TestWS_QuestionContentAndCorrectAnswerStayOffSpectatorWire(t *testing.T) {
 	provider := fixedQuestionProvider{question: room.Question{
 		ID:     "q-wire-secret",
 		Type:   "mcq",
-		Prompt: "SECRET_PROMPT_ONLY_FOR_ALICE",
+		Prompt: locale.FromEn("SECRET_PROMPT_ONLY_FOR_ALICE"),
 		Options: []room.QuestionOption{
-			{ID: "SECRET_CORRECT_OPTION_ID", Text: "SECRET_CORRECT_OPTION_TEXT", Correct: true},
-			{ID: "SECRET_WRONG_OPTION_ID", Text: "SECRET_WRONG_OPTION_TEXT"},
+			{ID: "SECRET_CORRECT_OPTION_ID", Text: locale.FromEn("SECRET_CORRECT_OPTION_TEXT"), Correct: true},
+			{ID: "SECRET_WRONG_OPTION_ID", Text: locale.FromEn("SECRET_WRONG_OPTION_TEXT")},
 		},
 	}}
 	hub, server := setupTestServerWithProvider(t, provider)
@@ -770,8 +772,8 @@ func TestWS_ReconnectResumesSlotAndMidQuestion(t *testing.T) {
 		ID:              "q-resume",
 		Type:            "text",
 		Difficulty:      "easy",
-		Prompt:          "resume me",
-		AcceptedAnswers: []string{"ok"},
+		Prompt:          locale.FromEn("resume me"),
+		AcceptedAnswers: []locale.Text{locale.FromEn("ok")},
 	}}
 	hub, server := setupTestServerWithProvider(t, provider)
 
@@ -803,7 +805,7 @@ func TestWS_ReconnectResumesSlotAndMidQuestion(t *testing.T) {
 	_, qMsg := readUntilType(t, connA, MessageTypeQuestionStarted)
 	var qBefore room.QuestionStartedPayload
 	_ = json.Unmarshal(qMsg.Payload, &qBefore)
-	if qBefore.Prompt == "" || qBefore.Deadline.IsZero() {
+	if qBefore.Prompt == nil || qBefore.Prompt.En == "" || qBefore.Deadline.IsZero() {
 		t.Fatalf("expected full question before disconnect: %+v", qBefore)
 	}
 
@@ -845,7 +847,7 @@ func TestWS_ReconnectResumesSlotAndMidQuestion(t *testing.T) {
 	_, qResume := readUntilType(t, connA2, MessageTypeQuestionStarted)
 	var qAfter room.QuestionStartedPayload
 	_ = json.Unmarshal(qResume.Payload, &qAfter)
-	if qAfter.Prompt != "resume me" || !qAfter.Deadline.Equal(qBefore.Deadline) {
+	if qAfter.Prompt == nil || qAfter.Prompt.En != "resume me" || !qAfter.Deadline.Equal(qBefore.Deadline) {
 		t.Fatalf("question resume mismatch: %+v", qAfter)
 	}
 }
@@ -914,4 +916,3 @@ func TestWS_JoinRejectsNonExistentRoom(t *testing.T) {
 		t.Fatal("joining a missing room should not create it")
 	}
 }
-

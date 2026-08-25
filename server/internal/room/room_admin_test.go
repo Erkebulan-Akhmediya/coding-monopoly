@@ -2,6 +2,8 @@ package room
 
 import (
 	"testing"
+
+	"server/internal/locale"
 )
 
 func TestRoom_AdminSkipTurn(t *testing.T) {
@@ -79,9 +81,9 @@ func TestRoom_PausedBlocksChooseAndSubmit(t *testing.T) {
 	r := NewRoomWithQuestionProvider("pause-room", mock, testQuestionProvider{question: Question{
 		ID:     "q1",
 		Type:   "mcq",
-		Prompt: "paused?",
+		Prompt: locale.FromEn("paused?"),
 		Options: []QuestionOption{
-			{ID: "a", Text: "yes", Correct: true},
+			{ID: "a", Text: locale.FromEn("yes"), Correct: true},
 		},
 	}})
 	r.AddOrReconnectPlayer("c1", "Alice")

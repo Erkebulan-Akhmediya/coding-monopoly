@@ -50,8 +50,8 @@ export default defineComponent({
         const q = this.searchQuery.toLowerCase().trim()
         result = result.filter(
           (p) =>
-            p.title.toLowerCase().includes(q) ||
-            p.prompt.toLowerCase().includes(q) ||
+            (p.title?.en || '').toLowerCase().includes(q) ||
+            (p.prompt?.en || '').toLowerCase().includes(q) ||
             p.id.toLowerCase().includes(q)
         )
       }
@@ -312,8 +312,8 @@ export default defineComponent({
 
             <!-- Title & Prompt -->
             <td class="col-title">
-              <div class="q-title">{{ p.title }}</div>
-              <div class="q-prompt-preview">{{ p.prompt }}</div>
+              <div class="q-title">{{ p.title.en }}</div>
+              <div class="q-prompt-preview">{{ p.prompt.en }}</div>
             </td>
 
             <!-- Content preview -->
@@ -326,7 +326,7 @@ export default defineComponent({
                     :key="idx"
                     :class="{ 'is-correct-preview': opt.is_correct }"
                   >
-                    {{ opt.is_correct ? '✓ ' : '• ' }}{{ opt.text }}
+                    {{ opt.is_correct ? '✓ ' : '• ' }}{{ opt.text.en }}
                   </li>
                   <li v-if="(p.options || []).length > 3" class="more-hint">
                     {{ $t('admin.moreOptions', { count: p.options!.length - 3 }) }}
@@ -341,7 +341,7 @@ export default defineComponent({
                     :key="idx"
                     class="ans-tag"
                   >
-                    "{{ ans }}"
+                    "{{ ans.en }}"
                   </span>
                 </div>
               </div>
@@ -400,7 +400,7 @@ export default defineComponent({
       <div class="confirm-modal-card">
         <h3>{{ $t('admin.deleteConfirmTitle') }}</h3>
         <p>
-          {{ $t('admin.deleteConfirmBody', { title: confirmDeleteProblem.title }) }}
+          {{ $t('admin.deleteConfirmBody', { title: confirmDeleteProblem.title.en }) }}
         </p>
         <div class="confirm-modal-actions">
           <button class="btn-secondary" @click="cancelDelete" :disabled="deleting">

@@ -193,7 +193,7 @@ export default defineComponent({
         </div>
 
         <div class="cell-body">
-          <span class="cell-name">{{ cell.name || $t('board.cellFallback', { index: idx }) }}</span>
+          <span class="cell-name">{{ (cell.name && cell.name.en) || $t('board.cellFallback', { index: idx }) }}</span>
           <span v-if="getCellSubtitle(cell)" class="cell-subtitle">
             {{ getCellSubtitle(cell) }}
           </span>

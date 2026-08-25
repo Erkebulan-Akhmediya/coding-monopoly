@@ -26,6 +26,8 @@ import (
 
 	"server/internal/room"
 	"server/internal/ws"
+
+	"server/internal/locale"
 )
 
 type thinkProfile struct {
@@ -57,10 +59,10 @@ func (p *fixedProvider) AssignQuestion(difficulty string) (room.Question, error)
 		ID:         id,
 		Type:       "mcq",
 		Difficulty: difficulty,
-		Prompt:     "load-test question",
+		Prompt:     locale.FromEn("load-test question"),
 		Options: []room.QuestionOption{
-			{ID: "opt-correct", Text: "right", Correct: true},
-			{ID: "opt-wrong", Text: "wrong", Correct: false},
+			{ID: "opt-correct", Text: locale.FromEn("right"), Correct: true},
+			{ID: "opt-wrong", Text: locale.FromEn("wrong"), Correct: false},
 		},
 	}, nil
 }
@@ -268,8 +270,8 @@ func main() {
 	fmt.Printf("per-player average: %s\n", (elapsed / time.Duration(*players)).Round(time.Millisecond))
 	fmt.Println()
 	fmt.Println("Sanity check vs class period:")
-	fmt.Printf("  50-minute period → ~%.1f full rotations\n", (50 * time.Minute).Seconds()/elapsed.Seconds())
-	fmt.Printf("  90-minute period → ~%.1f full rotations\n", (90 * time.Minute).Seconds()/elapsed.Seconds())
+	fmt.Printf("  50-minute period → ~%.1f full rotations\n", (50*time.Minute).Seconds()/elapsed.Seconds())
+	fmt.Printf("  90-minute period → ~%.1f full rotations\n", (90*time.Minute).Seconds()/elapsed.Seconds())
 	if elapsed > 15*time.Minute {
 		fmt.Println("  WARN: one rotation exceeds 15 minutes — consider fewer players or shorter think times for a single period.")
 	} else {

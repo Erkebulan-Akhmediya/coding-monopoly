@@ -15,6 +15,8 @@ import (
 
 	"server/internal/room"
 	"server/internal/ws"
+
+	"server/internal/locale"
 )
 
 type deployQuestionProvider struct {
@@ -168,10 +170,10 @@ func TestDeployMux_QuestionContentStaysOffSpectatorWire(t *testing.T) {
 	provider := deployQuestionProvider{question: room.Question{
 		ID:     "q-deploy-secret",
 		Type:   "mcq",
-		Prompt: "DEPLOY_SECRET_PROMPT",
+		Prompt: locale.FromEn("DEPLOY_SECRET_PROMPT"),
 		Options: []room.QuestionOption{
-			{ID: "DEPLOY_SECRET_CORRECT", Text: "DEPLOY_SECRET_CORRECT_TEXT", Correct: true},
-			{ID: "DEPLOY_SECRET_WRONG", Text: "DEPLOY_SECRET_WRONG_TEXT"},
+			{ID: "DEPLOY_SECRET_CORRECT", Text: locale.FromEn("DEPLOY_SECRET_CORRECT_TEXT"), Correct: true},
+			{ID: "DEPLOY_SECRET_WRONG", Text: locale.FromEn("DEPLOY_SECRET_WRONG_TEXT")},
 		},
 	}}
 	hub, server := setupDeployServer(t, provider)
@@ -260,8 +262,8 @@ func TestDeployMux_TimeoutThenLateSubmitResolvesOnce(t *testing.T) {
 	provider := deployQuestionProvider{question: room.Question{
 		ID:      "q-deploy-timeout",
 		Type:    "mcq",
-		Prompt:  "timeout path",
-		Options: []room.QuestionOption{{ID: "correct", Text: "yes", Correct: true}, {ID: "wrong", Text: "no"}},
+		Prompt:  locale.FromEn("timeout path"),
+		Options: []room.QuestionOption{{ID: "correct", Text: locale.FromEn("yes"), Correct: true}, {ID: "wrong", Text: locale.FromEn("no")}},
 	}}
 	hub, server := setupDeployServer(t, provider)
 
@@ -340,10 +342,10 @@ func TestDeployMux_SubmitWinsAndStaleTimerDoesNotDoubleResolve(t *testing.T) {
 	provider := deployQuestionProvider{question: room.Question{
 		ID:     "q-deploy-submit",
 		Type:   "mcq",
-		Prompt: "submit path",
+		Prompt: locale.FromEn("submit path"),
 		Options: []room.QuestionOption{
-			{ID: "correct", Text: "yes", Correct: true},
-			{ID: "wrong", Text: "no"},
+			{ID: "correct", Text: locale.FromEn("yes"), Correct: true},
+			{ID: "wrong", Text: locale.FromEn("no")},
 		},
 	}}
 	hub, server := setupDeployServer(t, provider)

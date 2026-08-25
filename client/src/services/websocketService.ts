@@ -384,8 +384,12 @@ class WebSocketService {
         if (payload.effect) {
           pushEffectFeedback(payload.effect, feedbackCell)
         } else if (payload.landed_cell?.name) {
+          const cellName =
+            typeof payload.landed_cell.name === 'string'
+              ? payload.landed_cell.name
+              : payload.landed_cell.name.en || ''
           pushEffectFeedback(
-            { effect_type: payload.landed_cell.type || 'generic', description: t('board.landedOn', { name: payload.landed_cell.name }) },
+            { effect_type: payload.landed_cell.type || 'generic', description: t('board.landedOn', { name: cellName }) },
             feedbackCell,
           )
         }
@@ -425,7 +429,7 @@ class WebSocketService {
           id: payload.problem_id || '',
           type: payload.type || '',
           difficulty: payload.difficulty || '',
-          prompt: payload.prompt || '',
+          prompt: payload.prompt || { en: '', ru: '', kz: '' },
           options: payload.options || [],
         }
         break

@@ -88,7 +88,7 @@ export default defineComponent({
         <span class="landed-icon">{{ cellIcon }}</span>
       </div>
       <div class="landed-body">
-        <span class="landed-name">{{ cell.name || $t('board.cellFallback', { index: cellIndex }) }}</span>
+        <span class="landed-name">{{ (cell.name && cell.name.en) || $t('board.cellFallback', { index: cellIndex }) }}</span>
         <span v-if="cellSubtitle" class="landed-subtitle">{{ cellSubtitle }}</span>
       </div>
       <div v-if="player" class="landed-token">

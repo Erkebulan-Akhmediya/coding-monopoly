@@ -53,7 +53,7 @@ export default defineComponent({
         <div class="checkbox-indicator">
           <span v-if="isSelected(opt.id)">✓</span>
         </div>
-        <span class="option-text">{{ opt.text }}</span>
+        <span class="option-text">{{ opt.text.en }}</span>
       </button>
     </div>
 

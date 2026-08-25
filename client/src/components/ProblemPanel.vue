@@ -120,7 +120,7 @@ export default defineComponent({
       <div v-else class="question-content">
         <!-- Render prompt -->
         <div class="prompt-box">
-          <p class="prompt-text">{{ store.activeQuestion.prompt }}</p>
+          <p class="prompt-text">{{ store.activeQuestion.prompt.en }}</p>
         </div>
 
         <div v-if="isTimedOut && !submitted" class="timeout-overlay">

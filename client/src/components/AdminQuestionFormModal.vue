@@ -2,10 +2,11 @@
 import { defineComponent, type PropType } from 'vue'
 import {
   adminApiService,
+  localizedFromEn,
   validateProblemInput,
   type Problem,
   type ProblemInput,
-  type OptionInput,
+  type LocalizedText,
 } from '../services/adminApiService'
 import { adminStore } from '../adminStore'
 
@@ -32,22 +33,23 @@ export default defineComponent({
     let title = ''
     let prompt = ''
     let is_published = false
-    let options: OptionInput[] = [
+    let options: Array<{ text: string; is_correct: boolean; existing?: LocalizedText }> = [
       { text: '', is_correct: true },
       { text: '', is_correct: false },
     ]
-    let accepted_answers: string[] = ['']
+    let accepted_answers: Array<{ text: string; existing?: LocalizedText }> = [{ text: '' }]
 
     if (this.problem) {
       type = this.problem.type
       difficulty = this.problem.difficulty
-      title = this.problem.title
-      prompt = this.problem.prompt
+      title = this.problem.title?.en || ''
+      prompt = this.problem.prompt?.en || ''
       is_published = this.problem.is_published
       if (this.problem.type === 'mcq' && this.problem.options && this.problem.options.length > 0) {
         options = this.problem.options.map((opt) => ({
-          text: opt.text,
+          text: opt.text?.en || '',
           is_correct: opt.is_correct,
+          existing: opt.text,
         }))
       }
       if (
@@ -55,7 +57,10 @@ export default defineComponent({
         this.problem.accepted_answers &&
         this.problem.accepted_answers.length > 0
       ) {
-        accepted_answers = [...this.problem.accepted_answers]
+        accepted_answers = this.problem.accepted_answers.map((ans) => ({
+          text: ans?.en || '',
+          existing: ans,
+        }))
       }
     }
 
@@ -84,7 +89,7 @@ export default defineComponent({
           { text: '', is_correct: false },
         ]
       } else if (this.form.type === 'text' && this.form.accepted_answers.length < 1) {
-        this.form.accepted_answers = ['']
+        this.form.accepted_answers = [{ text: '' }]
       }
       this.validationErrors = []
     },
@@ -100,7 +105,7 @@ export default defineComponent({
     },
 
     addAnswer() {
-      this.form.accepted_answers.push('')
+      this.form.accepted_answers.push({ text: '' })
     },
 
     removeAnswer(index: number) {
@@ -113,21 +118,26 @@ export default defineComponent({
       this.serverError = ''
       this.validationErrors = []
 
+      const existingTitle = this.problem?.title
+      const existingPrompt = this.problem?.prompt
+
       const payload: ProblemInput = {
         type: this.form.type,
         difficulty: this.form.difficulty,
-        title: this.form.title,
-        prompt: this.form.prompt,
+        title: localizedFromEn(this.form.title, existingTitle),
+        prompt: localizedFromEn(this.form.prompt, existingPrompt),
         is_published: this.form.is_published,
       }
 
       if (this.form.type === 'mcq') {
         payload.options = this.form.options.map((opt) => ({
-          text: opt.text,
+          text: localizedFromEn(opt.text, opt.existing),
           is_correct: opt.is_correct,
         }))
       } else {
-        payload.accepted_answers = this.form.accepted_answers.map((ans) => ans)
+        payload.accepted_answers = this.form.accepted_answers.map((ans) =>
+          localizedFromEn(ans.text, ans.existing)
+        )
       }
 
       // Client-side validation mirroring Phase 4 server-side rules
@@ -314,7 +324,7 @@ export default defineComponent({
             >
               <span class="ans-num">#{{ idx + 1 }}</span>
               <input
-                v-model="form.accepted_answers[idx]"
+                v-model="form.accepted_answers[idx].text"
                 type="text"
                 :placeholder="$t('admin.answerPlaceholder', { index: idx + 1 })"
                 class="form-input answer-text-input"
