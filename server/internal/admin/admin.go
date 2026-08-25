@@ -260,15 +260,21 @@ func (h *Handler) ValidateToken(token string) bool {
 
 type Option struct {
 	ID        string `json:"id"`
-	Text      string `json:"text"`
+	TextEn    string `json:"text_en"`
+	TextRu    string `json:"text_ru,omitempty"`
+	TextKz    string `json:"text_kz,omitempty"`
 	IsCorrect bool   `json:"is_correct"`
 }
 type Problem struct {
 	ID              string    `json:"id"`
 	Type            string    `json:"type"`
 	Difficulty      string    `json:"difficulty"`
-	Title           string    `json:"title"`
-	Prompt          string    `json:"prompt"`
+	TitleEn         string    `json:"title_en"`
+	TitleRu         string    `json:"title_ru,omitempty"`
+	TitleKz         string    `json:"title_kz,omitempty"`
+	PromptEn        string    `json:"prompt_en"`
+	PromptRu        string    `json:"prompt_ru,omitempty"`
+	PromptKz        string    `json:"prompt_kz,omitempty"`
 	IsPublished     bool      `json:"is_published"`
 	Options         []Option  `json:"options,omitempty"`
 	AcceptedAnswers []string  `json:"accepted_answers,omitempty"`
