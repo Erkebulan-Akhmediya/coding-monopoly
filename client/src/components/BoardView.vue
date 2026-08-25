@@ -2,6 +2,7 @@
 import { defineComponent } from 'vue'
 import { store } from '../store'
 import type { Player } from '../store'
+import { localeText } from '../i18n'
 import { getTokenVisualPosition } from '../services/tokenMovement'
 import PlayerToken from './PlayerToken.vue'
 import DiceOverlay from './DiceOverlay.vue'
@@ -126,6 +127,9 @@ export default defineComponent({
       if (this.$te(key)) return this.$t(key)
       return ''
     },
+    cellName(cell: any): string {
+      return localeText(cell?.name) || this.$t('board.cellFallback', { index: cell?.cell_index ?? '?' })
+    },
     getXpGainClass(cell: any): string {
       if (cell && cell.type === 'xp_gain' && cell.params && typeof cell.params.amount === 'number') {
         const amount = cell.params.amount
@@ -193,7 +197,7 @@ export default defineComponent({
         </div>
 
         <div class="cell-body">
-          <span class="cell-name">{{ (cell.name && cell.name.en) || $t('board.cellFallback', { index: idx }) }}</span>
+          <span class="cell-name">{{ cellName(cell) }}</span>
           <span v-if="getCellSubtitle(cell)" class="cell-subtitle">
             {{ getCellSubtitle(cell) }}
           </span>

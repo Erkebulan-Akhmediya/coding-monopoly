@@ -2,6 +2,7 @@
 import { defineComponent } from 'vue'
 import { store } from '../store'
 import type { Player } from '../store'
+import { localeText } from '../i18n'
 import PlayerToken from './PlayerToken.vue'
 
 export default defineComponent({
@@ -69,6 +70,9 @@ export default defineComponent({
       if (this.$te(key)) return this.$t(key)
       return ''
     },
+    cellDisplayName(): string {
+      return localeText(this.cell?.name) || this.$t('board.cellFallback', { index: this.cellIndex ?? '?' })
+    },
     effectText(): string {
       return store.lastEffect || ''
     },
@@ -88,7 +92,7 @@ export default defineComponent({
         <span class="landed-icon">{{ cellIcon }}</span>
       </div>
       <div class="landed-body">
-        <span class="landed-name">{{ (cell.name && cell.name.en) || $t('board.cellFallback', { index: cellIndex }) }}</span>
+        <span class="landed-name">{{ cellDisplayName }}</span>
         <span v-if="cellSubtitle" class="landed-subtitle">{{ cellSubtitle }}</span>
       </div>
       <div v-if="player" class="landed-token">

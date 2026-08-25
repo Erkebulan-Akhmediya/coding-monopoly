@@ -1,5 +1,6 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { localeText } from '../i18n'
 
 export default defineComponent({
   name: 'McqPanel',
@@ -19,6 +20,9 @@ export default defineComponent({
     }
   },
   methods: {
+    optionText(text: any): string {
+      return localeText(text)
+    },
     toggleOption(optionID: string) {
       if (this.disabled) return
       const idx = this.selectedIDs.indexOf(optionID)
@@ -53,7 +57,7 @@ export default defineComponent({
         <div class="checkbox-indicator">
           <span v-if="isSelected(opt.id)">✓</span>
         </div>
-        <span class="option-text">{{ opt.text.en }}</span>
+        <span class="option-text">{{ optionText(opt.text) }}</span>
       </button>
     </div>
 

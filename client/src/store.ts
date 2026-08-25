@@ -13,12 +13,18 @@ export interface Player {
   free_passes?: number
 }
 
+export interface LocalizedText {
+  en: string
+  ru: string
+  kz: string
+}
+
 export interface Question {
   id: string
   type: string
   difficulty: string
-  prompt: string
-  options?: Array<{ id: string; text: string }>
+  prompt: LocalizedText
+  options?: Array<{ id: string; text: LocalizedText }>
 }
 
 export interface PendingTokenMove {

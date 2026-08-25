@@ -8,7 +8,7 @@
  */
 import { store } from '../store'
 import type { EffectToast, GameOverSummary, Player } from '../store'
-import { t } from '../i18n'
+import { t, localeText } from '../i18n'
 import { getWsBaseUrl } from './serverUrls'
 import { playTurnPingSound } from './soundService'
 import {
@@ -384,10 +384,7 @@ class WebSocketService {
         if (payload.effect) {
           pushEffectFeedback(payload.effect, feedbackCell)
         } else if (payload.landed_cell?.name) {
-          const cellName =
-            typeof payload.landed_cell.name === 'string'
-              ? payload.landed_cell.name
-              : payload.landed_cell.name.en || ''
+          const cellName = localeText(payload.landed_cell.name)
           pushEffectFeedback(
             { effect_type: payload.landed_cell.type || 'generic', description: t('board.landedOn', { name: cellName }) },
             feedbackCell,
