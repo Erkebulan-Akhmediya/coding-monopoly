@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"server/internal/locale"
 )
 
 func TestRoom_ActiveDisconnectGraceThenForfeit(t *testing.T) {
@@ -75,11 +77,11 @@ func TestRoom_ActiveDisconnectReconnectWithinGrace(t *testing.T) {
 func TestRoom_MidQuestionResumeKeepsDeadline(t *testing.T) {
 	mock := &MockBroadcaster{}
 	provider := &fixedProvider{q: Question{
-		ID:         "q1",
-		Type:       "text",
-		Difficulty: "easy",
-		Prompt:     "2+2?",
-		AcceptedAnswers: []string{"4"},
+		ID:              "q1",
+		Type:            "text",
+		Difficulty:      "easy",
+		Prompt:          locale.FromEn("2+2?"),
+		AcceptedAnswers: []locale.Text{locale.FromEn("4")},
 	}}
 	r := NewRoomWithQuestionProvider("mid-q", mock, provider)
 	r.SetDeadlineDurations(2*time.Second, 2*time.Second, 2*time.Second)
@@ -100,7 +102,7 @@ func TestRoom_MidQuestionResumeKeepsDeadline(t *testing.T) {
 	originalDeadline := *beforeDeadline
 
 	payloadBefore := r.GetActiveQuestionPayload("c1")
-	if payloadBefore == nil || payloadBefore.Prompt == "" {
+	if payloadBefore == nil || payloadBefore.Prompt == nil || payloadBefore.Prompt.En == "" {
 		t.Fatalf("expected full question payload before disconnect")
 	}
 
@@ -122,8 +124,8 @@ func TestRoom_MidQuestionResumeKeepsDeadline(t *testing.T) {
 	if !payloadAfter.Deadline.Equal(originalDeadline) {
 		t.Fatalf("reconnect must resume genuine remaining time, got %v want %v", payloadAfter.Deadline, originalDeadline)
 	}
-	if payloadAfter.Prompt != "2+2?" {
-		t.Fatalf("prompt mismatch after resume: %q", payloadAfter.Prompt)
+	if payloadAfter.Prompt == nil || payloadAfter.Prompt.En != "2+2?" {
+		t.Fatalf("prompt mismatch after resume: %q", payloadAfter.Prompt.En)
 	}
 }
 

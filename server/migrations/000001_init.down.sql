@@ -19,6 +19,7 @@ DROP TABLE IF EXISTS players;
 DROP TABLE IF EXISTS games;
 
 -- Drop types and extensions
+DROP TYPE IF EXISTS cell_type;
 DROP TYPE IF EXISTS difficulty_level;
 DROP TYPE IF EXISTS problem_type;
 DROP EXTENSION IF EXISTS "uuid-ossp";

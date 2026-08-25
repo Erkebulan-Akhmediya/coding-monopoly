@@ -1,35 +1,53 @@
 import { getBaseHttpUrl } from './serverUrls'
 
+export interface LocalizedText {
+  en: string
+  ru: string
+  kz: string
+}
+
+export function emptyLocalizedText(): LocalizedText {
+  return { en: '', ru: '', kz: '' }
+}
+
+export function localizedFromEn(en: string, existing?: LocalizedText | null): LocalizedText {
+  return {
+    en,
+    ru: existing?.ru ?? '',
+    kz: existing?.kz ?? '',
+  }
+}
+
 export interface OptionInput {
-  text: string
+  text: LocalizedText
   is_correct: boolean
 }
 
 export interface Option {
   id: string
-  text: string
+  text: LocalizedText
   is_correct: boolean
 }
 
 export interface ProblemInput {
   type: 'mcq' | 'text'
   difficulty: 'easy' | 'medium' | 'hard'
-  title: string
-  prompt: string
+  title: LocalizedText
+  prompt: LocalizedText
   is_published: boolean
   options?: OptionInput[]
-  accepted_answers?: string[]
+  accepted_answers?: LocalizedText[]
 }
 
 export interface Problem {
   id: string
   type: 'mcq' | 'text'
   difficulty: 'easy' | 'medium' | 'hard'
-  title: string
-  prompt: string
+  title: LocalizedText
+  prompt: LocalizedText
   is_published: boolean
   options?: Option[]
-  accepted_answers?: string[]
+  accepted_answers?: LocalizedText[]
   created_at: string
   updated_at: string
 }
@@ -64,10 +82,10 @@ export function validateProblemInput(input: ProblemInput): ValidationError[] {
   if (!['easy', 'medium', 'hard'].includes(input.difficulty)) {
     errors.push({ key: 'invalidDifficulty' })
   }
-  if (!input.title || input.title.trim() === '') {
+  if (!input.title?.en || input.title.en.trim() === '') {
     errors.push({ key: 'titleRequired' })
   }
-  if (!input.prompt || input.prompt.trim() === '') {
+  if (!input.prompt?.en || input.prompt.en.trim() === '') {
     errors.push({ key: 'promptRequired' })
   }
 
@@ -78,7 +96,7 @@ export function validateProblemInput(input: ProblemInput): ValidationError[] {
     }
     let hasCorrect = false
     opts.forEach((opt, idx) => {
-      if (!opt.text || opt.text.trim() === '') {
+      if (!opt.text?.en || opt.text.en.trim() === '') {
         errors.push({ key: 'optionTextRequired', params: { index: idx + 1 } })
       }
       if (opt.is_correct) {
@@ -94,7 +112,7 @@ export function validateProblemInput(input: ProblemInput): ValidationError[] {
       errors.push({ key: 'textMinAnswers' })
     }
     answers.forEach((ans, idx) => {
-      if (!ans || ans.trim() === '') {
+      if (!ans?.en || ans.en.trim() === '') {
         errors.push({ key: 'answerRequired', params: { index: idx + 1 } })
       }
     })

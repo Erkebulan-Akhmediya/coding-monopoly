@@ -8,6 +8,7 @@
  */
 import { adminStore } from '../adminStore'
 import { getWsBaseUrl } from './serverUrls'
+import { localeText } from '../i18n'
 
 interface Message {
   type: string
@@ -229,7 +230,7 @@ class AdminWebSocketService {
           if (typeof payload.new_position === 'number') rp.position = payload.new_position
           if (typeof payload.player_xp === 'number') rp.xp = payload.player_xp
         }
-        const cellName = payload.landed_cell?.name ?? `cell ${payload.new_position}`
+        const cellName = localeText(payload.landed_cell?.name) || `cell ${payload.new_position}`
         adminStore.appendEvent('roll_resolved', `${rp?.name ?? payload.player_id} rolled ${payload.die_roll} → ${cellName}`)
         break
       }

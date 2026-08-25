@@ -2,3 +2,4 @@ bin/
 venv/
 .cursor/
 .agents/
+opencode.jsonc

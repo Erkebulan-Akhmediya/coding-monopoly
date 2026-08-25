@@ -5,13 +5,15 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"server/internal/locale"
 )
 
 func TestProblemInputValidation(t *testing.T) {
-	validMCQ := problemInput{Type: "mcq", Difficulty: "easy", Title: "t", Prompt: "p", Options: []struct {
-		Text      string `json:"text"`
-		IsCorrect bool   `json:"is_correct"`
-	}{{Text: "one", IsCorrect: true}, {Text: "two"}}}
+	validMCQ := problemInput{Type: "mcq", Difficulty: "easy", Title: locale.FromEn("t"), Prompt: locale.FromEn("p"), Options: []struct {
+		Text      locale.Text `json:"text"`
+		IsCorrect bool        `json:"is_correct"`
+	}{{Text: locale.FromEn("one"), IsCorrect: true}, {Text: locale.FromEn("two")}}}
 	if err := validMCQ.validate(); err != nil {
 		t.Fatalf("valid mcq rejected: %v", err)
 	}
@@ -19,7 +21,7 @@ func TestProblemInputValidation(t *testing.T) {
 	if err := validMCQ.validate(); err == nil {
 		t.Fatal("mcq with one option was accepted")
 	}
-	validText := problemInput{Type: "text", Difficulty: "hard", Title: "t", Prompt: "p", AcceptedAnswers: []string{"answer"}}
+	validText := problemInput{Type: "text", Difficulty: "hard", Title: locale.FromEn("t"), Prompt: locale.FromEn("p"), AcceptedAnswers: []locale.Text{locale.FromEn("answer")}}
 	if err := validText.validate(); err != nil {
 		t.Fatalf("valid text rejected: %v", err)
 	}

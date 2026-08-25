@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"server/internal/locale"
 )
 
 type testQuestionProvider struct {
@@ -62,8 +64,8 @@ func TestRoom_AssignsAndGradesTextQuestionPrivately(t *testing.T) {
 	r := NewRoomWithQuestionProvider("question-room", b, testQuestionProvider{question: Question{
 		ID:              "q-text",
 		Type:            "text",
-		Prompt:          "What does this print?",
-		AcceptedAnswers: []string{"  Hello World  ", "greeting"},
+		Prompt:          locale.FromEn("What does this print?"),
+		AcceptedAnswers: []locale.Text{locale.FromEn("  Hello World  "), locale.FromEn("greeting")},
 	}})
 	r.SetDeadlineDurations(200*time.Millisecond, 200*time.Millisecond, 200*time.Millisecond)
 	r.AddOrReconnectPlayer("alice", "Alice")
@@ -78,14 +80,14 @@ func TestRoom_AssignsAndGradesTextQuestionPrivately(t *testing.T) {
 		t.Fatalf("expected one redacted question_started, got %d", len(public))
 	}
 	publicPayload := public[0].Payload.(QuestionStartedPayload)
-	if publicPayload.Prompt != "" || publicPayload.Options != nil || publicPayload.Difficulty != "easy" || publicPayload.Deadline.IsZero() {
+	if publicPayload.Prompt != nil && publicPayload.Prompt.En != "" || publicPayload.Options != nil || publicPayload.Difficulty != "easy" || publicPayload.Deadline.IsZero() {
 		t.Fatalf("question content leaked in public payload: %+v", publicPayload)
 	}
 	if public[0].ExcludedClientID != "alice" {
 		t.Fatalf("question_started was not excluded from active player: excluded=%q", public[0].ExcludedClientID)
 	}
 	private := b.events("question_started", true)
-	if len(private) != 1 || private[0].Payload.(QuestionStartedPayload).Prompt != "What does this print?" {
+	if len(private) != 1 || private[0].Payload.(QuestionStartedPayload).Prompt == nil || private[0].Payload.(QuestionStartedPayload).Prompt.En != "What does this print?" {
 		t.Fatalf("active player did not receive full question: %+v", private)
 	}
 
@@ -117,8 +119,8 @@ func TestRoom_TimeoutWinsWithZeroRolls(t *testing.T) {
 	r := NewRoomWithQuestionProvider("timeout-room", b, testQuestionProvider{question: Question{
 		ID:      "q-timeout",
 		Type:    "mcq",
-		Prompt:  "Pick one",
-		Options: []QuestionOption{{ID: "a", Text: "A", Correct: true}, {ID: "b", Text: "B"}},
+		Prompt:  locale.FromEn("Pick one"),
+		Options: []QuestionOption{{ID: "a", Text: locale.FromEn("A"), Correct: true}, {ID: "b", Text: locale.FromEn("B")}},
 	}})
 	r.SetDeadlineDurations(25*time.Millisecond, 25*time.Millisecond, 25*time.Millisecond)
 	r.AddOrReconnectPlayer("alice", "Alice")
@@ -171,8 +173,8 @@ func TestRoom_SubmitAndTimeoutRaceResolvesExactlyOnce(t *testing.T) {
 		r := NewRoomWithQuestionProvider("race-room", b, testQuestionProvider{question: Question{
 			ID:      "q-race",
 			Type:    "mcq",
-			Prompt:  "race prompt must stay private",
-			Options: []QuestionOption{{ID: "correct", Text: "correct option", Correct: true}, {ID: "wrong", Text: "wrong option"}},
+			Prompt:  locale.FromEn("race prompt must stay private"),
+			Options: []QuestionOption{{ID: "correct", Text: locale.FromEn("correct option"), Correct: true}, {ID: "wrong", Text: locale.FromEn("wrong option")}},
 		}})
 		r.SetDeadlineDurations(time.Hour, time.Hour, time.Hour)
 		r.AddOrReconnectPlayer("alice", "Alice")
@@ -235,7 +237,7 @@ func TestRoom_SubmitAndTimeoutRaceResolvesExactlyOnce(t *testing.T) {
 func TestGradeQuestion_TextNormalizationIsBounded(t *testing.T) {
 	question := Question{
 		Type:            "text",
-		AcceptedAnswers: []string{"Hello World"},
+		AcceptedAnswers: []locale.Text{locale.FromEn("Hello World")},
 	}
 
 	for _, answer := range []string{"  hello world  ", "\n\tHeLLo WoRLD\t"} {

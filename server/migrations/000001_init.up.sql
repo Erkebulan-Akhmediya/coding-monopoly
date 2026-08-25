@@ -1,9 +1,23 @@
 -- Enable extension for UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Define Enums for Problems
+-- Define Enums for Problems and Board Cells
 CREATE TYPE problem_type AS ENUM ('mcq', 'text');
 CREATE TYPE difficulty_level AS ENUM ('easy', 'medium', 'hard');
+CREATE TYPE cell_type AS ENUM (
+    'deploy',
+    'code_freeze',
+    'coffee_break',
+    'deadline',
+    'xp_gain',
+    'mystery',
+    'xp_loss',
+    'double_xp',
+    'skip_turn',
+    'teleport',
+    'free_pass',
+    'bonus_challenge'
+);
 
 -- 1. games table
 CREATE TABLE games (
@@ -29,11 +43,12 @@ CREATE TABLE players (
 );
 
 -- 3. board_cells table
--- (game_id, cell_index, type, params jsonb)
+-- (game_id, cell_index, name, type, params jsonb)
 CREATE TABLE board_cells (
     game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
     cell_index INTEGER NOT NULL,
-    type VARCHAR(100) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    type cell_type NOT NULL,
     params JSONB NOT NULL DEFAULT '{}'::jsonb,
     PRIMARY KEY (game_id, cell_index)
 );

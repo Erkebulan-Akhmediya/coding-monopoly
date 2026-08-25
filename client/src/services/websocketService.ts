@@ -8,7 +8,7 @@
  */
 import { store } from '../store'
 import type { EffectToast, GameOverSummary, Player } from '../store'
-import { t } from '../i18n'
+import { t, localeText } from '../i18n'
 import { getWsBaseUrl } from './serverUrls'
 import { playTurnPingSound } from './soundService'
 import {
@@ -384,8 +384,9 @@ class WebSocketService {
         if (payload.effect) {
           pushEffectFeedback(payload.effect, feedbackCell)
         } else if (payload.landed_cell?.name) {
+          const cellName = localeText(payload.landed_cell.name)
           pushEffectFeedback(
-            { effect_type: payload.landed_cell.type || 'generic', description: t('board.landedOn', { name: payload.landed_cell.name }) },
+            { effect_type: payload.landed_cell.type || 'generic', description: t('board.landedOn', { name: cellName }) },
             feedbackCell,
           )
         }
@@ -425,7 +426,7 @@ class WebSocketService {
           id: payload.problem_id || '',
           type: payload.type || '',
           difficulty: payload.difficulty || '',
-          prompt: payload.prompt || '',
+          prompt: payload.prompt || { en: '', ru: '', kz: '' },
           options: payload.options || [],
         }
         break

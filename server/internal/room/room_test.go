@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"math/rand"
 	"testing"
+
+	"server/internal/locale"
 )
 
 // MockBroadcaster captures room broadcasts and error messages for test assertions.
@@ -176,14 +178,14 @@ func TestRoom_AllCatalogEffects(t *testing.T) {
 	p := NewPlayer("c1", "Tester")
 
 	// Test 1: xp_gain
-	cellGain := BoardCell{Index: 1, Name: "Gain", Type: "xp_gain", Params: map[string]interface{}{"amount": 20}}
+	cellGain := BoardCell{Index: 1, Name: locale.FromEn("Gain"), Type: "xp_gain", Params: map[string]interface{}{"amount": 20}}
 	resGain := r.ApplyCellEffect(p, cellGain)
 	if resGain.XPDelta != 20 || p.XP != 20 {
 		t.Errorf("xp_gain failed: expected +20 XP, got delta %d, total %d", resGain.XPDelta, p.XP)
 	}
 
 	// Test 2: double_xp + xp_gain
-	cellDouble := BoardCell{Index: 5, Name: "Double", Type: "double_xp", Params: map[string]interface{}{}}
+	cellDouble := BoardCell{Index: 5, Name: locale.FromEn("Double"), Type: "double_xp", Params: map[string]interface{}{}}
 	resDouble := r.ApplyCellEffect(p, cellDouble)
 	if !p.DoubleXP || resDouble.EffectType != "double_xp" {
 		t.Errorf("double_xp failed: DoubleXP flag not set")
@@ -194,42 +196,42 @@ func TestRoom_AllCatalogEffects(t *testing.T) {
 	}
 
 	// Test 3: xp_loss
-	cellLoss := BoardCell{Index: 2, Name: "Loss", Type: "xp_loss", Params: map[string]interface{}{"amount": 15}}
+	cellLoss := BoardCell{Index: 2, Name: locale.FromEn("Loss"), Type: "xp_loss", Params: map[string]interface{}{"amount": 15}}
 	resLoss := r.ApplyCellEffect(p, cellLoss)
 	if resLoss.XPDelta != -15 || p.XP != 45 {
 		t.Errorf("xp_loss failed: expected -15 XP, got delta %d, total %d", resLoss.XPDelta, p.XP)
 	}
 
 	// Test 4: teleport
-	cellTele := BoardCell{Index: 12, Name: "Teleport", Type: "teleport", Params: map[string]interface{}{"target_position": 16}}
+	cellTele := BoardCell{Index: 12, Name: locale.FromEn("Teleport"), Type: "teleport", Params: map[string]interface{}{"target_position": 16}}
 	resTele := r.ApplyCellEffect(p, cellTele)
 	if p.Position != 16 || resTele.NewPosition != 16 {
 		t.Errorf("teleport failed: expected pos 16, got %d", p.Position)
 	}
 
 	// Test 5: skip_next
-	cellSkip := BoardCell{Index: 10, Name: "Skip", Type: "skip_next", Params: map[string]interface{}{}}
+	cellSkip := BoardCell{Index: 10, Name: locale.FromEn("Skip"), Type: "skip_next", Params: map[string]interface{}{}}
 	r.ApplyCellEffect(p, cellSkip)
 	if !p.SkipNextTurn {
 		t.Errorf("skip_next failed: SkipNextTurn flag not set")
 	}
 
 	// Test 6: free_pass
-	cellPass := BoardCell{Index: 7, Name: "Pass", Type: "free_pass", Params: map[string]interface{}{}}
+	cellPass := BoardCell{Index: 7, Name: locale.FromEn("Pass"), Type: "free_pass", Params: map[string]interface{}{}}
 	r.ApplyCellEffect(p, cellPass)
 	if p.FreePasses != 1 {
 		t.Errorf("free_pass failed: FreePasses count %d != 1", p.FreePasses)
 	}
 
 	// Test 7: special_challenge
-	cellChallenge := BoardCell{Index: 13, Name: "Challenge", Type: "special_challenge", Params: map[string]interface{}{"bonus": 30}}
+	cellChallenge := BoardCell{Index: 13, Name: locale.FromEn("Challenge"), Type: "special_challenge", Params: map[string]interface{}{"bonus": 30}}
 	resChall := r.ApplyCellEffect(p, cellChallenge)
 	if resChall.XPDelta != 30 || p.XP != 75 {
 		t.Errorf("special_challenge failed: expected +30 XP, got delta %d, total %d", resChall.XPDelta, p.XP)
 	}
 
 	// Test 8: mystery
-	cellMystery := BoardCell{Index: 3, Name: "Mystery", Type: "mystery", Params: map[string]interface{}{}}
+	cellMystery := BoardCell{Index: 3, Name: locale.FromEn("Mystery"), Type: "mystery", Params: map[string]interface{}{}}
 	resMyst := r.ApplyCellEffect(p, cellMystery)
 	if resMyst.EffectType != "mystery" {
 		t.Errorf("mystery failed: unexpected effect type %s", resMyst.EffectType)

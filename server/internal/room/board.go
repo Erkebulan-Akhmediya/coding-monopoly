@@ -1,11 +1,25 @@
 package room
 
+import "server/internal/locale"
+
 // BoardCell represents a single cell on the 32-cell perimeter board.
 type BoardCell struct {
 	Index  int            `json:"cell_index"`
-	Name   string         `json:"name"`
+	Name   locale.Text    `json:"name"`
 	Type   string         `json:"type"`
 	Params map[string]any `json:"params"`
+}
+
+func cell(index int, nameEn, nameRu, nameKz, cellType string, params map[string]any) BoardCell {
+	if params == nil {
+		params = map[string]any{}
+	}
+	return BoardCell{
+		Index:  index,
+		Name:   locale.New(nameEn, nameRu, nameKz),
+		Type:   cellType,
+		Params: params,
+	}
 }
 
 // DefaultBoard returns the standard 32-cell board configuration for Coding Monopoly.
@@ -14,73 +28,44 @@ type BoardCell struct {
 func DefaultBoard() []BoardCell {
 	cells := make([]BoardCell, 32)
 
-	// Corner 0: Deploy (Start / GO)
-	cells[0] = BoardCell{
-		Index:  0,
-		Name:   "Deploy",
-		Type:   "deploy",
-		Params: map[string]any{"lap_bonus": 100},
-	}
+	cells[0] = cell(0, "Deploy", "Развертывание", "Орнату", "deploy", map[string]any{"lap_bonus": 100})
+	cells[1] = cell(1, "Quick Bugfix", "Быстрое исправление ошибки", "Жылдам ақау түзету", "xp_gain", map[string]any{"size": "S", "amount": 10})
+	cells[2] = cell(2, "Syntax Error", "Синтаксическая ошибка", "Синтаксистік қате", "xp_loss", map[string]any{"size": "S", "amount": 10})
+	cells[3] = cell(3, "Mystery Box", "Таинственная коробка", "Құпия қорап", "mystery", map[string]any{})
+	cells[4] = cell(4, "Feature Merge", "Слияние функций", "Функцияны біріктіру", "xp_gain", map[string]any{"size": "M", "amount": 25})
+	cells[5] = cell(5, "Code Review Pass", "Прохождение рецензии кода", "Кодты тексеруден өту", "double_xp", map[string]any{})
+	cells[6] = cell(6, "Merge Conflict", "Конфликт слияния", "Біріктіру қақтығысы", "xp_loss", map[string]any{"size": "M", "amount": 25})
+	cells[7] = cell(7, "CI Pass Ticket", "Прохождение CI", "CI тестілеуден өту билеті", "free_pass", map[string]any{})
 
-	// Side 1: Cells 1 to 7
-	cells[1] = BoardCell{Index: 1, Name: "Quick Bugfix", Type: "xp_gain", Params: map[string]any{"size": "S", "amount": 10}}
-	cells[2] = BoardCell{Index: 2, Name: "Syntax Error", Type: "xp_loss", Params: map[string]any{"size": "S", "amount": 10}}
-	cells[3] = BoardCell{Index: 3, Name: "Mystery Box", Type: "mystery", Params: map[string]any{}}
-	cells[4] = BoardCell{Index: 4, Name: "Feature Merge", Type: "xp_gain", Params: map[string]any{"size": "M", "amount": 25}}
-	cells[5] = BoardCell{Index: 5, Name: "Code Review Pass", Type: "double_xp", Params: map[string]any{}}
-	cells[6] = BoardCell{Index: 6, Name: "Merge Conflict", Type: "xp_loss", Params: map[string]any{"size": "M", "amount": 25}}
-	cells[7] = BoardCell{Index: 7, Name: "CI Pass Ticket", Type: "free_pass", Params: map[string]any{}}
+	cells[8] = cell(8, "Code Freeze", "Заморозка кода", "Кодты тоқтату", "code_freeze", map[string]any{})
 
-	// Corner 1: Code Freeze (Jail equivalent)
-	cells[8] = BoardCell{
-		Index:  8,
-		Name:   "Code Freeze",
-		Type:   "code_freeze",
-		Params: map[string]any{},
-	}
+	cells[9] = cell(9, "Refactoring", "Рефакторинг", "Рефакторинг", "xp_gain", map[string]any{"size": "S", "amount": 10})
+	cells[10] = cell(10, "Meeting Overhead", "Накладные расходы на совещания", "Жиналыс презентациясы", "skip_next", map[string]any{})
+	cells[11] = cell(11, "Major Release", "Крупный релиз", "Негізгі шығарылым", "xp_gain", map[string]any{"size": "L", "amount": 50})
+	cells[12] = cell(12, "Fast-Track Pipeline", "Ускоренный конвейер", "Жылдам жол картасы", "teleport", map[string]any{"target_position": 0})
+	cells[13] = cell(13, "Hackathon Bonus", "Бонус за хакатон", "Хакатон бонусы", "special_challenge", map[string]any{"bonus": 30})
+	cells[14] = cell(14, "Memory Leak", "Утечка памяти", "Жады ағып кетуі", "xp_loss", map[string]any{"size": "S", "amount": 10})
+	cells[15] = cell(15, "Wildcard Event", "Непредвиденное событие", "Жабайы карта оқиғасы", "mystery", map[string]any{})
 
-	// Side 2: Cells 9 to 15
-	cells[9] = BoardCell{Index: 9, Name: "Refactoring", Type: "xp_gain", Params: map[string]any{"size": "S", "amount": 10}}
-	cells[10] = BoardCell{Index: 10, Name: "Meeting Overhead", Type: "skip_next", Params: map[string]any{}}
-	cells[11] = BoardCell{Index: 11, Name: "Major Release", Type: "xp_gain", Params: map[string]any{"size": "L", "amount": 50}}
-	cells[12] = BoardCell{Index: 12, Name: "Fast-Track Pipeline", Type: "teleport", Params: map[string]any{"target_position": 0}}
-	cells[13] = BoardCell{Index: 13, Name: "Hackathon Bonus", Type: "special_challenge", Params: map[string]any{"bonus": 30}}
-	cells[14] = BoardCell{Index: 14, Name: "Memory Leak", Type: "xp_loss", Params: map[string]any{"size": "S", "amount": 10}}
-	cells[15] = BoardCell{Index: 15, Name: "Wildcard Event", Type: "mystery", Params: map[string]any{}}
+	cells[16] = cell(16, "Coffee Break", "Перерыв на кофе", "Кофе үзілісі", "coffee_break", map[string]any{})
 
-	// Corner 2: Coffee Break (Rest cell)
-	cells[16] = BoardCell{
-		Index:  16,
-		Name:   "Coffee Break",
-		Type:   "coffee_break",
-		Params: map[string]any{},
-	}
+	cells[17] = cell(17, "Performance Tuning", "Настройка производительности", "Өнімділікті баптау", "xp_gain", map[string]any{"size": "M", "amount": 25})
+	cells[18] = cell(18, "Pair Programming", "Парное программирование", "Жұп бағдарламалау", "double_xp", map[string]any{})
+	cells[19] = cell(19, "Failed Build", "Сбой сборки", "Сәтсіз құрастыру", "xp_loss", map[string]any{"size": "M", "amount": 25})
+	cells[20] = cell(20, "Express Route", "Экспресс-маршрут", "Экспресс маршрут", "teleport", map[string]any{"target_position": 16})
+	cells[21] = cell(21, "Documentation Boost", "Улучшение документации", "Құжаттаманы жетілдіру", "xp_gain", map[string]any{"size": "S", "amount": 10})
+	cells[22] = cell(22, "Security Clearance", "Допуск к секретной информации", "Қауіпсіздік рұқсаты", "free_pass", map[string]any{})
+	cells[23] = cell(23, "Prod Outage Duty", "Дежурство при сбое в производственной среде", "Prod-тағы ақау кезекшілігі", "skip_next", map[string]any{})
 
-	// Side 3: Cells 17 to 23
-	cells[17] = BoardCell{Index: 17, Name: "Performance Tuning", Type: "xp_gain", Params: map[string]any{"size": "M", "amount": 25}}
-	cells[18] = BoardCell{Index: 18, Name: "Pair Programming", Type: "double_xp", Params: map[string]any{}}
-	cells[19] = BoardCell{Index: 19, Name: "Failed Build", Type: "xp_loss", Params: map[string]any{"size": "M", "amount": 25}}
-	cells[20] = BoardCell{Index: 20, Name: "Express Route", Type: "teleport", Params: map[string]any{"target_position": 16}}
-	cells[21] = BoardCell{Index: 21, Name: "Documentation Boost", Type: "xp_gain", Params: map[string]any{"size": "S", "amount": 10}}
-	cells[22] = BoardCell{Index: 22, Name: "Security Clearance", Type: "free_pass", Params: map[string]any{}}
-	cells[23] = BoardCell{Index: 23, Name: "Prod Outage Duty", Type: "skip_next", Params: map[string]any{}}
+	cells[24] = cell(24, "Deadline", "Крайний срок", "Соңғы мерзім", "deadline", map[string]any{})
 
-	// Corner 3: Deadline (Swing event)
-	cells[24] = BoardCell{
-		Index:  24,
-		Name:   "Deadline",
-		Type:   "deadline",
-		Params: map[string]any{},
-	}
-
-	// Side 4: Cells 25 to 31
-	cells[25] = BoardCell{Index: 25, Name: "Architecture Upgrade", Type: "xp_gain", Params: map[string]any{"size": "L", "amount": 50}}
-	cells[26] = BoardCell{Index: 26, Name: "Bug Bounty", Type: "special_challenge", Params: map[string]any{"bonus": 35}}
-	cells[27] = BoardCell{Index: 27, Name: "Dependency Hell", Type: "xp_loss", Params: map[string]any{"size": "S", "amount": 10}}
-	cells[28] = BoardCell{Index: 28, Name: "Surprise Audit", Type: "mystery", Params: map[string]any{}}
-	cells[29] = BoardCell{Index: 29, Name: "Test Coverage 100%", Type: "xp_gain", Params: map[string]any{"size": "M", "amount": 25}}
-	cells[30] = BoardCell{Index: 30, Name: "Hotfix Shift", Type: "teleport", Params: map[string]any{"target_position": 8}}
-	cells[31] = BoardCell{Index: 31, Name: "Linter Pass", Type: "xp_gain", Params: map[string]any{"size": "S", "amount": 10}}
+	cells[25] = cell(25, "Architecture Upgrade", "Модернизация архитектуры", "Архитектураны жаңарту", "xp_gain", map[string]any{"size": "L", "amount": 50})
+	cells[26] = cell(26, "Bug Bounty", "Программа поощрения за обнаружение ошибок", "Қателіктерге сыйақы", "special_challenge", map[string]any{"bonus": 35})
+	cells[27] = cell(27, "Dependency Hell", "«Ад зависимостей»", "Тәуелділік тозағы", "xp_loss", map[string]any{"size": "S", "amount": 10})
+	cells[28] = cell(28, "Surprise Audit", "Неожиданный аудит", "Күтпеген аудит", "mystery", map[string]any{})
+	cells[29] = cell(29, "Test Coverage 100%", "100% тестовое покрытие", "Тест қамтуы 100%", "xp_gain", map[string]any{"size": "M", "amount": 25})
+	cells[30] = cell(30, "Hotfix Shift", "Смена при выпуске исправления", "Hotfix ауысымы", "teleport", map[string]any{"target_position": 8})
+	cells[31] = cell(31, "Linter Pass", "Успешная проверка линтером", "Линтер өтуі", "xp_gain", map[string]any{"size": "S", "amount": 10})
 
 	return cells
 }

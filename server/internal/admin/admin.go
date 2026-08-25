@@ -20,6 +20,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"server/internal/locale"
 	"server/internal/ws"
 )
 
@@ -52,11 +53,11 @@ type RoomCreator interface {
 }
 
 type Handler struct {
-	db         *pgxpool.Pool
-	config     Config
-	roomLister RoomLister
+	db          *pgxpool.Pool
+	config      Config
+	roomLister  RoomLister
 	roomCreator RoomCreator
-	now        func() time.Time
+	now         func() time.Time
 }
 
 func NewHandler(db *pgxpool.Pool, config Config, roomListers ...RoomLister) (*Handler, error) {
@@ -259,34 +260,34 @@ func (h *Handler) ValidateToken(token string) bool {
 }
 
 type Option struct {
-	ID        string `json:"id"`
-	Text      string `json:"text"`
-	IsCorrect bool   `json:"is_correct"`
+	ID        string      `json:"id"`
+	Text      locale.Text `json:"text"`
+	IsCorrect bool        `json:"is_correct"`
 }
 type Problem struct {
-	ID              string    `json:"id"`
-	Type            string    `json:"type"`
-	Difficulty      string    `json:"difficulty"`
-	Title           string    `json:"title"`
-	Prompt          string    `json:"prompt"`
-	IsPublished     bool      `json:"is_published"`
-	Options         []Option  `json:"options,omitempty"`
-	AcceptedAnswers []string  `json:"accepted_answers,omitempty"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID              string        `json:"id"`
+	Type            string        `json:"type"`
+	Difficulty      string        `json:"difficulty"`
+	Title           locale.Text   `json:"title"`
+	Prompt          locale.Text   `json:"prompt"`
+	IsPublished     bool          `json:"is_published"`
+	Options         []Option      `json:"options,omitempty"`
+	AcceptedAnswers []locale.Text `json:"accepted_answers,omitempty"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
 }
 
 type problemInput struct {
-	Type        string `json:"type"`
-	Difficulty  string `json:"difficulty"`
-	Title       string `json:"title"`
-	Prompt      string `json:"prompt"`
-	IsPublished bool   `json:"is_published"`
+	Type        string      `json:"type"`
+	Difficulty  string      `json:"difficulty"`
+	Title       locale.Text `json:"title"`
+	Prompt      locale.Text `json:"prompt"`
+	IsPublished bool        `json:"is_published"`
 	Options     []struct {
-		Text      string `json:"text"`
-		IsCorrect bool   `json:"is_correct"`
+		Text      locale.Text `json:"text"`
+		IsCorrect bool        `json:"is_correct"`
 	} `json:"options"`
-	AcceptedAnswers []string `json:"accepted_answers"`
+	AcceptedAnswers []locale.Text `json:"accepted_answers"`
 }
 
 func (h *Handler) problems(w http.ResponseWriter, r *http.Request) {
@@ -353,7 +354,7 @@ func (h *Handler) listProblems(w http.ResponseWriter, r *http.Request) {
 		}
 		published = value
 	}
-	rows, err := h.db.Query(r.Context(), `SELECT id, type, difficulty, title, prompt, is_published, created_at, updated_at
+	rows, err := h.db.Query(r.Context(), `SELECT id, type, difficulty, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published, created_at, updated_at
 		FROM problems WHERE ($1::problem_type IS NULL OR type = $1::problem_type)
 		AND ($2::difficulty_level IS NULL OR difficulty = $2::difficulty_level)
 		AND ($3::boolean IS NULL OR is_published = $3) ORDER BY created_at DESC`, typeFilter, difficulty, published)
@@ -365,7 +366,7 @@ func (h *Handler) listProblems(w http.ResponseWriter, r *http.Request) {
 	problems := make([]Problem, 0)
 	for rows.Next() {
 		var p Problem
-		if err := rows.Scan(&p.ID, &p.Type, &p.Difficulty, &p.Title, &p.Prompt, &p.IsPublished, &p.CreatedAt, &p.UpdatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.Type, &p.Difficulty, &p.Title.En, &p.Title.Ru, &p.Title.Kz, &p.Prompt.En, &p.Prompt.Ru, &p.Prompt.Kz, &p.IsPublished, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			writeError(w, http.StatusInternalServerError, "read problems")
 			return
 		}
@@ -427,7 +428,7 @@ func (h *Handler) createProblem(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(ctx)
 	var id string
-	err = tx.QueryRow(ctx, `INSERT INTO problems (type, difficulty, title, prompt, is_published) VALUES ($1, $2, $3, $4, $5) RETURNING id`, input.Type, input.Difficulty, input.Title, input.Prompt, input.IsPublished).Scan(&id)
+	err = tx.QueryRow(ctx, `INSERT INTO problems (type, difficulty, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`, input.Type, input.Difficulty, input.Title.En, input.Title.Ru, input.Title.Kz, input.Prompt.En, input.Prompt.Ru, input.Prompt.Kz, input.IsPublished).Scan(&id)
 	if err == nil {
 		err = replaceContents(ctx, tx, id, input)
 	}
@@ -472,7 +473,7 @@ func (h *Handler) updateProblem(w http.ResponseWriter, r *http.Request, id strin
 		writeError(w, 500, "update problem")
 		return
 	}
-	result, err := tx.Exec(ctx, `UPDATE problems SET type = $1, difficulty = $2, title = $3, prompt = $4, is_published = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`, input.Type, input.Difficulty, input.Title, input.Prompt, input.IsPublished, id)
+	result, err := tx.Exec(ctx, `UPDATE problems SET type = $1, difficulty = $2, title_en = $3, title_ru = $4, title_kz = $5, prompt_en = $6, prompt_ru = $7, prompt_kz = $8, is_published = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10`, input.Type, input.Difficulty, input.Title.En, input.Title.Ru, input.Title.Kz, input.Prompt.En, input.Prompt.Ru, input.Prompt.Kz, input.IsPublished, id)
 	if err == nil && result.RowsAffected() == 0 {
 		writeError(w, 404, "problem not found")
 		return
@@ -498,13 +499,13 @@ func (h *Handler) updateProblem(w http.ResponseWriter, r *http.Request, id strin
 func replaceContents(ctx context.Context, tx pgx.Tx, id string, input problemInput) error {
 	if input.Type == "mcq" {
 		for _, option := range input.Options {
-			if _, err := tx.Exec(ctx, `INSERT INTO problem_options (problem_id, text, is_correct) VALUES ($1, $2, $3)`, id, option.Text, option.IsCorrect); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO problem_options (problem_id, text_en, text_ru, text_kz, is_correct) VALUES ($1, $2, $3, $4, $5)`, id, option.Text.En, option.Text.Ru, option.Text.Kz, option.IsCorrect); err != nil {
 				return err
 			}
 		}
 	} else {
 		for _, answer := range input.AcceptedAnswers {
-			if _, err := tx.Exec(ctx, `INSERT INTO problem_accepted_answers (problem_id, answer_text) VALUES ($1, $2)`, id, answer); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO problem_accepted_answers (problem_id, answer_text_en, answer_text_ru, answer_text_kz) VALUES ($1, $2, $3, $4)`, id, answer.En, answer.Ru, answer.Kz); err != nil {
 				return err
 			}
 		}
@@ -560,8 +561,8 @@ func (p Problem) validateForPublish() error {
 	input := problemInput{Type: p.Type, Difficulty: p.Difficulty, Title: p.Title, Prompt: p.Prompt, AcceptedAnswers: p.AcceptedAnswers}
 	for _, option := range p.Options {
 		input.Options = append(input.Options, struct {
-			Text      string `json:"text"`
-			IsCorrect bool   `json:"is_correct"`
+			Text      locale.Text `json:"text"`
+			IsCorrect bool        `json:"is_correct"`
 		}{Text: option.Text, IsCorrect: option.IsCorrect})
 	}
 	return input.validate()
@@ -569,33 +570,33 @@ func (p Problem) validateForPublish() error {
 
 func (h *Handler) loadProblem(ctx context.Context, id string) (Problem, error) {
 	var p Problem
-	err := h.db.QueryRow(ctx, `SELECT id, type, difficulty, title, prompt, is_published, created_at, updated_at FROM problems WHERE id = $1`, id).Scan(&p.ID, &p.Type, &p.Difficulty, &p.Title, &p.Prompt, &p.IsPublished, &p.CreatedAt, &p.UpdatedAt)
+	err := h.db.QueryRow(ctx, `SELECT id, type, difficulty, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published, created_at, updated_at FROM problems WHERE id = $1`, id).Scan(&p.ID, &p.Type, &p.Difficulty, &p.Title.En, &p.Title.Ru, &p.Title.Kz, &p.Prompt.En, &p.Prompt.Ru, &p.Prompt.Kz, &p.IsPublished, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return p, err
 	}
 	if p.Type == "mcq" {
-		rows, err := h.db.Query(ctx, `SELECT id, text, is_correct FROM problem_options WHERE problem_id = $1 ORDER BY id`, id)
+		rows, err := h.db.Query(ctx, `SELECT id, text_en, text_ru, text_kz, is_correct FROM problem_options WHERE problem_id = $1 ORDER BY id`, id)
 		if err != nil {
 			return p, err
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var option Option
-			if err := rows.Scan(&option.ID, &option.Text, &option.IsCorrect); err != nil {
+			if err := rows.Scan(&option.ID, &option.Text.En, &option.Text.Ru, &option.Text.Kz, &option.IsCorrect); err != nil {
 				return p, err
 			}
 			p.Options = append(p.Options, option)
 		}
 		return p, rows.Err()
 	}
-	rows, err := h.db.Query(ctx, `SELECT answer_text FROM problem_accepted_answers WHERE problem_id = $1 ORDER BY id`, id)
+	rows, err := h.db.Query(ctx, `SELECT answer_text_en, answer_text_ru, answer_text_kz FROM problem_accepted_answers WHERE problem_id = $1 ORDER BY id`, id)
 	if err != nil {
 		return p, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var answer string
-		if err := rows.Scan(&answer); err != nil {
+		var answer locale.Text
+		if err := rows.Scan(&answer.En, &answer.Ru, &answer.Kz); err != nil {
 			return p, err
 		}
 		p.AcceptedAnswers = append(p.AcceptedAnswers, answer)
@@ -610,7 +611,7 @@ func (input problemInput) validate() error {
 	if input.Difficulty != "easy" && input.Difficulty != "medium" && input.Difficulty != "hard" {
 		return errors.New("difficulty must be easy, medium, or hard")
 	}
-	if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Prompt) == "" {
+	if strings.TrimSpace(input.Title.En) == "" || strings.TrimSpace(input.Prompt.En) == "" {
 		return errors.New("title and prompt are required")
 	}
 	if input.Type == "mcq" {
@@ -619,7 +620,7 @@ func (input problemInput) validate() error {
 		}
 		correct := false
 		for _, option := range input.Options {
-			if strings.TrimSpace(option.Text) == "" {
+			if strings.TrimSpace(option.Text.En) == "" {
 				return errors.New("option text is required")
 			}
 			correct = correct || option.IsCorrect
@@ -633,7 +634,7 @@ func (input problemInput) validate() error {
 		return errors.New("text requires at least one accepted answer")
 	}
 	for _, answer := range input.AcceptedAnswers {
-		if strings.TrimSpace(answer) == "" {
+		if strings.TrimSpace(answer.En) == "" {
 			return errors.New("accepted answer is required")
 		}
 	}
