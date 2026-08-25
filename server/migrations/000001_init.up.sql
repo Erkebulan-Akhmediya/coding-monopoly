@@ -43,30 +43,24 @@ CREATE TABLE players (
 );
 
 -- 3. board_cells table
--- (game_id, cell_index, name_en, name_ru, name_kz, type, params jsonb)
+-- (game_id, cell_index, name, type, params jsonb)
 CREATE TABLE board_cells (
     game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
     cell_index INTEGER NOT NULL,
-    name_en VARCHAR(255) NOT NULL,
-    name_ru VARCHAR(255) NOT NULL,
-    name_kz VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     type cell_type NOT NULL,
     params JSONB NOT NULL DEFAULT '{}'::jsonb,
     PRIMARY KEY (game_id, cell_index)
 );
 
 -- 4. problems table
--- (id, type enum[mcq, text], difficulty enum[easy, medium, hard], title_en/ru/kz, prompt_en/ru/kz, is_published bool, created_at, updated_at)
+-- (id, type enum[mcq, text], difficulty enum[easy, medium, hard], title, prompt, is_published bool, created_at, updated_at)
 CREATE TABLE problems (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type problem_type NOT NULL,
     difficulty difficulty_level NOT NULL,
-    title_en VARCHAR(255) NOT NULL,
-    title_ru VARCHAR(255),
-    title_kz VARCHAR(255),
-    prompt_en TEXT NOT NULL,
-    prompt_ru TEXT,
-    prompt_kz TEXT,
+    title VARCHAR(255) NOT NULL,
+    prompt TEXT NOT NULL,
     is_published BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -74,14 +68,12 @@ CREATE TABLE problems (
 );
 
 -- 5. problem_options table
--- (problem_id, text_en/ru/kz, is_correct) for mcq
+-- (problem_id, text, is_correct) for mcq
 CREATE TABLE problem_options (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     problem_id UUID NOT NULL,
     problem_type problem_type NOT NULL DEFAULT 'mcq' CHECK (problem_type = 'mcq'),
-    text_en TEXT NOT NULL,
-    text_ru TEXT,
-    text_kz TEXT,
+    text TEXT NOT NULL,
     is_correct BOOLEAN NOT NULL DEFAULT false,
     FOREIGN KEY (problem_id, problem_type) REFERENCES problems(id, type) ON DELETE CASCADE
 );

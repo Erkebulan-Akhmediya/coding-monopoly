@@ -126,7 +126,7 @@ func handleTeleport(r *Room, p *Player, cell BoardCell) EffectResult {
 
 	return EffectResult{
 		EffectType:  "teleport",
-		Description: fmt.Sprintf("Teleported to cell %d (%s)", p.Position, r.GetCell(p.Position).NameEn),
+		Description: fmt.Sprintf("Teleported to cell %d (%s)", p.Position, r.GetCell(p.Position).Name),
 		XPDelta:     0,
 		NewXP:       p.XP,
 		NewPosition: p.Position,
