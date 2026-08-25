@@ -96,4 +96,8 @@ export const store = reactive({
   /** Magnified destination cell shown in the board center after hops finish. */
   landedCellIndex: null as number | null,
   landedCellPlayerId: '' as string,
+  /** Movement and effect animations of the previous move are in progress. */
+  isMoveAnimating: false as boolean,
+  /** Pending turn notification sound waiting for animations to complete. */
+  pendingTurnNotification: false as boolean,
 })
