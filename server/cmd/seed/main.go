@@ -10,6 +10,7 @@ import (
 )
 
 type BoardCellData struct {
+	Name   string
 	Type   string
 	Params map[string]interface{}
 }
@@ -48,45 +49,45 @@ func main() {
 	// Index 0: Deploy, Index 8: Code Freeze, Index 16: Coffee Break, Index 24: Deadline.
 	// The rest are effects.
 	boardCells := make(map[int]BoardCellData)
-	boardCells[0] = BoardCellData{Type: "deploy", Params: map[string]interface{}{"name": "Deploy", "bonus": 200}}
-	boardCells[8] = BoardCellData{Type: "code_freeze", Params: map[string]interface{}{"name": "Code Freeze"}}
-	boardCells[16] = BoardCellData{Type: "coffee_break", Params: map[string]interface{}{"name": "Coffee Break"}}
-	boardCells[24] = BoardCellData{Type: "deadline", Params: map[string]interface{}{"name": "Deadline"}}
+	boardCells[0] = BoardCellData{Name: "Deploy", Type: "deploy", Params: map[string]interface{}{"bonus": 200}}
+	boardCells[8] = BoardCellData{Name: "Code Freeze", Type: "code_freeze", Params: map[string]interface{}{}}
+	boardCells[16] = BoardCellData{Name: "Coffee Break", Type: "coffee_break", Params: map[string]interface{}{}}
+	boardCells[24] = BoardCellData{Name: "Deadline", Type: "deadline", Params: map[string]interface{}{}}
 
 	// Distribute the other 28 cells carrying effects:
 	// XP gain (S/M/L), XP loss (S/M), mystery/random event, teleport, skip-next-turn, double-XP, free pass, special bonus challenge.
 	effects := []BoardCellData{
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (S)", "size": "S", "amount": 50}},
-		{Type: "mystery", Params: map[string]interface{}{"name": "Mystery Event"}},
-		{Type: "xp_loss", Params: map[string]interface{}{"name": "XP Loss (S)", "size": "S", "amount": 30}},
-		{Type: "double_xp", Params: map[string]interface{}{"name": "Double XP"}},
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (M)", "size": "M", "amount": 100}},
-		{Type: "skip_turn", Params: map[string]interface{}{"name": "Skip Next Turn"}},
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (S)", "size": "S", "amount": 50}},
+		{Name: "XP Gain (S)", Type: "xp_gain", Params: map[string]interface{}{"size": "S", "amount": 50}},
+		{Name: "Mystery Event", Type: "mystery", Params: map[string]interface{}{}},
+		{Name: "XP Loss (S)", Type: "xp_loss", Params: map[string]interface{}{"size": "S", "amount": 30}},
+		{Name: "Double XP", Type: "double_xp", Params: map[string]interface{}{}},
+		{Name: "XP Gain (M)", Type: "xp_gain", Params: map[string]interface{}{"size": "M", "amount": 100}},
+		{Name: "Skip Next Turn", Type: "skip_turn", Params: map[string]interface{}{}},
+		{Name: "XP Gain (S)", Type: "xp_gain", Params: map[string]interface{}{"size": "S", "amount": 50}},
 		// index 8 is code_freeze
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (M)", "size": "M", "amount": 100}},
-		{Type: "teleport", Params: map[string]interface{}{"name": "Teleport", "target": 18}},
-		{Type: "xp_loss", Params: map[string]interface{}{"name": "XP Loss (M)", "size": "M", "amount": 60}},
-		{Type: "free_pass", Params: map[string]interface{}{"name": "Free Pass"}},
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (L)", "size": "L", "amount": 200}},
-		{Type: "mystery", Params: map[string]interface{}{"name": "Mystery Event"}},
-		{Type: "bonus_challenge", Params: map[string]interface{}{"name": "Special Bonus Challenge"}},
+		{Name: "XP Gain (M)", Type: "xp_gain", Params: map[string]interface{}{"size": "M", "amount": 100}},
+		{Name: "Teleport", Type: "teleport", Params: map[string]interface{}{"target": 18}},
+		{Name: "XP Loss (M)", Type: "xp_loss", Params: map[string]interface{}{"size": "M", "amount": 60}},
+		{Name: "Free Pass", Type: "free_pass", Params: map[string]interface{}{}},
+		{Name: "XP Gain (L)", Type: "xp_gain", Params: map[string]interface{}{"size": "L", "amount": 200}},
+		{Name: "Mystery Event", Type: "mystery", Params: map[string]interface{}{}},
+		{Name: "Special Bonus Challenge", Type: "bonus_challenge", Params: map[string]interface{}{}},
 		// index 16 is coffee_break
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (S)", "size": "S", "amount": 50}},
-		{Type: "mystery", Params: map[string]interface{}{"name": "Mystery Event"}},
-		{Type: "xp_loss", Params: map[string]interface{}{"name": "XP Loss (S)", "size": "S", "amount": 30}},
-		{Type: "double_xp", Params: map[string]interface{}{"name": "Double XP"}},
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (M)", "size": "M", "amount": 100}},
-		{Type: "skip_turn", Params: map[string]interface{}{"name": "Skip Next Turn"}},
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (S)", "size": "S", "amount": 50}},
+		{Name: "XP Gain (S)", Type: "xp_gain", Params: map[string]interface{}{"size": "S", "amount": 50}},
+		{Name: "Mystery Event", Type: "mystery", Params: map[string]interface{}{}},
+		{Name: "XP Loss (S)", Type: "xp_loss", Params: map[string]interface{}{"size": "S", "amount": 30}},
+		{Name: "Double XP", Type: "double_xp", Params: map[string]interface{}{}},
+		{Name: "XP Gain (M)", Type: "xp_gain", Params: map[string]interface{}{"size": "M", "amount": 100}},
+		{Name: "Skip Next Turn", Type: "skip_turn", Params: map[string]interface{}{}},
+		{Name: "XP Gain (S)", Type: "xp_gain", Params: map[string]interface{}{"size": "S", "amount": 50}},
 		// index 24 is deadline
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (M)", "size": "M", "amount": 100}},
-		{Type: "teleport", Params: map[string]interface{}{"name": "Teleport", "target": 2}},
-		{Type: "xp_loss", Params: map[string]interface{}{"name": "XP Loss (M)", "size": "M", "amount": 60}},
-		{Type: "free_pass", Params: map[string]interface{}{"name": "Free Pass"}},
-		{Type: "xp_gain", Params: map[string]interface{}{"name": "XP Gain (L)", "size": "L", "amount": 200}},
-		{Type: "mystery", Params: map[string]interface{}{"name": "Mystery Event"}},
-		{Type: "bonus_challenge", Params: map[string]interface{}{"name": "Special Bonus Challenge"}},
+		{Name: "XP Gain (M)", Type: "xp_gain", Params: map[string]interface{}{"size": "M", "amount": 100}},
+		{Name: "Teleport", Type: "teleport", Params: map[string]interface{}{"target": 2}},
+		{Name: "XP Loss (M)", Type: "xp_loss", Params: map[string]interface{}{"size": "M", "amount": 60}},
+		{Name: "Free Pass", Type: "free_pass", Params: map[string]interface{}{}},
+		{Name: "XP Gain (L)", Type: "xp_gain", Params: map[string]interface{}{"size": "L", "amount": 200}},
+		{Name: "Mystery Event", Type: "mystery", Params: map[string]interface{}{}},
+		{Name: "Special Bonus Challenge", Type: "bonus_challenge", Params: map[string]interface{}{}},
 	}
 
 	effectIdx := 0
@@ -101,11 +102,14 @@ func main() {
 	// Insert board cells
 	for i := 0; i < 32; i++ {
 		cell := boardCells[i]
+		if cell.Params == nil {
+			cell.Params = map[string]interface{}{}
+		}
 		paramsJSON, err := json.Marshal(cell.Params)
 		if err != nil {
 			log.Fatalf("Failed to marshal cell params: %v\n", err)
 		}
-		_, err = conn.Exec(ctx, "INSERT INTO board_cells (game_id, cell_index, type, params) VALUES ($1, $2, $3, $4)", defaultGameID, i, cell.Type, paramsJSON)
+		_, err = conn.Exec(ctx, "INSERT INTO board_cells (game_id, cell_index, name, type, params) VALUES ($1, $2, $3, $4, $5)", defaultGameID, i, cell.Name, cell.Type, paramsJSON)
 		if err != nil {
 			log.Fatalf("Failed to insert board cell %d: %v\n", i, err)
 		}
