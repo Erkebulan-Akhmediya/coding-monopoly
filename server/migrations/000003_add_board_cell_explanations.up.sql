@@ -1,0 +1,5 @@
+ALTER TYPE cell_type ADD VALUE IF NOT EXISTS 'skip_next';
+ALTER TYPE cell_type ADD VALUE IF NOT EXISTS 'special_challenge';
+ALTER TABLE board_cells ADD COLUMN IF NOT EXISTS explanation_en TEXT NOT NULL DEFAULT '';
+ALTER TABLE board_cells ADD COLUMN IF NOT EXISTS explanation_ru TEXT NOT NULL DEFAULT '';
+ALTER TABLE board_cells ADD COLUMN IF NOT EXISTS explanation_kz TEXT NOT NULL DEFAULT '';

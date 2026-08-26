@@ -107,6 +107,19 @@ export default {
     title: 'Ойын кідіртілді',
     message: 'Әкімші бөлмені кідіртті. Ойын жалғасқанша күтіңіз.',
   },
+  instructions: {
+    modalTitle: 'Coding Monopoly қалай ойнау керек',
+    closeBtn: 'Түсінікті, ойынды бастау!',
+    openBtn: '📖 Ережелер / Нұсқаулық',
+    title: 'Ойын ережелері',
+    quickGuide: 'Ережелер мен нұсқаулық',
+  },
+  cellCard: {
+    title: 'Ұяшық туралы мәлімет',
+    close: 'Жабу',
+    cellNumber: 'Ұяшық #{index}',
+    noExplanation: 'Бұл ұяшық үшін сипаттама жоқ.',
+  },
   admin: {
     portal: 'Әкімші порталы',
     panel: 'Әкімші панелі',

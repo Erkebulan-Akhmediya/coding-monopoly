@@ -9,13 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"server/internal/locale"
+	"server/internal/room"
 )
-
-type BoardCellData struct {
-	Name   locale.Text
-	Type   string
-	Params map[string]interface{}
-}
 
 func main() {
 	connStr := os.Getenv("DATABASE_URL")
@@ -45,64 +40,17 @@ func main() {
 	}
 	log.Println("Seeded default game.")
 
-	boardCells := make(map[int]BoardCellData)
-	boardCells[0] = BoardCellData{Name: locale.New("Deploy", "Развертывание", "Орнату"), Type: "deploy", Params: map[string]interface{}{"bonus": 200}}
-	boardCells[8] = BoardCellData{Name: locale.New("Code Freeze", "Заморозка кода", "Кодты тоқтату"), Type: "code_freeze", Params: map[string]interface{}{}}
-	boardCells[16] = BoardCellData{Name: locale.New("Coffee Break", "Перерыв на кофе", "Кофе үзілісі"), Type: "coffee_break", Params: map[string]interface{}{}}
-	boardCells[24] = BoardCellData{Name: locale.New("Deadline", "Крайний срок", "Соңғы мерзім"), Type: "deadline", Params: map[string]interface{}{}}
-
-	effects := []BoardCellData{
-		{Name: locale.New("XP Gain (S)", "Получение XP (S)", "XP ұпайларын алу (S)"), Type: "xp_gain", Params: map[string]interface{}{"size": "S", "amount": 50}},
-		{Name: locale.New("Mystery Event", "Таинственное событие", "Құпия оқиға"), Type: "mystery", Params: map[string]interface{}{}},
-		{Name: locale.New("XP Loss (S)", "Потеря XP (S)", "XP ұпайларын жоғалту (S)"), Type: "xp_loss", Params: map[string]interface{}{"size": "S", "amount": 30}},
-		{Name: locale.New("Double XP", "Двойной XP", "XP екі есе"), Type: "double_xp", Params: map[string]interface{}{}},
-		{Name: locale.New("XP Gain (M)", "Получение XP (M)", "XP ұпайларын алу (M)"), Type: "xp_gain", Params: map[string]interface{}{"size": "M", "amount": 100}},
-		{Name: locale.New("Skip Next Turn", "Пропустить следующий ход", "Келесі кезеңді өткізу"), Type: "skip_turn", Params: map[string]interface{}{}},
-		{Name: locale.New("XP Gain (S)", "Получение XP (S)", "XP ұпайларын алу (S)"), Type: "xp_gain", Params: map[string]interface{}{"size": "S", "amount": 50}},
-		{Name: locale.New("XP Gain (M)", "Получение XP (M)", "XP ұпайларын алу (M)"), Type: "xp_gain", Params: map[string]interface{}{"size": "M", "amount": 100}},
-		{Name: locale.New("Teleport", "Телепортация", "Телепорт"), Type: "teleport", Params: map[string]interface{}{"target": 18}},
-		{Name: locale.New("XP Loss (M)", "Потеря XP (M)", "XP ұпайларын жоғалту (M)"), Type: "xp_loss", Params: map[string]interface{}{"size": "M", "amount": 60}},
-		{Name: locale.New("Free Pass", "Бесплатный проход", "Тегін өту"), Type: "free_pass", Params: map[string]interface{}{}},
-		{Name: locale.New("XP Gain (L)", "Получение XP (L)", "XP ұпайларын алу (L)"), Type: "xp_gain", Params: map[string]interface{}{"size": "L", "amount": 200}},
-		{Name: locale.New("Mystery Event", "Таинственное событие", "Құпия оқиға"), Type: "mystery", Params: map[string]interface{}{}},
-		{Name: locale.New("Special Bonus Challenge", "Специальное бонусное испытание", "Арнайы бонус сынағы"), Type: "bonus_challenge", Params: map[string]interface{}{}},
-		{Name: locale.New("XP Gain (S)", "Получение XP (S)", "XP ұпайларын алу (S)"), Type: "xp_gain", Params: map[string]interface{}{"size": "S", "amount": 50}},
-		{Name: locale.New("Mystery Event", "Таинственное событие", "Құпия оқиға"), Type: "mystery", Params: map[string]interface{}{}},
-		{Name: locale.New("XP Loss (S)", "Потеря XP (S)", "XP ұпайларын жоғалту (S)"), Type: "xp_loss", Params: map[string]interface{}{"size": "S", "amount": 30}},
-		{Name: locale.New("Double XP", "Двойной XP", "XP екі есе"), Type: "double_xp", Params: map[string]interface{}{}},
-		{Name: locale.New("XP Gain (M)", "Получение XP (M)", "XP ұпайларын алу (M)"), Type: "xp_gain", Params: map[string]interface{}{"size": "M", "amount": 100}},
-		{Name: locale.New("Skip Next Turn", "Пропустить следующий ход", "Келесі кезеңді өткізу"), Type: "skip_turn", Params: map[string]interface{}{}},
-		{Name: locale.New("XP Gain (S)", "Получение XP (S)", "XP ұпайларын алу (S)"), Type: "xp_gain", Params: map[string]interface{}{"size": "S", "amount": 50}},
-		{Name: locale.New("XP Gain (M)", "Получение XP (M)", "XP ұпайларын алу (M)"), Type: "xp_gain", Params: map[string]interface{}{"size": "M", "amount": 100}},
-		{Name: locale.New("Teleport", "Телепортация", "Телепорт"), Type: "teleport", Params: map[string]interface{}{"target": 2}},
-		{Name: locale.New("XP Loss (M)", "Потеря XP (M)", "XP ұпайларын жоғалту (M)"), Type: "xp_loss", Params: map[string]interface{}{"size": "M", "amount": 60}},
-		{Name: locale.New("Free Pass", "Бесплатный проход", "Тегін өту"), Type: "free_pass", Params: map[string]interface{}{}},
-		{Name: locale.New("XP Gain (L)", "Получение XP (L)", "XP ұпайларын алу (L)"), Type: "xp_gain", Params: map[string]interface{}{"size": "L", "amount": 200}},
-		{Name: locale.New("Mystery Event", "Таинственное событие", "Құпия оқиға"), Type: "mystery", Params: map[string]interface{}{}},
-		{Name: locale.New("Special Bonus Challenge", "Специальное бонусное испытание", "Арнайы бонус сынағы"), Type: "bonus_challenge", Params: map[string]interface{}{}},
-	}
-
-	effectIdx := 0
-	for i := 0; i < 32; i++ {
-		if i == 0 || i == 8 || i == 16 || i == 24 {
-			continue
-		}
-		boardCells[i] = effects[effectIdx]
-		effectIdx++
-	}
-
-	for i := 0; i < 32; i++ {
-		cell := boardCells[i]
-		if cell.Params == nil {
-			cell.Params = map[string]interface{}{}
-		}
+	for _, cell := range room.DefaultBoard() {
 		paramsJSON, err := json.Marshal(cell.Params)
 		if err != nil {
 			log.Fatalf("Failed to marshal cell params: %v\n", err)
 		}
-		_, err = conn.Exec(ctx, "INSERT INTO board_cells (game_id, cell_index, name_en, name_ru, name_kz, type, params) VALUES ($1, $2, $3, $4, $5, $6, $7)", defaultGameID, i, cell.Name.En, cell.Name.Ru, cell.Name.Kz, cell.Type, paramsJSON)
+		_, err = conn.Exec(ctx, `
+			INSERT INTO board_cells (game_id, cell_index, name_en, name_ru, name_kz, explanation_en, explanation_ru, explanation_kz, type, params)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		`, defaultGameID, cell.Index, cell.Name.En, cell.Name.Ru, cell.Name.Kz, cell.Explanation.En, cell.Explanation.Ru, cell.Explanation.Kz, cell.Type, paramsJSON)
 		if err != nil {
-			log.Fatalf("Failed to insert board cell %d: %v\n", i, err)
+			log.Fatalf("Failed to insert board cell %d: %v\n", cell.Index, err)
 		}
 	}
 	log.Printf("Seeded 32 board cells for game %s.\n", defaultGameID)
