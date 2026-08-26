@@ -12,6 +12,7 @@ import GameActionPanel from './GameActionPanel.vue'
 import EffectToastStack from './EffectToastStack.vue'
 import EndGameSummary from './EndGameSummary.vue'
 import PauseOverlay from './PauseOverlay.vue'
+import InstructionsOverlay from './InstructionsOverlay.vue'
 
 export default defineComponent({
   name: 'BoardView',
@@ -24,12 +25,14 @@ export default defineComponent({
     EffectToastStack,
     EndGameSummary,
     PauseOverlay,
+    InstructionsOverlay,
   },
   data() {
     return {
       remaining: 0 as number,
       intervalId: null as number | null,
       store: store,
+      showInstructions: true as boolean,
     }
   },
   computed: {
@@ -218,7 +221,18 @@ export default defineComponent({
       <!-- Center Hub Area (Grid Rows 2-8, Cols 2-8) -->
       <div class="board-center-hub">
         <div class="hub-header">
-          <h1 class="game-logo">⚡ {{ $t('board.gameLogo') }} ⚡</h1>
+          <div class="hub-top-row">
+            <h1 class="game-logo">⚡ {{ $t('board.gameLogo') }} ⚡</h1>
+            <button
+              id="open-instructions-btn"
+              class="instructions-btn"
+              type="button"
+              :title="$t('instructions.openBtn')"
+              @click="showInstructions = true"
+            >
+              {{ $t('instructions.openBtn') }}
+            </button>
+          </div>
           <div class="turn-card" :class="{ 'my-turn': isMyTurn }">
             <span class="turn-text">{{ turnMessage }}</span>
             <div v-if="showCountdown" class="countdown-badge">
@@ -244,6 +258,10 @@ export default defineComponent({
     <EffectToastStack />
     <EndGameSummary />
     <PauseOverlay />
+    <InstructionsOverlay
+      v-if="showInstructions"
+      @close="showInstructions = false"
+    />
   </div>
 </template>
 
@@ -489,6 +507,39 @@ export default defineComponent({
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
+}
+
+.hub-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+
+.instructions-btn {
+  position: absolute;
+  right: 0;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid #334155;
+  color: #93c5fd;
+  border-radius: 20px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.instructions-btn:hover {
+  background: #1e3a5f;
+  border-color: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .game-logo {

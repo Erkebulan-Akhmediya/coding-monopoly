@@ -107,6 +107,13 @@ export default {
     title: 'Ойын кідіртілді',
     message: 'Әкімші бөлмені кідіртті. Ойын жалғасқанша күтіңіз.',
   },
+  instructions: {
+    modalTitle: 'Coding Monopoly қалай ойнау керек',
+    closeBtn: 'Түсінікті, ойынды бастау!',
+    openBtn: '📖 Ережелер / Нұсқаулық',
+    title: 'Ойын ережелері',
+    quickGuide: 'Ережелер мен нұсқаулық',
+  },
   admin: {
     portal: 'Әкімші порталы',
     panel: 'Әкімші панелі',

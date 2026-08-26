@@ -107,6 +107,13 @@ export default {
     title: 'Game Paused',
     message: 'An admin has paused this room. Please wait until the game resumes.',
   },
+  instructions: {
+    modalTitle: 'How to Play Coding Monopoly',
+    closeBtn: 'Got it, let’s play!',
+    openBtn: '📖 Rules / How to Play',
+    title: 'How to Play',
+    quickGuide: 'Game Rules & Guide',
+  },
   admin: {
     portal: 'Admin Portal',
     panel: 'Admin Panel',
