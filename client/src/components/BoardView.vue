@@ -13,6 +13,7 @@ import EffectToastStack from './EffectToastStack.vue'
 import EndGameSummary from './EndGameSummary.vue'
 import PauseOverlay from './PauseOverlay.vue'
 import InstructionsOverlay from './InstructionsOverlay.vue'
+import CellDetailCard from './CellDetailCard.vue'
 
 export default defineComponent({
   name: 'BoardView',
@@ -26,6 +27,7 @@ export default defineComponent({
     EndGameSummary,
     PauseOverlay,
     InstructionsOverlay,
+    CellDetailCard,
   },
   data() {
     return {
@@ -33,6 +35,7 @@ export default defineComponent({
       intervalId: null as number | null,
       store: store,
       showInstructions: true as boolean,
+      selectedCellIndex: null as number | null,
     }
   },
   computed: {
@@ -161,6 +164,12 @@ export default defineComponent({
         this.intervalId = null
       }
     },
+    openCellCard(idx: number) {
+      this.selectedCellIndex = idx
+    },
+    closeCellCard() {
+      this.selectedCellIndex = null
+    },
   },
   beforeMount() {
     if (!store.playerName)
@@ -193,6 +202,12 @@ export default defineComponent({
           }
         ]"
         :style="getCellGridStyle(idx)"
+        role="button"
+        tabindex="0"
+        :title="cellName(cell)"
+        @click="openCellCard(idx)"
+        @keydown.enter="openCellCard(idx)"
+        @keydown.space.prevent="openCellCard(idx)"
       >
         <div class="cell-header">
           <span class="cell-index">#{{ idx }}</span>
@@ -246,6 +261,14 @@ export default defineComponent({
 
         <!-- Magnified destination cell after token finishes hopping -->
         <LandedCellPreview />
+
+        <!-- Cell Detail Card (shown when a cell is clicked) -->
+        <CellDetailCard
+          v-if="selectedCellIndex !== null && cells[selectedCellIndex]"
+          :cell="cells[selectedCellIndex]"
+          :cell-index="selectedCellIndex"
+          @close="closeCellCard"
+        />
       </div>
     </div>
 

@@ -114,6 +114,12 @@ export default {
     title: 'Ойын ережелері',
     quickGuide: 'Ережелер мен нұсқаулық',
   },
+  cellCard: {
+    title: 'Ұяшық туралы мәлімет',
+    close: 'Жабу',
+    cellNumber: 'Ұяшық #{index}',
+    noExplanation: 'Бұл ұяшық үшін сипаттама жоқ.',
+  },
   admin: {
     portal: 'Әкімші порталы',
     panel: 'Әкімші панелі',

@@ -114,6 +114,12 @@ export default {
     title: 'Как играть',
     quickGuide: 'Правила и руководство',
   },
+  cellCard: {
+    title: 'Информация о клетке',
+    close: 'Закрыть',
+    cellNumber: 'Клетка #{index}',
+    noExplanation: 'Описание для этой клетки недоступно.',
+  },
   admin: {
     portal: 'Портал администратора',
     panel: 'Панель администратора',

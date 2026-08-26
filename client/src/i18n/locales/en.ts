@@ -114,6 +114,12 @@ export default {
     title: 'How to Play',
     quickGuide: 'Game Rules & Guide',
   },
+  cellCard: {
+    title: 'Cell Details',
+    close: 'Close',
+    cellNumber: 'Cell #{index}',
+    noExplanation: 'No description available for this cell.',
+  },
   admin: {
     portal: 'Admin Portal',
     panel: 'Admin Panel',
