@@ -27,12 +27,12 @@ const (
 	MessageTypeGameOver        = "game_over"
 
 	// Admin-only message types (sent by admin spectator clients).
-	MessageTypeAdminJoin      = "admin_join"      // authenticates the spectator WS connection
-	MessageTypeAdminStart     = "admin_start"     // start the game
-	MessageTypeAdminPause     = "admin_pause"     // pause / resume the game
-	MessageTypeAdminKick      = "admin_kick"      // remove a player from the room
-	MessageTypeAdminSkipTurn  = "admin_skip_turn" // manually advance past the active player's turn
-	MessageTypeAdminEndGame   = "admin_end_game"  // forcibly end the match
+	MessageTypeAdminJoin     = "admin_join"      // authenticates the spectator WS connection
+	MessageTypeAdminStart    = "admin_start"     // start the game
+	MessageTypeAdminPause    = "admin_pause"     // pause / resume the game
+	MessageTypeAdminKick     = "admin_kick"      // remove a player from the room
+	MessageTypeAdminSkipTurn = "admin_skip_turn" // manually advance past the active player's turn
+	MessageTypeAdminEndGame  = "admin_end_game"  // forcibly end the match
 
 	// Server → admin event feed entry.
 	MessageTypeGameEvent = "game_event"
@@ -127,14 +127,14 @@ type AdminSkipTurnPayload struct {
 
 // GameEventPayload is an entry in the live event feed pushed to admin spectators.
 type GameEventPayload struct {
-	Kind      string    `json:"kind"`       // e.g. "turn_started", "answer_result", "admin_action"
-	Message   string    `json:"message"`    // human-readable description
+	Kind      string    `json:"kind"`    // e.g. "turn_started", "answer_result", "admin_action"
+	Message   string    `json:"message"` // human-readable description
 	Timestamp time.Time `json:"timestamp"`
 	Meta      any       `json:"meta,omitempty"` // optional raw payload for rich display
 }
 
 // NewMessage creates a serialized Message.
-func NewMessage(msgType string, roomID string, payload interface{}) ([]byte, error) {
+func NewMessage(msgType string, roomID string, payload any) ([]byte, error) {
 	var payloadBytes json.RawMessage
 	if payload != nil {
 		b, err := json.Marshal(payload)

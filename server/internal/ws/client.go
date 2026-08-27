@@ -32,12 +32,12 @@ type Client struct {
 	send   chan []byte
 	closed bool
 
-	mu        sync.RWMutex
-	name      string
-	roomID    string
-	isJoined  bool
-	joinedAt  time.Time
-	isAdmin   bool // true for admin spectator connections; blocks player actions
+	mu       sync.RWMutex
+	name     string
+	roomID   string
+	isJoined bool
+	joinedAt time.Time
+	isAdmin  bool // true for admin spectator connections; blocks player actions
 
 	// Timing configurations (can be customized for testing)
 	writeWait      time.Duration
@@ -416,7 +416,7 @@ func (c *Client) sendError(errMsg string) {
 // Admin command handlers (only reachable when c.isAdmin == true)
 // ---------------------------------------------------------------------------
 
-func (c *Client) handleAdminStartMessage(msg Message) {
+func (c *Client) handleAdminStartMessage(_ Message) {
 	roomID := c.GetRoomID()
 	if roomID == "" {
 		c.sendError("admin: not watching any room")
@@ -435,7 +435,7 @@ func (c *Client) handleAdminStartMessage(msg Message) {
 	}
 }
 
-func (c *Client) handleAdminPauseMessage(msg Message) {
+func (c *Client) handleAdminPauseMessage(_ Message) {
 	roomID := c.GetRoomID()
 	if roomID == "" {
 		c.sendError("admin: not watching any room")

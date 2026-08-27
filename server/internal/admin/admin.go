@@ -14,14 +14,16 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"server/internal/locale"
 	"server/internal/ws"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const defaultTokenTTL = 15 * time.Minute
@@ -118,7 +120,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.problems(w, r)
 }
 
-func (h *Handler) listRooms(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) listRooms(w http.ResponseWriter, _ *http.Request) {
 	if h.roomLister == nil {
 		writeJSON(w, http.StatusOK, map[string]any{"rooms": []any{}})
 		return
@@ -402,10 +404,8 @@ func enumFilter(value, name string, allowed []string) (any, error) {
 	if value == "" {
 		return nil, nil
 	}
-	for _, candidate := range allowed {
-		if value == candidate {
-			return value, nil
-		}
+	if slices.Contains(allowed, value) {
+		return value, nil
 	}
 	return nil, fmt.Errorf("invalid %s", name)
 }

@@ -6,12 +6,12 @@ import (
 
 // EffectResult details the outcome of applying a cell effect to a player.
 type EffectResult struct {
-	EffectType  string                 `json:"effect_type"`
-	Description string                 `json:"description"`
-	XPDelta     int                    `json:"xp_delta"`
-	NewXP       int                    `json:"new_xp"`
-	NewPosition int                    `json:"new_position"`
-	Details     map[string]interface{} `json:"details,omitempty"`
+	EffectType  string         `json:"effect_type"`
+	Description string         `json:"description"`
+	XPDelta     int            `json:"xp_delta"`
+	NewXP       int            `json:"new_xp"`
+	NewPosition int            `json:"new_position"`
+	Details     map[string]any `json:"details,omitempty"`
 }
 
 // EffectFunc defines the function signature for cell effect handlers.
@@ -48,7 +48,7 @@ func (r *Room) ApplyCellEffect(p *Player, cell BoardCell) EffectResult {
 	return handler(r, p, cell)
 }
 
-func parseAmount(params map[string]interface{}, defaultVal int) int {
+func parseAmount(params map[string]any, defaultVal int) int {
 	if val, ok := params["amount"]; ok {
 		switch v := val.(type) {
 		case int:

@@ -969,7 +969,7 @@ func (r *Room) clearAllGraceTimersLocked() {
 func (r *Room) buildStandingsLocked() []PlayerStanding {
 	sorted := make([]*Player, len(r.players))
 	copy(sorted, r.players)
-	for i := 0; i < len(sorted); i++ {
+	for i := range len(sorted) {
 		for j := i + 1; j < len(sorted); j++ {
 			if sorted[j].XP > sorted[i].XP {
 				sorted[i], sorted[j] = sorted[j], sorted[i]
@@ -995,16 +995,17 @@ func (r *Room) FormatPlayerTurnSummary() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	summary := fmt.Sprintf("Room %s | Active Player: %s | Total Players: %d\n", r.ID, r.activePlayerID, len(r.players))
+	var summary strings.Builder
+	fmt.Fprintf(&summary, "Room %s | Active Player: %s | Total Players: %d\n", r.ID, r.activePlayerID, len(r.players))
 	for i, p := range r.players {
 		activeMark := " "
 		if p.ID == r.activePlayerID {
 			activeMark = "*"
 		}
-		summary += fmt.Sprintf("[%s] Slot %d: %s (ID: %s, Pos: %d, XP: %d, Connected: %t)\n",
+		fmt.Fprintf(&summary, "[%s] Slot %d: %s (ID: %s, Pos: %d, XP: %d, Connected: %t)\n",
 			activeMark, i, p.Name, p.ID, p.Position, p.XP, p.IsConnected)
 	}
-	return summary
+	return summary.String()
 }
 
 func (r *Room) Board() []BoardCell {

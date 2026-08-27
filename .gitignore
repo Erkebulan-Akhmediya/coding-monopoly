@@ -3,3 +3,4 @@ venv/
 .cursor/
 .agents/
 opencode.jsonc
+.codex/
