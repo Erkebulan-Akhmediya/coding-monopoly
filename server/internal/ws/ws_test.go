@@ -41,7 +41,7 @@ type fixedQuestionProvider struct {
 	question room.Question
 }
 
-func (p fixedQuestionProvider) AssignQuestion(string) (room.Question, error) {
+func (p fixedQuestionProvider) AssignQuestion(string, string) (room.Question, error) {
 	return p.question, nil
 }
 
@@ -60,7 +60,7 @@ func ensureRoom(t *testing.T, hub *Hub, roomID string) {
 	if hub.RoomExists(roomID) {
 		return
 	}
-	if err := hub.CreateRoom(roomID); err != nil {
+	if err := hub.CreateRoom(roomID, "Go"); err != nil {
 		t.Fatalf("CreateRoom(%q): %v", roomID, err)
 	}
 }

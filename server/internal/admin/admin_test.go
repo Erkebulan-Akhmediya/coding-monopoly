@@ -10,7 +10,7 @@ import (
 )
 
 func TestProblemInputValidation(t *testing.T) {
-	validMCQ := problemInput{Type: "mcq", Difficulty: "easy", Title: locale.FromEn("t"), Prompt: locale.FromEn("p"), Options: []struct {
+	validMCQ := problemInput{Type: "mcq", Difficulty: "easy", Topic: "Go", Title: locale.FromEn("t"), Prompt: locale.FromEn("p"), Options: []struct {
 		Text      locale.Text `json:"text"`
 		IsCorrect bool        `json:"is_correct"`
 	}{{Text: locale.FromEn("one"), IsCorrect: true}, {Text: locale.FromEn("two")}}}
@@ -21,9 +21,13 @@ func TestProblemInputValidation(t *testing.T) {
 	if err := validMCQ.validate(); err == nil {
 		t.Fatal("mcq with one option was accepted")
 	}
-	validText := problemInput{Type: "text", Difficulty: "hard", Title: locale.FromEn("t"), Prompt: locale.FromEn("p"), AcceptedAnswers: []locale.Text{locale.FromEn("answer")}}
+	validText := problemInput{Type: "text", Difficulty: "hard", Topic: "Go", Title: locale.FromEn("t"), Prompt: locale.FromEn("p"), AcceptedAnswers: []locale.Text{locale.FromEn("answer")}}
 	if err := validText.validate(); err != nil {
 		t.Fatalf("valid text rejected: %v", err)
+	}
+	missingTopic := problemInput{Type: "text", Difficulty: "hard", Title: locale.FromEn("t"), Prompt: locale.FromEn("p"), AcceptedAnswers: []locale.Text{locale.FromEn("answer")}}
+	if err := missingTopic.validate(); err == nil {
+		t.Fatal("problem without topic was accepted")
 	}
 }
 

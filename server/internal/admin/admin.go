@@ -51,7 +51,7 @@ type RoomLister interface {
 
 // RoomCreator creates new game rooms for the admin rooms endpoint.
 type RoomCreator interface {
-	CreateRoom(roomID string) error
+	CreateRoom(roomID, topic string) error
 }
 
 type Handler struct {
@@ -117,6 +117,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if r.URL.Path == "/admin/topics" || r.URL.Path == "/admin/topics/" {
+		if r.Method != http.MethodGet {
+			methodNotAllowed(w)
+			return
+		}
+		h.listTopics(w, r)
+		return
+	}
 	h.problems(w, r)
 }
 
@@ -131,6 +139,30 @@ func (h *Handler) listRooms(w http.ResponseWriter, _ *http.Request) {
 
 type createRoomRequest struct {
 	RoomID string `json:"room_id"`
+	Topic  string `json:"topic"`
+}
+
+func (h *Handler) listTopics(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.db.Query(r.Context(), `SELECT DISTINCT topic FROM problems WHERE topic <> '' ORDER BY topic`)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "list topics")
+		return
+	}
+	defer rows.Close()
+	topics := make([]string, 0)
+	for rows.Next() {
+		var topic string
+		if err := rows.Scan(&topic); err != nil {
+			writeError(w, http.StatusInternalServerError, "list topics")
+			return
+		}
+		topics = append(topics, topic)
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "list topics")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"topics": topics})
 }
 
 func (h *Handler) createRoom(w http.ResponseWriter, r *http.Request) {
@@ -144,6 +176,7 @@ func (h *Handler) createRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roomID := strings.TrimSpace(request.RoomID)
+	topic := strings.TrimSpace(request.Topic)
 	if roomID == "" {
 		writeError(w, http.StatusBadRequest, "room id is required")
 		return
@@ -152,7 +185,26 @@ func (h *Handler) createRoom(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "room id exceeds maximum length of 64 characters")
 		return
 	}
-	if err := h.roomCreator.CreateRoom(roomID); err != nil {
+	if topic == "" {
+		writeError(w, http.StatusBadRequest, "topic is required")
+		return
+	}
+	if len(topic) > 128 {
+		writeError(w, http.StatusBadRequest, "topic exceeds maximum length of 128 characters")
+		return
+	}
+	if h.db != nil {
+		var exists bool
+		if err := h.db.QueryRow(r.Context(), `SELECT EXISTS(SELECT 1 FROM problems WHERE topic = $1)`, topic).Scan(&exists); err != nil {
+			writeError(w, http.StatusInternalServerError, "validate topic")
+			return
+		}
+		if !exists {
+			writeError(w, http.StatusBadRequest, "unknown topic")
+			return
+		}
+	}
+	if err := h.roomCreator.CreateRoom(roomID, topic); err != nil {
 		if errors.Is(err, ws.ErrRoomAlreadyExists) {
 			writeError(w, http.StatusConflict, "room already exists")
 			return
@@ -160,7 +212,7 @@ func (h *Handler) createRoom(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"room_id": roomID})
+	writeJSON(w, http.StatusCreated, map[string]any{"room_id": roomID, "topic": topic})
 }
 
 type loginRequest struct {
@@ -270,6 +322,7 @@ type Problem struct {
 	ID              string        `json:"id"`
 	Type            string        `json:"type"`
 	Difficulty      string        `json:"difficulty"`
+	Topic           string        `json:"topic"`
 	Title           locale.Text   `json:"title"`
 	Prompt          locale.Text   `json:"prompt"`
 	IsPublished     bool          `json:"is_published"`
@@ -282,6 +335,7 @@ type Problem struct {
 type problemInput struct {
 	Type        string      `json:"type"`
 	Difficulty  string      `json:"difficulty"`
+	Topic       string      `json:"topic"`
 	Title       locale.Text `json:"title"`
 	Prompt      locale.Text `json:"prompt"`
 	IsPublished bool        `json:"is_published"`
@@ -343,6 +397,7 @@ func (h *Handler) listProblems(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	topicFilter := strings.TrimSpace(q.Get("topic"))
 	var published any
 	if raw, ok := q["is_published"]; ok {
 		if len(raw) != 1 {
@@ -356,10 +411,11 @@ func (h *Handler) listProblems(w http.ResponseWriter, r *http.Request) {
 		}
 		published = value
 	}
-	rows, err := h.db.Query(r.Context(), `SELECT id, type, difficulty, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published, created_at, updated_at
+	rows, err := h.db.Query(r.Context(), `SELECT id, type, difficulty, topic, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published, created_at, updated_at
 		FROM problems WHERE ($1::problem_type IS NULL OR type = $1::problem_type)
 		AND ($2::difficulty_level IS NULL OR difficulty = $2::difficulty_level)
-		AND ($3::boolean IS NULL OR is_published = $3) ORDER BY created_at DESC`, typeFilter, difficulty, published)
+		AND ($3::text IS NULL OR topic = $3)
+		AND ($4::boolean IS NULL OR is_published = $4) ORDER BY created_at DESC`, typeFilter, difficulty, nullIfEmpty(topicFilter), published)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "list problems")
 		return
@@ -368,7 +424,7 @@ func (h *Handler) listProblems(w http.ResponseWriter, r *http.Request) {
 	problems := make([]Problem, 0)
 	for rows.Next() {
 		var p Problem
-		if err := rows.Scan(&p.ID, &p.Type, &p.Difficulty, &p.Title.En, &p.Title.Ru, &p.Title.Kz, &p.Prompt.En, &p.Prompt.Ru, &p.Prompt.Kz, &p.IsPublished, &p.CreatedAt, &p.UpdatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.Type, &p.Difficulty, &p.Topic, &p.Title.En, &p.Title.Ru, &p.Title.Kz, &p.Prompt.En, &p.Prompt.Ru, &p.Prompt.Kz, &p.IsPublished, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			writeError(w, http.StatusInternalServerError, "read problems")
 			return
 		}
@@ -428,7 +484,7 @@ func (h *Handler) createProblem(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(ctx)
 	var id string
-	err = tx.QueryRow(ctx, `INSERT INTO problems (type, difficulty, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`, input.Type, input.Difficulty, input.Title.En, input.Title.Ru, input.Title.Kz, input.Prompt.En, input.Prompt.Ru, input.Prompt.Kz, input.IsPublished).Scan(&id)
+	err = tx.QueryRow(ctx, `INSERT INTO problems (type, difficulty, topic, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, input.Type, input.Difficulty, strings.TrimSpace(input.Topic), input.Title.En, input.Title.Ru, input.Title.Kz, input.Prompt.En, input.Prompt.Ru, input.Prompt.Kz, input.IsPublished).Scan(&id)
 	if err == nil {
 		err = replaceContents(ctx, tx, id, input)
 	}
@@ -473,7 +529,7 @@ func (h *Handler) updateProblem(w http.ResponseWriter, r *http.Request, id strin
 		writeError(w, 500, "update problem")
 		return
 	}
-	result, err := tx.Exec(ctx, `UPDATE problems SET type = $1, difficulty = $2, title_en = $3, title_ru = $4, title_kz = $5, prompt_en = $6, prompt_ru = $7, prompt_kz = $8, is_published = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10`, input.Type, input.Difficulty, input.Title.En, input.Title.Ru, input.Title.Kz, input.Prompt.En, input.Prompt.Ru, input.Prompt.Kz, input.IsPublished, id)
+	result, err := tx.Exec(ctx, `UPDATE problems SET type = $1, difficulty = $2, topic = $3, title_en = $4, title_ru = $5, title_kz = $6, prompt_en = $7, prompt_ru = $8, prompt_kz = $9, is_published = $10, updated_at = CURRENT_TIMESTAMP WHERE id = $11`, input.Type, input.Difficulty, strings.TrimSpace(input.Topic), input.Title.En, input.Title.Ru, input.Title.Kz, input.Prompt.En, input.Prompt.Ru, input.Prompt.Kz, input.IsPublished, id)
 	if err == nil && result.RowsAffected() == 0 {
 		writeError(w, 404, "problem not found")
 		return
@@ -558,7 +614,7 @@ func (h *Handler) publishProblem(w http.ResponseWriter, r *http.Request, id stri
 }
 
 func (p Problem) validateForPublish() error {
-	input := problemInput{Type: p.Type, Difficulty: p.Difficulty, Title: p.Title, Prompt: p.Prompt, AcceptedAnswers: p.AcceptedAnswers}
+	input := problemInput{Type: p.Type, Difficulty: p.Difficulty, Topic: p.Topic, Title: p.Title, Prompt: p.Prompt, AcceptedAnswers: p.AcceptedAnswers}
 	for _, option := range p.Options {
 		input.Options = append(input.Options, struct {
 			Text      locale.Text `json:"text"`
@@ -570,7 +626,7 @@ func (p Problem) validateForPublish() error {
 
 func (h *Handler) loadProblem(ctx context.Context, id string) (Problem, error) {
 	var p Problem
-	err := h.db.QueryRow(ctx, `SELECT id, type, difficulty, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published, created_at, updated_at FROM problems WHERE id = $1`, id).Scan(&p.ID, &p.Type, &p.Difficulty, &p.Title.En, &p.Title.Ru, &p.Title.Kz, &p.Prompt.En, &p.Prompt.Ru, &p.Prompt.Kz, &p.IsPublished, &p.CreatedAt, &p.UpdatedAt)
+	err := h.db.QueryRow(ctx, `SELECT id, type, difficulty, topic, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published, created_at, updated_at FROM problems WHERE id = $1`, id).Scan(&p.ID, &p.Type, &p.Difficulty, &p.Topic, &p.Title.En, &p.Title.Ru, &p.Title.Kz, &p.Prompt.En, &p.Prompt.Ru, &p.Prompt.Kz, &p.IsPublished, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return p, err
 	}
@@ -610,6 +666,13 @@ func (input problemInput) validate() error {
 	}
 	if input.Difficulty != "easy" && input.Difficulty != "medium" && input.Difficulty != "hard" {
 		return errors.New("difficulty must be easy, medium, or hard")
+	}
+	topic := strings.TrimSpace(input.Topic)
+	if topic == "" {
+		return errors.New("topic is required")
+	}
+	if len(topic) > 128 {
+		return errors.New("topic exceeds maximum length of 128 characters")
 	}
 	if strings.TrimSpace(input.Title.En) == "" || strings.TrimSpace(input.Prompt.En) == "" {
 		return errors.New("title and prompt are required")
@@ -662,4 +725,11 @@ func writeError(w http.ResponseWriter, status int, message string) {
 }
 func methodNotAllowed(w http.ResponseWriter) {
 	writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+}
+
+func nullIfEmpty(value string) any {
+	if value == "" {
+		return nil
+	}
+	return value
 }

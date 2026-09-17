@@ -49,7 +49,7 @@ type fixedProvider struct {
 	n  int
 }
 
-func (p *fixedProvider) AssignQuestion(difficulty string) (room.Question, error) {
+func (p *fixedProvider) AssignQuestion(difficulty, topic string) (room.Question, error) {
 	p.mu.Lock()
 	p.n++
 	id := fmt.Sprintf("load-q-%d", p.n)
@@ -101,7 +101,7 @@ func main() {
 
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
 	roomID := "loadtest-class"
-	if err := hub.CreateRoom(roomID); err != nil {
+	if err := hub.CreateRoom(roomID, "Go"); err != nil {
 		log.Fatalf("CreateRoom: %v", err)
 	}
 

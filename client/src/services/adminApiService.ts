@@ -32,6 +32,7 @@ export interface Option {
 export interface ProblemInput {
   type: 'mcq' | 'text'
   difficulty: 'easy' | 'medium' | 'hard'
+  topic: string
   title: LocalizedText
   prompt: LocalizedText
   is_published: boolean
@@ -43,6 +44,7 @@ export interface Problem {
   id: string
   type: 'mcq' | 'text'
   difficulty: 'easy' | 'medium' | 'hard'
+  topic: string
   title: LocalizedText
   prompt: LocalizedText
   is_published: boolean
@@ -55,11 +57,13 @@ export interface Problem {
 export interface ProblemFilters {
   type?: string
   difficulty?: string
+  topic?: string
   is_published?: string
 }
 
 export interface RoomSummary {
   room_id: string
+  topic: string
   player_count: number
   is_started: boolean
   is_paused: boolean
@@ -81,6 +85,9 @@ export function validateProblemInput(input: ProblemInput): ValidationError[] {
   }
   if (!['easy', 'medium', 'hard'].includes(input.difficulty)) {
     errors.push({ key: 'invalidDifficulty' })
+  }
+  if (!input.topic || input.topic.trim() === '') {
+    errors.push({ key: 'topicRequired' })
   }
   if (!input.title?.en || input.title.en.trim() === '') {
     errors.push({ key: 'titleRequired' })
@@ -157,6 +164,7 @@ export const adminApiService = {
     if (filters) {
       if (filters.type) params.append('type', filters.type)
       if (filters.difficulty) params.append('difficulty', filters.difficulty)
+      if (filters.topic) params.append('topic', filters.topic)
       if (filters.is_published !== undefined && filters.is_published !== '') {
         params.append('is_published', filters.is_published)
       }
@@ -241,7 +249,7 @@ export const adminApiService = {
     return data.rooms || []
   },
 
-  async createRoom(token: string, roomID: string): Promise<{ room_id: string }> {
+  async createRoom(token: string, roomID: string, topic: string): Promise<{ room_id: string; topic: string }> {
     const baseUrl = getBaseHttpUrl()
     const res = await fetch(`${baseUrl}/admin/rooms`, {
       method: 'POST',
@@ -249,8 +257,18 @@ export const adminApiService = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ room_id: roomID.trim() }),
+      body: JSON.stringify({ room_id: roomID.trim(), topic: topic.trim() }),
     })
-    return handleResponse<{ room_id: string }>(res)
+    return handleResponse<{ room_id: string; topic: string }>(res)
+  },
+
+  async listTopics(token: string): Promise<string[]> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/topics`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await handleResponse<{ topics: string[] }>(res)
+    return data.topics || []
   },
 }

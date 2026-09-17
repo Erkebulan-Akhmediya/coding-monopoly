@@ -28,6 +28,9 @@ export default defineComponent({
       roomsRefreshInterval: null as number | null,
       // create room
       newRoomID: '' as string,
+      newRoomTopic: '' as string,
+      availableTopics: [] as string[],
+      topicsLoading: false as boolean,
       createRoomLoading: false as boolean,
       createRoomError: '' as string,
       // selected room for spectating
@@ -90,10 +93,30 @@ export default defineComponent({
         this.selectedRoom = null
         adminWS.disconnect()
         adminStore.connected = false
-        await this.loadRooms()
+        await Promise.all([this.loadRooms(), this.loadTopics()])
         this.startRoomsRefresh()
       } else {
         this.stopRoomsRefresh()
+      }
+    },
+
+    async loadTopics() {
+      this.topicsLoading = true
+      try {
+        this.availableTopics = await adminApiService.listTopics(adminStore.token)
+        if (
+          this.newRoomTopic &&
+          !this.availableTopics.includes(this.newRoomTopic)
+        ) {
+          this.newRoomTopic = ''
+        }
+        if (!this.newRoomTopic && this.availableTopics.length === 1) {
+          this.newRoomTopic = this.availableTopics[0]
+        }
+      } catch (err: any) {
+        this.createRoomError = err.message || 'Failed to load topics'
+      } finally {
+        this.topicsLoading = false
       }
     },
 
@@ -159,11 +182,12 @@ export default defineComponent({
 
     async createRoom() {
       const roomID = this.newRoomID.trim()
-      if (!roomID) return
+      const topic = this.newRoomTopic.trim()
+      if (!roomID || !topic) return
       this.createRoomLoading = true
       this.createRoomError = ''
       try {
-        await adminApiService.createRoom(adminStore.token, roomID)
+        await adminApiService.createRoom(adminStore.token, roomID, topic)
         this.newRoomID = ''
         await this.loadRooms()
       } catch (err: any) {
@@ -280,11 +304,24 @@ export default defineComponent({
                   class="create-room-input"
                   :disabled="createRoomLoading"
                 />
+                <select
+                  id="new-room-topic"
+                  v-model="newRoomTopic"
+                  class="create-room-input create-room-topic"
+                  :disabled="createRoomLoading || topicsLoading || availableTopics.length === 0"
+                >
+                  <option value="" disabled>
+                    {{ topicsLoading ? $t('admin.loadingTopics') : $t('admin.selectTopic') }}
+                  </option>
+                  <option v-for="topic in availableTopics" :key="topic" :value="topic">
+                    {{ topic }}
+                  </option>
+                </select>
                 <button
                   id="create-room-btn"
                   type="submit"
                   class="btn-primary btn-sm"
-                  :disabled="createRoomLoading || !newRoomID.trim()"
+                  :disabled="createRoomLoading || !newRoomID.trim() || !newRoomTopic.trim()"
                 >
                   {{ createRoomLoading ? $t('admin.creating') : $t('admin.createRoom') }}
                 </button>
@@ -320,6 +357,10 @@ export default defineComponent({
               </div>
 
               <div class="room-card-stats">
+                <span v-if="room.topic" class="stat">
+                  <span class="stat-icon">📚</span>
+                  {{ room.topic }}
+                </span>
                 <span class="stat">
                   <span class="stat-icon">👥</span>
                   {{ room.player_count === 1 ? $t('admin.playerCountOne', { count: room.player_count }) : $t('admin.playerCount', { count: room.player_count }) }}
@@ -611,6 +652,11 @@ export default defineComponent({
   font-family: monospace;
   outline: none;
   width: 160px;
+}
+.create-room-topic {
+  width: 140px;
+  font-family: inherit;
+  cursor: pointer;
 }
 .create-room-input:focus {
   border-color: #60a5fa;

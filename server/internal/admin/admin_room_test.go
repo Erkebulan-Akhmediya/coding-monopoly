@@ -23,7 +23,7 @@ func (s *stubRoomManager) GetRoomsSummary() []ws.RoomSummary {
 	return out
 }
 
-func (s *stubRoomManager) CreateRoom(roomID string) error {
+func (s *stubRoomManager) CreateRoom(roomID, topic string) error {
 	if s.rooms[roomID] {
 		return ws.ErrRoomAlreadyExists
 	}
@@ -46,7 +46,7 @@ func TestCreateRoomEndpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	body, _ := json.Marshal(map[string]string{"room_id": "lab-1"})
+	body, _ := json.Marshal(map[string]string{"room_id": "lab-1", "topic": "Go"})
 	req := httptest.NewRequest(http.MethodPost, "/admin/rooms", bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
