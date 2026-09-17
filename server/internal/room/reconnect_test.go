@@ -204,6 +204,6 @@ type fixedProvider struct {
 	q Question
 }
 
-func (p *fixedProvider) AssignQuestion(string) (Question, error) {
+func (p *fixedProvider) AssignQuestion(string, string) (Question, error) {
 	return p.q, nil
 }

@@ -62,6 +62,7 @@ func main() {
 	type SeedProblem struct {
 		Type            string
 		Difficulty      string
+		Topic           string
 		Title           locale.Text
 		Prompt          locale.Text
 		Options         []SeedOption
@@ -269,13 +270,19 @@ func main() {
 		},
 	}
 
+	for i := range problemsToSeed {
+		if problemsToSeed[i].Topic == "" {
+			problemsToSeed[i].Topic = "Go"
+		}
+	}
+
 	for _, p := range problemsToSeed {
 		var problemID string
 		err = conn.QueryRow(ctx, `
-			INSERT INTO problems (type, difficulty, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+			INSERT INTO problems (type, difficulty, topic, title_en, title_ru, title_kz, prompt_en, prompt_ru, prompt_kz, is_published)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
 			RETURNING id
-		`, p.Type, p.Difficulty, p.Title.En, p.Title.Ru, p.Title.Kz, p.Prompt.En, p.Prompt.Ru, p.Prompt.Kz).Scan(&problemID)
+		`, p.Type, p.Difficulty, p.Topic, p.Title.En, p.Title.Ru, p.Title.Kz, p.Prompt.En, p.Prompt.Ru, p.Prompt.Kz).Scan(&problemID)
 		if err != nil {
 			log.Fatalf("Failed to insert problem %q: %v\n", p.Title.En, err)
 		}

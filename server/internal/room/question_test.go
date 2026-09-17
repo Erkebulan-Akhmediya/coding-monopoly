@@ -13,7 +13,7 @@ type testQuestionProvider struct {
 	question Question
 }
 
-func (p testQuestionProvider) AssignQuestion(string) (Question, error) {
+func (p testQuestionProvider) AssignQuestion(string, string) (Question, error) {
 	return p.question, nil
 }
 

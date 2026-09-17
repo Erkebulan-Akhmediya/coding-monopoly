@@ -23,7 +23,7 @@ type deployQuestionProvider struct {
 	question room.Question
 }
 
-func (p deployQuestionProvider) AssignQuestion(string) (room.Question, error) {
+func (p deployQuestionProvider) AssignQuestion(string, string) (room.Question, error) {
 	return p.question, nil
 }
 
@@ -183,7 +183,7 @@ func TestDeployMux_QuestionContentStaysOffSpectatorWire(t *testing.T) {
 	connB := dialDeployWS(t, server)
 	defer connB.Close()
 
-	if err := hub.CreateRoom("deploy-redact"); err != nil {
+	if err := hub.CreateRoom("deploy-redact", "Go"); err != nil {
 		t.Fatalf("CreateRoom: %v", err)
 	}
 
@@ -273,7 +273,7 @@ func TestDeployMux_TimeoutThenLateSubmitResolvesOnce(t *testing.T) {
 	defer connB.Close()
 
 	const roomID = "deploy-timeout"
-	if err := hub.CreateRoom(roomID); err != nil {
+	if err := hub.CreateRoom(roomID, "Go"); err != nil {
 		t.Fatalf("CreateRoom: %v", err)
 	}
 	deploySendJoin(t, connA, "Alice", roomID)
@@ -356,7 +356,7 @@ func TestDeployMux_SubmitWinsAndStaleTimerDoesNotDoubleResolve(t *testing.T) {
 	defer connB.Close()
 
 	const roomID = "deploy-submit"
-	if err := hub.CreateRoom(roomID); err != nil {
+	if err := hub.CreateRoom(roomID, "Go"); err != nil {
 		t.Fatalf("CreateRoom: %v", err)
 	}
 	deploySendJoin(t, connA, "Alice", roomID)

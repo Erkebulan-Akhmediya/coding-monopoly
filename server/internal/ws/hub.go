@@ -543,11 +543,16 @@ func (h *Hub) GetRoomPlayers(roomID string) []PlayerInfo {
 	return players
 }
 
-// CreateRoom creates a new empty room. Returns ErrRoomAlreadyExists if the id is taken.
-func (h *Hub) CreateRoom(roomID string) error {
+// CreateRoom creates a new empty room scoped to a question topic.
+// Returns ErrRoomAlreadyExists if the id is taken.
+func (h *Hub) CreateRoom(roomID, topic string) error {
 	roomID = strings.TrimSpace(roomID)
+	topic = strings.TrimSpace(topic)
 	if err := validateRoomID(roomID); err != nil {
 		return err
+	}
+	if topic == "" {
+		return errors.New("topic is required")
 	}
 
 	h.mu.Lock()
@@ -558,7 +563,9 @@ func (h *Hub) CreateRoom(roomID string) error {
 	}
 
 	hb := &HubBroadcaster{hub: h}
-	h.roomInstances[roomID] = room.NewRoomWithQuestionProvider(roomID, hb, h.questionProvider)
+	r := room.NewRoomWithQuestionProvider(roomID, hb, h.questionProvider)
+	r.Topic = topic
+	h.roomInstances[roomID] = r
 	return nil
 }
 
@@ -693,6 +700,7 @@ func (h *Hub) KickClient(roomID string, playerID string) string {
 // RoomSummary represents a summary of a room's state for admin room listing.
 type RoomSummary struct {
 	RoomID      string   `json:"room_id"`
+	Topic       string   `json:"topic"`
 	PlayerCount int      `json:"player_count"`
 	IsStarted   bool     `json:"is_started"`
 	IsPaused    bool     `json:"is_paused"`
@@ -725,6 +733,7 @@ func (h *Hub) GetRoomsSummary() []RoomSummary {
 
 		summaries = append(summaries, RoomSummary{
 			RoomID:      roomID,
+			Topic:       r.Topic,
 			PlayerCount: len(players),
 			IsStarted:   r.IsStarted(),
 			IsPaused:    r.IsPaused(),

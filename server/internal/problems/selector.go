@@ -19,10 +19,10 @@ type Option struct {
 // content is intentionally unavailable to game assignment code.
 func SelectPublishedForAssignment(ctx context.Context, db interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
-}, difficulty string) (id, problemType string, prompt locale.Text, err error) {
+}, difficulty, topic string) (id, problemType string, prompt locale.Text, err error) {
 	err = db.QueryRow(ctx, `SELECT id, type, prompt_en, prompt_ru, prompt_kz FROM problems
-		WHERE difficulty = $1 AND is_published = true
-		ORDER BY random() LIMIT 1`, difficulty).Scan(&id, &problemType, &prompt.En, &prompt.Ru, &prompt.Kz)
+		WHERE difficulty = $1 AND topic = $2 AND is_published = true
+		ORDER BY random() LIMIT 1`, difficulty, topic).Scan(&id, &problemType, &prompt.En, &prompt.Ru, &prompt.Kz)
 	return
 }
 
@@ -32,10 +32,10 @@ func SelectPublishedForAssignment(ctx context.Context, db interface {
 func SelectPublishedQuestion(ctx context.Context, db interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 	Query(context.Context, string, ...any) (pgx.Rows, error)
-}, difficulty string) (id, problemType string, prompt locale.Text, options []Option, acceptedAnswers []locale.Text, err error) {
+}, difficulty, topic string) (id, problemType string, prompt locale.Text, options []Option, acceptedAnswers []locale.Text, err error) {
 	err = db.QueryRow(ctx, `SELECT id, type, prompt_en, prompt_ru, prompt_kz FROM problems
-		WHERE difficulty = $1 AND is_published = true
-		ORDER BY random() LIMIT 1`, difficulty).Scan(&id, &problemType, &prompt.En, &prompt.Ru, &prompt.Kz)
+		WHERE difficulty = $1 AND topic = $2 AND is_published = true
+		ORDER BY random() LIMIT 1`, difficulty, topic).Scan(&id, &problemType, &prompt.En, &prompt.Ru, &prompt.Kz)
 	if err != nil {
 		return
 	}

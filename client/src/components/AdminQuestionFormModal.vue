@@ -30,6 +30,7 @@ export default defineComponent({
     const isEdit = !!this.problem
     let type: 'mcq' | 'text' = this.initialType
     let difficulty: 'easy' | 'medium' | 'hard' = 'easy'
+    let topic = ''
     let title = ''
     let prompt = ''
     let is_published = false
@@ -42,6 +43,7 @@ export default defineComponent({
     if (this.problem) {
       type = this.problem.type
       difficulty = this.problem.difficulty
+      topic = this.problem.topic || ''
       title = this.problem.title?.en || ''
       prompt = this.problem.prompt?.en || ''
       is_published = this.problem.is_published
@@ -69,15 +71,25 @@ export default defineComponent({
       form: {
         type,
         difficulty,
+        topic,
         title,
         prompt,
         is_published,
         options,
         accepted_answers,
       },
+      availableTopics: [] as string[],
       validationErrors: [] as string[],
       serverError: '' as string,
       saving: false as boolean,
+    }
+  },
+
+  async mounted() {
+    try {
+      this.availableTopics = await adminApiService.listTopics(adminStore.token)
+    } catch {
+      this.availableTopics = []
     }
   },
 
@@ -124,6 +136,7 @@ export default defineComponent({
       const payload: ProblemInput = {
         type: this.form.type,
         difficulty: this.form.difficulty,
+        topic: this.form.topic.trim(),
         title: localizedFromEn(this.form.title, existingTitle),
         prompt: localizedFromEn(this.form.prompt, existingPrompt),
         is_published: this.form.is_published,
@@ -215,6 +228,23 @@ export default defineComponent({
               <option value="hard">{{ $t('admin.hardCountdown') }}</option>
             </select>
           </div>
+        </div>
+
+        <!-- Topic -->
+        <div class="form-group">
+          <label for="problem-topic">{{ $t('admin.topic') }}</label>
+          <input
+            id="problem-topic"
+            v-model="form.topic"
+            type="text"
+            list="problem-topic-suggestions"
+            :placeholder="$t('admin.topicPlaceholder')"
+            class="form-input"
+            required
+          />
+          <datalist id="problem-topic-suggestions">
+            <option v-for="topic in availableTopics" :key="topic" :value="topic" />
+          </datalist>
         </div>
 
         <!-- Title -->

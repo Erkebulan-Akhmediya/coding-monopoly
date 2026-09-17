@@ -60,9 +60,9 @@ type Question struct {
 	AcceptedAnswers []locale.Text
 }
 
-// QuestionProvider assigns one published question for a difficulty.
+// QuestionProvider assigns one published question for a difficulty and topic.
 type QuestionProvider interface {
-	AssignQuestion(difficulty string) (Question, error)
+	AssignQuestion(difficulty, topic string) (Question, error)
 }
 
 // QuestionStartedPayload is sent privately with content, and broadcast in
@@ -149,6 +149,7 @@ const (
 // Room manages game state, connected players in join order, turn progression, and cell effect execution.
 type Room struct {
 	ID                string
+	Topic             string
 	mu                sync.RWMutex
 	players           []*Player
 	playerMap         map[string]*Player
@@ -539,7 +540,7 @@ func (r *Room) ChooseLevel(clientID string, difficulty string) error {
 		return nil
 	}
 
-	question, err := r.questionProvider.AssignQuestion(difficulty)
+	question, err := r.questionProvider.AssignQuestion(difficulty, r.Topic)
 	if err != nil {
 		player.ChosenDifficulty = ""
 		if r.broadcaster != nil {

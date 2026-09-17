@@ -20,11 +20,11 @@ func NewDBQuestionProvider(db *pgxpool.Pool) room.QuestionProvider {
 	return &DBQuestionProvider{db: db}
 }
 
-func (p *DBQuestionProvider) AssignQuestion(difficulty string) (room.Question, error) {
+func (p *DBQuestionProvider) AssignQuestion(difficulty, topic string) (room.Question, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	id, problemType, prompt, options, accepted, err := problems.SelectPublishedQuestion(ctx, p.db, difficulty)
+	id, problemType, prompt, options, accepted, err := problems.SelectPublishedQuestion(ctx, p.db, difficulty, topic)
 	if err != nil {
 		return room.Question{}, err
 	}

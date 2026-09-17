@@ -25,9 +25,11 @@ export default defineComponent({
       filters: {
         type: '' as string,
         difficulty: '' as string,
+        topic: '' as string,
         is_published: '' as string,
       },
       searchQuery: '' as string,
+      availableTopics: [] as string[],
 
       // Modal state
       showFormModal: false as boolean,
@@ -52,6 +54,7 @@ export default defineComponent({
           (p) =>
             (p.title?.en || '').toLowerCase().includes(q) ||
             (p.prompt?.en || '').toLowerCase().includes(q) ||
+            (p.topic || '').toLowerCase().includes(q) ||
             p.id.toLowerCase().includes(q)
         )
       }
@@ -59,11 +62,20 @@ export default defineComponent({
     },
   },
 
-  mounted() {
-    this.fetchProblems()
+  async mounted() {
+    await Promise.all([this.fetchProblems(), this.loadTopics()])
   },
 
   methods: {
+    async loadTopics() {
+      if (!adminStore.token) return
+      try {
+        this.availableTopics = await adminApiService.listTopics(adminStore.token)
+      } catch {
+        this.availableTopics = []
+      }
+    },
+
     async fetchProblems() {
       if (!adminStore.token) return
       this.loading = true
@@ -72,6 +84,7 @@ export default defineComponent({
         const reqFilters: ProblemFilters = {
           type: this.filters.type,
           difficulty: this.filters.difficulty,
+          topic: this.filters.topic,
           is_published: this.filters.is_published,
         }
         const data = await adminApiService.listProblems(adminStore.token, reqFilters)
@@ -106,6 +119,7 @@ export default defineComponent({
     onProblemSaved() {
       this.closeFormModal()
       this.fetchProblems()
+      this.loadTopics()
     },
 
     requestDelete(problem: Problem) {
@@ -142,6 +156,7 @@ export default defineComponent({
           const payload = {
             type: problem.type,
             difficulty: problem.difficulty,
+            topic: problem.topic,
             title: problem.title,
             prompt: problem.prompt,
             is_published: false,
@@ -239,6 +254,21 @@ export default defineComponent({
       </div>
 
       <div class="filter-group">
+        <label for="filter-topic">{{ $t('admin.filterTopic') }}</label>
+        <select
+          id="filter-topic"
+          v-model="filters.topic"
+          class="filter-select"
+          @change="onFilterChange"
+        >
+          <option value="">{{ $t('admin.allTopics') }}</option>
+          <option v-for="topic in availableTopics" :key="topic" :value="topic">
+            {{ topic }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
         <label for="filter-published">{{ $t('admin.filterStatus') }}</label>
         <select
           id="filter-published"
@@ -288,6 +318,7 @@ export default defineComponent({
           <tr>
             <th>{{ $t('admin.colType') }}</th>
             <th>{{ $t('admin.colDifficulty') }}</th>
+            <th>{{ $t('admin.colTopic') }}</th>
             <th>{{ $t('admin.colTitlePrompt') }}</th>
             <th>{{ $t('admin.colAnswers') }}</th>
             <th>{{ $t('admin.colStatus') }}</th>
@@ -308,6 +339,11 @@ export default defineComponent({
               <span :class="['diff-badge', difficultyBadgeClass(p.difficulty)]">
                 {{ p.difficulty }}
               </span>
+            </td>
+
+            <!-- Topic -->
+            <td class="col-topic">
+              <span class="topic-badge">{{ p.topic }}</span>
             </td>
 
             <!-- Title & Prompt -->
@@ -622,6 +658,16 @@ export default defineComponent({
 .badge-hard {
   background: #7f1d1d;
   color: #fca5a5;
+}
+
+.topic-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #1e3a5f;
+  color: #93c5fd;
 }
 
 /* Title & Prompt */
