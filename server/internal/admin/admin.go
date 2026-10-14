@@ -53,7 +53,7 @@ type RoomLister interface {
 
 // RoomCreator creates new game rooms for the admin rooms endpoint.
 type RoomCreator interface {
-	CreateRoomWithBoard(roomID, topic string, board room.BoardLayout) error
+	CreateRoomWithOptions(roomID string, opts ws.RoomOptions) error
 }
 
 type Handler struct {
@@ -148,9 +148,10 @@ func (h *Handler) listRooms(w http.ResponseWriter, _ *http.Request) {
 }
 
 type createRoomRequest struct {
-	RoomID  string `json:"room_id"`
-	Topic   string `json:"topic"`
-	BoardID string `json:"board_id"`
+	RoomID    string `json:"room_id"`
+	Topic     string `json:"topic"`
+	BoardID   string `json:"board_id"`
+	InitialXP int    `json:"initial_xp"`
 }
 
 func (h *Handler) listTopics(w http.ResponseWriter, r *http.Request) {
@@ -204,6 +205,10 @@ func (h *Handler) createRoom(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "topic exceeds maximum length of 128 characters")
 		return
 	}
+	if request.InitialXP < 0 || request.InitialXP >= room.DefaultTargetXP {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("initial XP must be between 0 and %d", room.DefaultTargetXP-1))
+		return
+	}
 	if h.db != nil {
 		var exists bool
 		if err := h.db.QueryRow(r.Context(), `SELECT EXISTS(SELECT 1 FROM problems WHERE topic = $1)`, topic).Scan(&exists); err != nil {
@@ -228,7 +233,7 @@ func (h *Handler) createRoom(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := h.roomCreator.CreateRoomWithBoard(roomID, topic, board); err != nil {
+	if err := h.roomCreator.CreateRoomWithOptions(roomID, ws.RoomOptions{Topic: topic, Board: board, InitialXP: request.InitialXP}); err != nil {
 		if errors.Is(err, ws.ErrRoomAlreadyExists) {
 			writeError(w, http.StatusConflict, "room already exists")
 			return
@@ -236,7 +241,7 @@ func (h *Handler) createRoom(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"room_id": roomID, "topic": topic, "board_id": board.ID, "board_name": board.Name})
+	writeJSON(w, http.StatusCreated, map[string]any{"room_id": roomID, "topic": topic, "board_id": board.ID, "board_name": board.Name, "initial_xp": request.InitialXP})
 }
 
 type loginRequest struct {

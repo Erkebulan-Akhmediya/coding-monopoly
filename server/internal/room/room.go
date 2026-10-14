@@ -152,6 +152,7 @@ type Room struct {
 	Topic             string
 	BoardID           string
 	BoardName         string
+	InitialXP         int // XP every new player starts with; set before the room is published
 	mu                sync.RWMutex
 	players           []*Player
 	playerMap         map[string]*Player
@@ -397,6 +398,7 @@ func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, erro
 
 	// New player joining before game starts
 	player := NewPlayer(clientID, name)
+	player.XP = r.InitialXP
 	r.players = append(r.players, player)
 	r.playerMap[clientID] = player
 

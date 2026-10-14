@@ -31,7 +31,7 @@
 ### Database (PostgreSQL)
 - **Schema Management**: `golang-migrate` (`server/migrations/000001_init.up.sql`).
 - **Tables**: `games`, `players`, `boards`, `board_cells`, `problems`, `problem_options`, `problem_accepted_answers`, `submissions`, `game_events`.
-- **Boards** (`000005_add_boards`): `boards` holds named 32-cell layouts (exactly one `is_default`); `board_cells` is keyed by `(board_id, cell_index)`. The server ensures a default board exists at startup (`boards.EnsureDefault`, built from `room.DefaultBoard()`).
+- **Boards** (`000005_add_boards`): `boards` holds named 32-cell layouts (exactly one `is_default`); `board_cells` is keyed by `(board_id, cell_index)`. The server ensures a default board exists at startup (`boards.EnsureDefault`, built from `room.DefaultBoard()`). `make seed` also inserts a gentler **"Beginner"** board (`room.BeginnerBoard()`: mostly XP gains/bonuses, 2 small XP losses, 1 forward-only teleport, no skip-turn/Code Freeze/Deadline).
 
 ---
 
@@ -135,7 +135,7 @@ The admin subsystem is accessed via `?admin=1` in the client URL:
   - `PUT /admin/problems/{id}` — Update problem title, prompt, options, or accepted answers.
   - `DELETE /admin/problems/{id}` — Delete problem.
   - `PATCH /admin/problems/{id}/publish` — Toggle published state.
-- Multi-Room API: `GET /admin/rooms` and `POST /admin/rooms` (`room_id`, `topic`, optional `board_id`; default board when omitted) for creating and monitoring game rooms.
+- Multi-Room API: `GET /admin/rooms` and `POST /admin/rooms` (`room_id`, `topic`, optional `board_id` — default board when omitted — and optional `initial_xp`, the XP every player starts with, 0..499) for creating and monitoring game rooms. In the UI these fields live in the "Create Room" dialog (`AdminCreateRoomModal.vue`).
 - Boards API: `GET/POST /admin/boards`, `GET/PUT/DELETE /admin/boards/{id}` (the default board can't be deleted), `POST /admin/boards/{id}/default`, and `GET /admin/cell-types` (placeable types with param ranges).
 
 ### 2. Live Room Spectator & Control (WebSocket `/ws/admin`)
@@ -185,6 +185,7 @@ coding-monopoly/
 │   │   ├── room/
 │   │   │   ├── room.go          # Core game engine: turns, timers, grading, admin controls
 │   │   │   ├── board.go         # 32-cell default board definition
+│   │   │   ├── board_beginner.go # Gentler "Beginner" board seeded by make seed
 │   │   │   ├── board_layout.go  # Cell type catalog, param specs, board validation
 │   │   │   ├── effect.go        # Cell effect dispatch table and handlers
 │   │   │   ├── player.go        # Player state model
@@ -242,6 +243,7 @@ coding-monopoly/
     │       ├── AdminQuestionFormModal.vue # Question editor modal
     │       ├── AdminBoardList.vue       # Board management list (Boards tab)
     │       ├── AdminBoardEditor.vue     # Visual 32-cell board editor
+    │       ├── AdminCreateRoomModal.vue # Create Room dialog (ID, topic, board, starting XP)
     │       └── AdminSpectatorView.vue   # Live room spectator & room controls
 ```
 

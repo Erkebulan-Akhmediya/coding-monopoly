@@ -2,6 +2,7 @@ package ws
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -543,24 +544,36 @@ func (h *Hub) GetRoomPlayers(roomID string) []PlayerInfo {
 	return players
 }
 
+// RoomOptions configures a new room.
+type RoomOptions struct {
+	// Topic scopes the room's question bank. Required.
+	Topic string
+	// Board is a validated layout snapshotted into the room, so later board
+	// edits do not affect it. An empty layout uses the built-in board.
+	Board room.BoardLayout
+	// InitialXP is the XP every player starts with, in [0, room.DefaultTargetXP).
+	InitialXP int
+}
+
 // CreateRoom creates a new empty room scoped to a question topic, played on
 // the built-in default board. Returns ErrRoomAlreadyExists if the id is taken.
 func (h *Hub) CreateRoom(roomID, topic string) error {
-	return h.CreateRoomWithBoard(roomID, topic, room.BoardLayout{})
+	return h.CreateRoomWithOptions(roomID, RoomOptions{Topic: topic})
 }
 
-// CreateRoomWithBoard creates a new empty room scoped to a question topic and
-// played on board, a validated layout snapshotted into the room so later
-// board edits do not affect it. An empty layout uses the built-in board.
+// CreateRoomWithOptions creates a new empty room configured by opts.
 // Returns ErrRoomAlreadyExists if the id is taken.
-func (h *Hub) CreateRoomWithBoard(roomID, topic string, board room.BoardLayout) error {
+func (h *Hub) CreateRoomWithOptions(roomID string, opts RoomOptions) error {
 	roomID = strings.TrimSpace(roomID)
-	topic = strings.TrimSpace(topic)
+	topic := strings.TrimSpace(opts.Topic)
 	if err := validateRoomID(roomID); err != nil {
 		return err
 	}
 	if topic == "" {
 		return errors.New("topic is required")
+	}
+	if opts.InitialXP < 0 || opts.InitialXP >= room.DefaultTargetXP {
+		return fmt.Errorf("initial XP must be between 0 and %d", room.DefaultTargetXP-1)
 	}
 
 	// Build the room before taking the hub lock: SetBoard takes the room lock,
@@ -568,8 +581,9 @@ func (h *Hub) CreateRoomWithBoard(roomID, topic string, board room.BoardLayout) 
 	hb := &HubBroadcaster{hub: h}
 	r := room.NewRoomWithQuestionProvider(roomID, hb, h.questionProvider)
 	r.Topic = topic
-	if len(board.Cells) > 0 {
-		r.SetBoard(board)
+	r.InitialXP = opts.InitialXP
+	if len(opts.Board.Cells) > 0 {
+		r.SetBoard(opts.Board)
 	}
 
 	h.mu.Lock()
@@ -716,6 +730,7 @@ type RoomSummary struct {
 	Topic       string   `json:"topic"`
 	BoardID     string   `json:"board_id,omitempty"`
 	BoardName   string   `json:"board_name,omitempty"`
+	InitialXP   int      `json:"initial_xp"`
 	PlayerCount int      `json:"player_count"`
 	IsStarted   bool     `json:"is_started"`
 	IsPaused    bool     `json:"is_paused"`
@@ -751,6 +766,7 @@ func (h *Hub) GetRoomsSummary() []RoomSummary {
 			Topic:       r.Topic,
 			BoardID:     r.BoardID,
 			BoardName:   r.BoardName,
+			InitialXP:   r.InitialXP,
 			PlayerCount: len(players),
 			IsStarted:   r.IsStarted(),
 			IsPaused:    r.IsPaused(),

@@ -1,9 +1,10 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { adminStore } from '../adminStore'
-import { adminApiService, type BoardSummary, type RoomSummary } from '../services/adminApiService'
+import { adminApiService, type RoomSummary } from '../services/adminApiService'
 import adminWS from '../services/adminWebsocketService'
 import AdminBoardList from './AdminBoardList.vue'
+import AdminCreateRoomModal from './AdminCreateRoomModal.vue'
 import AdminQuestionList from './AdminQuestionList.vue'
 import AdminSpectatorView from './AdminSpectatorView.vue'
 
@@ -14,6 +15,7 @@ export default defineComponent({
 
   components: {
     AdminBoardList,
+    AdminCreateRoomModal,
     AdminQuestionList,
     AdminSpectatorView,
   },
@@ -30,16 +32,7 @@ export default defineComponent({
       roomsLoading: false as boolean,
       roomsError: '' as string,
       roomsRefreshInterval: null as number | null,
-      // create room
-      newRoomID: '' as string,
-      newRoomTopic: '' as string,
-      availableTopics: [] as string[],
-      topicsLoading: false as boolean,
-      newRoomBoard: '' as string,
-      availableBoards: [] as BoardSummary[],
-      boardsLoading: false as boolean,
-      createRoomLoading: false as boolean,
-      createRoomError: '' as string,
+      showCreateRoom: false as boolean,
       // selected room for spectating
       selectedRoom: null as string | null,
     }
@@ -100,45 +93,10 @@ export default defineComponent({
         this.selectedRoom = null
         adminWS.disconnect()
         adminStore.connected = false
-        await Promise.all([this.loadRooms(), this.loadTopics(), this.loadBoards()])
+        await this.loadRooms()
         this.startRoomsRefresh()
       } else {
         this.stopRoomsRefresh()
-      }
-    },
-
-    async loadTopics() {
-      this.topicsLoading = true
-      try {
-        this.availableTopics = await adminApiService.listTopics(adminStore.token)
-        if (
-          this.newRoomTopic &&
-          !this.availableTopics.includes(this.newRoomTopic)
-        ) {
-          this.newRoomTopic = ''
-        }
-        if (!this.newRoomTopic && this.availableTopics.length === 1) {
-          this.newRoomTopic = this.availableTopics[0]
-        }
-      } catch (err: any) {
-        this.createRoomError = err.message || 'Failed to load topics'
-      } finally {
-        this.topicsLoading = false
-      }
-    },
-
-    async loadBoards() {
-      this.boardsLoading = true
-      try {
-        this.availableBoards = await adminApiService.listBoards(adminStore.token)
-        if (!this.availableBoards.some((board) => board.id === this.newRoomBoard)) {
-          const fallback = this.availableBoards.find((board) => board.is_default) || this.availableBoards[0]
-          this.newRoomBoard = fallback ? fallback.id : ''
-        }
-      } catch (err: any) {
-        this.createRoomError = err.message || 'Failed to load boards'
-      } finally {
-        this.boardsLoading = false
       }
     },
 
@@ -202,21 +160,9 @@ export default defineComponent({
       return 'status-waiting'
     },
 
-    async createRoom() {
-      const roomID = this.newRoomID.trim()
-      const topic = this.newRoomTopic.trim()
-      if (!roomID || !topic) return
-      this.createRoomLoading = true
-      this.createRoomError = ''
-      try {
-        await adminApiService.createRoom(adminStore.token, roomID, topic, this.newRoomBoard)
-        this.newRoomID = ''
-        await this.loadRooms()
-      } catch (err: any) {
-        this.createRoomError = err.message || 'Failed to create room'
-      } finally {
-        this.createRoomLoading = false
-      }
+    async onRoomCreated() {
+      this.showCreateRoom = false
+      await this.loadRooms()
     },
   },
 })
@@ -328,58 +274,15 @@ export default defineComponent({
           <div class="rooms-header">
             <h2 class="rooms-title">🏠 {{ $t('admin.activeRooms') }}</h2>
             <div class="rooms-header-actions">
-              <form class="create-room-form" @submit.prevent="createRoom">
-                <input
-                  id="new-room-id"
-                  v-model="newRoomID"
-                  type="text"
-                  :placeholder="$t('admin.newRoomPlaceholder')"
-                  class="create-room-input"
-                  :disabled="createRoomLoading"
-                />
-                <select
-                  id="new-room-topic"
-                  v-model="newRoomTopic"
-                  class="create-room-input create-room-topic"
-                  :disabled="createRoomLoading || topicsLoading || availableTopics.length === 0"
-                >
-                  <option value="" disabled>
-                    {{ topicsLoading ? $t('admin.loadingTopics') : $t('admin.selectTopic') }}
-                  </option>
-                  <option v-for="topic in availableTopics" :key="topic" :value="topic">
-                    {{ topic }}
-                  </option>
-                </select>
-                <select
-                  id="new-room-board"
-                  v-model="newRoomBoard"
-                  class="create-room-input create-room-board"
-                  :title="$t('admin.board')"
-                  :disabled="createRoomLoading || boardsLoading || availableBoards.length === 0"
-                >
-                  <option value="" disabled>
-                    {{ boardsLoading ? $t('admin.loadingBoards') : $t('admin.selectBoard') }}
-                  </option>
-                  <option v-for="board in availableBoards" :key="board.id" :value="board.id">
-                    {{ board.is_default ? $t('admin.boardOptionDefault', { name: board.name }) : board.name }}
-                  </option>
-                </select>
-                <button
-                  id="create-room-btn"
-                  type="submit"
-                  class="btn-primary btn-sm"
-                  :disabled="createRoomLoading || !newRoomID.trim() || !newRoomTopic.trim()"
-                >
-                  {{ createRoomLoading ? $t('admin.creating') : $t('admin.createRoom') }}
-                </button>
-              </form>
+              <button id="open-create-room-btn" class="btn-primary btn-sm" @click="showCreateRoom = true">
+                {{ $t('admin.createRoom') }}
+              </button>
               <button id="refresh-rooms-btn" class="btn-secondary btn-sm" :disabled="roomsLoading" @click="loadRooms">
                 {{ roomsLoading ? $t('admin.refreshing') : $t('admin.refresh') }}
               </button>
             </div>
           </div>
 
-          <p v-if="createRoomError" class="rooms-error">{{ createRoomError }}</p>
           <p v-if="roomsError" class="rooms-error">{{ roomsError }}</p>
 
           <div v-if="rooms.length === 0 && !roomsLoading" class="rooms-empty">
@@ -412,6 +315,10 @@ export default defineComponent({
                   <span class="stat-icon">🎲</span>
                   {{ room.board_name }}
                 </span>
+                <span v-if="room.initial_xp > 0" class="stat">
+                  <span class="stat-icon">⭐</span>
+                  {{ $t('admin.startingXp', { xp: room.initial_xp }) }}
+                </span>
                 <span class="stat">
                   <span class="stat-icon">👥</span>
                   {{ room.player_count === 1 ? $t('admin.playerCountOne', { count: room.player_count }) : $t('admin.playerCount', { count: room.player_count }) }}
@@ -441,6 +348,12 @@ export default defineComponent({
         </div>
       </template>
     </main>
+
+    <AdminCreateRoomModal
+      v-if="showCreateRoom"
+      @created="onRoomCreated"
+      @cancel="showCreateRoom = false"
+    />
   </div>
 </template>
 
@@ -687,34 +600,6 @@ export default defineComponent({
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-}
-.create-room-form {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.create-room-input {
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 6px;
-  padding: 0.35rem 0.65rem;
-  color: #f1f5f9;
-  font-size: 0.82rem;
-  font-family: monospace;
-  outline: none;
-  width: 160px;
-}
-.create-room-topic,
-.create-room-board {
-  width: 140px;
-  font-family: inherit;
-  cursor: pointer;
-}
-.create-room-board {
-  width: 180px;
-}
-.create-room-input:focus {
-  border-color: #60a5fa;
 }
 .btn-primary {
   background: linear-gradient(90deg, #2563eb, #7c3aed);

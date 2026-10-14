@@ -158,3 +158,35 @@ func TestSetBoard_PassBonusFromStartCell(t *testing.T) {
 		t.Fatalf("roll = %+v, want passed GO with lap bonus 75", rolls)
 	}
 }
+
+func TestBeginnerBoard_IsValidAndGentlerThanDefault(t *testing.T) {
+	cells, err := ValidateBoard(BeginnerBoard())
+	if err != nil {
+		t.Fatalf("beginner board rejected: %v", err)
+	}
+	for _, cell := range cells {
+		if cell.Name.Ru == "" || cell.Name.Kz == "" || cell.Explanation.En == "" || cell.Explanation.Ru == "" || cell.Explanation.Kz == "" {
+			t.Errorf("cell %d is missing translated text: %+v", cell.Index, cell)
+		}
+	}
+
+	type tally struct{ negative, positive, teleport int }
+	count := func(board []BoardCell) tally {
+		var c tally
+		for _, cell := range board {
+			switch cell.Type {
+			case "xp_loss", "skip_next", "code_freeze", "deadline":
+				c.negative++
+			case "xp_gain", "special_challenge", "double_xp", "free_pass", "coffee_break":
+				c.positive++
+			case "teleport":
+				c.teleport++
+			}
+		}
+		return c
+	}
+	beginner, standard := count(cells), count(DefaultBoard())
+	if beginner.negative >= standard.negative || beginner.positive <= standard.positive || beginner.teleport >= standard.teleport {
+		t.Fatalf("beginner %+v is not gentler than default %+v", beginner, standard)
+	}
+}

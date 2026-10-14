@@ -922,8 +922,9 @@ func TestWS_RoomUsesSelectedBoardSnapshot(t *testing.T) {
 	cells := room.DefaultBoard()
 	cells[1].Name = locale.FromEn("Custom Gain")
 	cells[1].Params = map[string]any{"amount": 200}
-	if err := hub.CreateRoomWithBoard("custom-board", "Go", room.BoardLayout{ID: "b-1", Name: "Hard Mode", Cells: cells}); err != nil {
-		t.Fatalf("CreateRoomWithBoard: %v", err)
+	opts := RoomOptions{Topic: "Go", Board: room.BoardLayout{ID: "b-1", Name: "Hard Mode", Cells: cells}, InitialXP: 120}
+	if err := hub.CreateRoomWithOptions("custom-board", opts); err != nil {
+		t.Fatalf("CreateRoomWithOptions: %v", err)
 	}
 	// Later edits to the source layout must not reach the running room.
 	cells[1].Name = locale.FromEn("Edited After Create")
@@ -945,8 +946,24 @@ func TestWS_RoomUsesSelectedBoardSnapshot(t *testing.T) {
 		t.Fatalf("cell 1 = %+v, want the custom board snapshot", got)
 	}
 
+	if len(payload.Players) != 1 || payload.Players[0].XP != 120 {
+		t.Fatalf("players = %+v, want Alice starting with 120 XP", payload.Players)
+	}
+
 	summaries := hub.GetRoomsSummary()
-	if len(summaries) != 1 || summaries[0].BoardID != "b-1" || summaries[0].BoardName != "Hard Mode" {
-		t.Fatalf("room summary = %+v, want board b-1 / Hard Mode", summaries)
+	if len(summaries) != 1 || summaries[0].BoardID != "b-1" || summaries[0].BoardName != "Hard Mode" || summaries[0].InitialXP != 120 {
+		t.Fatalf("room summary = %+v, want board b-1 / Hard Mode with 120 initial XP", summaries)
+	}
+}
+
+func TestHub_CreateRoomRejectsOutOfRangeInitialXP(t *testing.T) {
+	hub := NewHub()
+	for _, xp := range []int{-1, room.DefaultTargetXP} {
+		if err := hub.CreateRoomWithOptions("xp-room", RoomOptions{Topic: "Go", InitialXP: xp}); err == nil {
+			t.Errorf("initial XP %d was accepted", xp)
+		}
+	}
+	if hub.RoomExists("xp-room") {
+		t.Fatal("room was created despite invalid initial XP")
 	}
 }

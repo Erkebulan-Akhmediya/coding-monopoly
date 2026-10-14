@@ -66,12 +66,24 @@ export interface RoomSummary {
   topic: string
   board_id?: string
   board_name?: string
+  initial_xp: number
   player_count: number
   is_started: boolean
   is_paused: boolean
   is_finished: boolean
   active_turn: string
   players: string[]
+}
+
+export interface CreateRoomInput {
+  room_id: string
+  topic: string
+  board_id: string
+  initial_xp: number
+}
+
+export interface CreatedRoom extends CreateRoomInput {
+  board_name: string
 }
 
 export interface BoardCell {
@@ -352,12 +364,7 @@ export const adminApiService = {
     return data.rooms || []
   },
 
-  async createRoom(
-    token: string,
-    roomID: string,
-    topic: string,
-    boardID: string,
-  ): Promise<{ room_id: string; topic: string; board_id: string; board_name: string }> {
+  async createRoom(token: string, input: CreateRoomInput): Promise<CreatedRoom> {
     const baseUrl = getBaseHttpUrl()
     const res = await fetch(`${baseUrl}/admin/rooms`, {
       method: 'POST',
@@ -365,9 +372,9 @@ export const adminApiService = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ room_id: roomID.trim(), topic: topic.trim(), board_id: boardID }),
+      body: JSON.stringify({ ...input, room_id: input.room_id.trim(), topic: input.topic.trim() }),
     })
-    return handleResponse<{ room_id: string; topic: string; board_id: string; board_name: string }>(res)
+    return handleResponse<CreatedRoom>(res)
   },
 
   async listTopics(token: string): Promise<string[]> {

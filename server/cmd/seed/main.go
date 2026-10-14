@@ -12,6 +12,9 @@ import (
 	"server/internal/room"
 )
 
+// beginnerBoardName is the seeded gentler board offered alongside the default.
+const beginnerBoardName = "Beginner"
+
 func main() {
 	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
@@ -37,6 +40,15 @@ func main() {
 		log.Fatalf("Failed to seed default board: %v\n", err)
 	}
 	log.Printf("Seeded %q board with %d cells.\n", boards.DefaultName, room.BoardSize)
+
+	beginnerCells, err := room.ValidateBoard(room.BeginnerBoard())
+	if err != nil {
+		log.Fatalf("Invalid beginner board: %v\n", err)
+	}
+	if _, err := boards.Create(ctx, conn, beginnerBoardName, beginnerCells); err != nil {
+		log.Fatalf("Failed to seed %q board: %v\n", beginnerBoardName, err)
+	}
+	log.Printf("Seeded %q board with %d cells.\n", beginnerBoardName, room.BoardSize)
 
 	type SeedOption struct {
 		Text      locale.Text
