@@ -82,7 +82,7 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: rgba(2, 6, 23, 0.82);
+  background: color-mix(in srgb, var(--c-slate-950) 82%, transparent);
   backdrop-filter: blur(4px);
 }
 
@@ -90,9 +90,9 @@ export default defineComponent({
   width: min(420px, 100%);
   padding: 1.75rem 1.5rem;
   border-radius: 12px;
-  background: linear-gradient(160deg, #1e293b, #0f172a);
-  border: 1px solid #334155;
-  color: #f8fafc;
+  background: linear-gradient(160deg, var(--c-slate-800), var(--c-slate-900));
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-slate-50);
   text-align: center;
   animation: rise 0.35s ease-out;
   display: flex;
@@ -105,18 +105,18 @@ export default defineComponent({
   font-size: 0.72rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--c-slate-400);
 }
 
 .winner {
   margin: 0.4rem 0 0.25rem;
   font-size: 1.75rem;
-  color: #fbbf24;
+  color: var(--c-amber-400);
 }
 
 .reason {
   margin: 0 0 1.25rem;
-  color: #cbd5e1;
+  color: var(--c-slate-300);
   font-size: 0.9rem;
 }
 
@@ -137,18 +137,18 @@ export default defineComponent({
   align-items: center;
   padding: 0.55rem 0.7rem;
   border-radius: 8px;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--c-slate-900);
+  border: 1px solid var(--c-slate-700);
 }
 
 .standings li.champion {
-  border-color: #fbbf24;
-  background: #172554;
+  border-color: var(--c-amber-400);
+  background: var(--c-blue-950);
 }
 
 .rank {
   font-weight: 800;
-  color: #94a3b8;
+  color: var(--c-slate-400);
 }
 
 .name {
@@ -156,14 +156,14 @@ export default defineComponent({
 }
 
 .you {
-  color: #60a5fa;
+  color: var(--c-blue-400);
   font-size: 0.75rem;
   font-weight: 600;
 }
 
 .xp {
   font-weight: 800;
-  color: #34d399;
+  color: var(--c-emerald-400);
 }
 
 .lobby-btn {
@@ -174,8 +174,8 @@ export default defineComponent({
   cursor: pointer;
   font-weight: 700;
   font-size: 0.9rem;
-  background: linear-gradient(90deg, #1e40af, #3b82f6);
-  color: white;
+  background: linear-gradient(90deg, var(--c-solid--blue-800), var(--c-blue-500));
+  color: var(--c-white);
   transition: opacity 0.2s, transform 0.15s;
 }
 

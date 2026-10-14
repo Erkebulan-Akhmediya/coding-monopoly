@@ -110,18 +110,18 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: radial-gradient(ellipse at top, #1e293b 0%, #0f172a 60%);
-  color: #f8fafc;
+  background: radial-gradient(ellipse at top, var(--c-slate-800) 0%, var(--c-slate-900) 60%);
+  color: var(--c-slate-50);
   padding: 1rem;
 }
 
 .lobby-card {
-  background: linear-gradient(145deg, #0f1e3a 0%, #111827 100%);
-  border: 1px solid #1e3a5f;
+  background: linear-gradient(145deg, var(--c-navy-800) 0%, var(--c-gray-900) 100%);
+  border: 1px solid var(--c-navy-700);
   border-radius: 16px;
   padding: 2.5rem 2.75rem;
   width: 360px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(96, 165, 250, 0.1);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--c-shadow) 70%, transparent), 0 0 0 1px color-mix(in srgb, var(--c-blue-400) 10%, transparent);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -131,7 +131,7 @@ export default defineComponent({
   font-size: 1.6rem;
   font-weight: 900;
   text-align: center;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa);
+  background: linear-gradient(90deg, var(--c-blue-400), var(--c-violet-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.3rem;
@@ -139,14 +139,14 @@ export default defineComponent({
 
 .lobby-subtitle {
   text-align: center;
-  color: #64748b;
+  color: var(--c-slate-500);
   font-size: 0.85rem;
   margin: 0 0 1.5rem 0;
 }
 
 .hint {
   text-align: center;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   font-size: 0.8rem;
   margin: -0.75rem 0 0.75rem 0;
   font-style: italic;
@@ -154,7 +154,7 @@ export default defineComponent({
 
 .join-error {
   text-align: center;
-  color: #f87171;
+  color: var(--c-red-400);
   font-size: 0.85rem;
   margin: 0 0 0.75rem 0;
 }
@@ -169,25 +169,25 @@ export default defineComponent({
 .field label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .lobby-input {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--c-slate-900);
+  border: 1px solid var(--c-slate-700);
   border-radius: 8px;
   padding: 0.55rem 0.85rem;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .lobby-input:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+  border-color: var(--c-blue-400);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-blue-400) 20%, transparent);
 }
 
 .lobby-input:disabled {
@@ -203,8 +203,8 @@ export default defineComponent({
   cursor: pointer;
   font-weight: 700;
   font-size: 0.95rem;
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
-  color: white;
+  background: linear-gradient(90deg, var(--c-solid--blue-600), var(--c-solid--violet-600));
+  color: var(--c-white);
   transition: opacity 0.2s, transform 0.15s;
   margin-top: 0.25rem;
 }

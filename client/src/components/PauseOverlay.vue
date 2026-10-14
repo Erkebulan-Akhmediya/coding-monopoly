@@ -35,19 +35,19 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(8, 15, 30, 0.82);
+  background: color-mix(in srgb, var(--c-navy-950) 82%, transparent);
   backdrop-filter: blur(4px);
   pointer-events: all;
 }
 
 .pause-card {
-  background: linear-gradient(145deg, #0f1e3a 0%, #111827 100%);
-  border: 1px solid #f59e0b;
+  background: linear-gradient(145deg, var(--c-navy-800) 0%, var(--c-gray-900) 100%);
+  border: 1px solid var(--c-amber-500);
   border-radius: 16px;
   padding: 2rem 2.5rem;
   max-width: 420px;
   text-align: center;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(245, 158, 11, 0.15);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--c-shadow) 70%, transparent), 0 0 40px color-mix(in srgb, var(--c-amber-500) 15%, transparent);
 }
 
 .pause-icon {
@@ -59,12 +59,12 @@ export default defineComponent({
   margin: 0 0 0.75rem 0;
   font-size: 1.4rem;
   font-weight: 900;
-  color: #fbbf24;
+  color: var(--c-amber-400);
 }
 
 .pause-message {
   margin: 0;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   font-size: 0.95rem;
   line-height: 1.5;
 }

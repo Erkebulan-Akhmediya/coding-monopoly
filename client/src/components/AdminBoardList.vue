@@ -232,8 +232,8 @@ export default defineComponent({
   flex-direction: column;
   gap: 1.1rem;
   padding: 1.5rem;
-  background: #080f1e;
-  color: #e2e8f0;
+  background: var(--c-navy-950);
+  color: var(--c-slate-200);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: calc(100vh - 49px);
   box-sizing: border-box;
@@ -256,14 +256,14 @@ export default defineComponent({
   font-size: 1.25rem;
   font-weight: 800;
   margin: 0;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa);
+  background: linear-gradient(90deg, var(--c-blue-400), var(--c-violet-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .count-badge {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #94a3b8;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-slate-400);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.2rem 0.6rem;
@@ -271,27 +271,27 @@ export default defineComponent({
 }
 .list-subtitle {
   margin: 0;
-  color: #64748b;
+  color: var(--c-slate-500);
   font-size: 0.85rem;
 }
 
 .error-box {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid #ef4444;
+  background: color-mix(in srgb, var(--c-red-500) 15%, transparent);
+  border: 1px solid var(--c-red-500);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: #f87171;
+  color: var(--c-red-400);
 }
 .loading-state,
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #64748b;
-  background: #0c1527;
-  border: 1px solid #1e293b;
+  color: var(--c-slate-500);
+  background: var(--c-navy-900);
+  border: 1px solid var(--c-slate-800);
   border-radius: 12px;
 }
 
@@ -301,9 +301,9 @@ export default defineComponent({
   gap: 1rem;
 }
 .board-card {
-  background: #0c1527;
-  border: 1px solid #1e293b;
-  border-left: 3px solid #60a5fa;
+  background: var(--c-navy-900);
+  border: 1px solid var(--c-slate-800);
+  border-left: 3px solid var(--c-blue-400);
   border-radius: 12px;
   padding: 1rem 1.1rem;
   display: flex;
@@ -311,7 +311,7 @@ export default defineComponent({
   gap: 0.6rem;
 }
 .board-card.is-default {
-  border-left-color: #34d399;
+  border-left-color: var(--c-emerald-400);
 }
 .board-card-top {
   display: flex;
@@ -322,7 +322,7 @@ export default defineComponent({
 .board-name {
   font-weight: 800;
   font-size: 0.95rem;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   overflow-wrap: anywhere;
 }
 .default-badge {
@@ -332,46 +332,46 @@ export default defineComponent({
   letter-spacing: 0.5px;
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
-  background: #064e3b;
-  color: #34d399;
+  background: var(--c-emerald-900);
+  color: var(--c-emerald-400);
   white-space: nowrap;
 }
 .board-updated {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--c-slate-500);
 }
 .board-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid var(--c-slate-800);
 }
 
 .confirm-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 9, 20, 0.8);
+  background: color-mix(in srgb, var(--c-navy-975) 80%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 250;
 }
 .confirm-modal-card {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--c-slate-900);
+  border: 1px solid var(--c-slate-700);
   border-radius: 12px;
   padding: 1.5rem 2rem;
   max-width: 400px;
   text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--c-shadow) 80%, transparent);
 }
 .confirm-modal-card h3 {
   margin-top: 0;
-  color: #f87171;
+  color: var(--c-red-400);
 }
 .confirm-modal-card p {
-  color: #cbd5e1;
+  color: var(--c-slate-300);
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
 }
@@ -382,8 +382,8 @@ export default defineComponent({
 }
 
 .btn-primary {
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
-  color: white;
+  background: linear-gradient(90deg, var(--c-solid--blue-600), var(--c-solid--violet-600));
+  color: var(--c-white);
   border: none;
   border-radius: 8px;
   padding: 0.5rem 1rem;
@@ -392,9 +392,9 @@ export default defineComponent({
   cursor: pointer;
 }
 .btn-secondary {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #e2e8f0;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-slate-200);
   border-radius: 8px;
   padding: 0.5rem 1rem;
   font-weight: 600;
@@ -402,8 +402,8 @@ export default defineComponent({
   cursor: pointer;
 }
 .btn-danger {
-  background: linear-gradient(90deg, #7f1d1d, #ef4444);
-  color: white;
+  background: linear-gradient(90deg, var(--c-solid--red-900), var(--c-red-500));
+  color: var(--c-white);
   border: none;
   border-radius: 8px;
   padding: 0.5rem 1rem;

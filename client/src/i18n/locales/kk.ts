@@ -6,6 +6,24 @@ export default {
     ru: 'Орыс',
     kk: 'Қазақ',
   },
+  theme: {
+    title: 'Тақырып',
+    switch: 'Тақырыпты ауыстыру',
+    names: {
+      midnight: 'Түн ортасы',
+      ivory: 'Піл сүйегі',
+      terminal: 'Терминал',
+      mono: 'Моно',
+      solarpunk: 'Солярпанк',
+    },
+    descriptions: {
+      midnight: 'Бастапқы қараңғы тақырып',
+      ivory: 'Claude стиліндегі жылы ашық тақырып',
+      terminal: 'Omarchy стиліндегі жайлы TUI',
+      mono: 'Минимализм: қара, ақ және сұр',
+      solarpunk: 'Күн нұрлы жасыл мен алтын',
+    },
+  },
   common: {
     you: '(Сіз)',
     offline: 'офлайн',

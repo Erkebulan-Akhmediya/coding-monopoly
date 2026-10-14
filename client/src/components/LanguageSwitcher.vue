@@ -47,30 +47,26 @@ export default defineComponent({
 
 <style scoped>
 .lang-switcher {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 10000;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(15, 23, 42, 0.92);
-  color: #e2e8f0;
+  border: 1px solid color-mix(in srgb, var(--c-bright) 15%, transparent);
+  background: color-mix(in srgb, var(--c-slate-900) 92%, transparent);
+  color: var(--c-slate-200);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   cursor: pointer;
   backdrop-filter: blur(8px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--c-shadow) 35%, transparent);
   transition: border-color 0.2s, transform 0.15s, background 0.2s;
 }
 
 .lang-switcher:hover {
-  border-color: #60a5fa;
-  background: rgba(30, 41, 59, 0.95);
+  border-color: var(--c-blue-400);
+  background: color-mix(in srgb, var(--c-slate-800) 95%, transparent);
   transform: translateY(-1px);
 }
 </style>

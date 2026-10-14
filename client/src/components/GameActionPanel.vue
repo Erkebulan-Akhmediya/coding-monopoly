@@ -46,7 +46,7 @@ export default defineComponent({
   margin: auto;
   width: 100%;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: color-mix(in srgb, var(--c-shadow) 70%, transparent);
 
   position: absolute;
   top: 0;

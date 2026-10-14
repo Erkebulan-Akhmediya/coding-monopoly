@@ -6,6 +6,24 @@ export default {
     ru: 'Русский',
     kk: 'Казахский',
   },
+  theme: {
+    title: 'Тема',
+    switch: 'Сменить тему',
+    names: {
+      midnight: 'Полночь',
+      ivory: 'Слоновая кость',
+      terminal: 'Терминал',
+      mono: 'Моно',
+      solarpunk: 'Солярпанк',
+    },
+    descriptions: {
+      midnight: 'Исходная тёмная тема',
+      ivory: 'Тёплая светлая тема в стиле Claude',
+      terminal: 'Уютный TUI в стиле Omarchy',
+      mono: 'Минимализм: чёрный, белый и серый',
+      solarpunk: 'Солнечная зелень и золото',
+    },
+  },
   common: {
     you: '(Вы)',
     offline: 'не в сети',

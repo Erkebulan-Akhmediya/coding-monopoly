@@ -463,8 +463,8 @@ export default defineComponent({
   flex-direction: column;
   gap: 1.25rem;
   padding: 1.5rem;
-  background: #080f1e;
-  color: #e2e8f0;
+  background: var(--c-navy-950);
+  color: var(--c-slate-200);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: calc(100vh - 49px);
   box-sizing: border-box;
@@ -488,15 +488,15 @@ export default defineComponent({
   font-size: 1.25rem;
   font-weight: 800;
   margin: 0;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa);
+  background: linear-gradient(90deg, var(--c-blue-400), var(--c-violet-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .count-badge {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #94a3b8;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-slate-400);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.2rem 0.6rem;
@@ -513,8 +513,8 @@ export default defineComponent({
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
-  background: #0c1527;
-  border: 1px solid #1e293b;
+  background: var(--c-navy-900);
+  border: 1px solid var(--c-slate-800);
   border-radius: 12px;
   padding: 0.85rem 1.1rem;
   align-items: center;
@@ -528,25 +528,25 @@ export default defineComponent({
 .filter-group label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--c-slate-500);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .filter-select,
 .search-input {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--c-slate-900);
+  border: 1px solid var(--c-slate-700);
   border-radius: 8px;
   padding: 0.45rem 0.75rem;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   font-size: 0.85rem;
   outline: none;
   transition: border-color 0.2s;
 }
 .filter-select:focus,
 .search-input:focus {
-  border-color: #60a5fa;
+  border-color: var(--c-blue-400);
 }
 
 .flex-search {
@@ -559,14 +559,14 @@ export default defineComponent({
 
 /* Error box */
 .error-box {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid #ef4444;
+  background: color-mix(in srgb, var(--c-red-500) 15%, transparent);
+  border: 1px solid var(--c-red-500);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: #f87171;
+  color: var(--c-red-400);
 }
 
 /* Loading & Empty states */
@@ -574,9 +574,9 @@ export default defineComponent({
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #64748b;
-  background: #0c1527;
-  border: 1px solid #1e293b;
+  color: var(--c-slate-500);
+  background: var(--c-navy-900);
+  border: 1px solid var(--c-slate-800);
   border-radius: 12px;
 }
 .empty-state p {
@@ -586,9 +586,9 @@ export default defineComponent({
 /* Table layout */
 .table-wrapper {
   overflow-x: auto;
-  border: 1px solid #1e293b;
+  border: 1px solid var(--c-slate-800);
   border-radius: 12px;
-  background: #0c1527;
+  background: var(--c-navy-900);
 }
 
 .questions-table {
@@ -599,24 +599,24 @@ export default defineComponent({
 }
 
 .questions-table th {
-  background: #0f172a;
-  color: #64748b;
+  background: var(--c-slate-900);
+  color: var(--c-slate-500);
   font-size: 0.7rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--c-slate-800);
 }
 
 .questions-table td {
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--c-slate-800);
   vertical-align: top;
 }
 
 .question-row:hover {
-  background: #111e35;
+  background: var(--c-navy-850);
 }
 
 /* Badges */
@@ -629,14 +629,14 @@ export default defineComponent({
   letter-spacing: 0.5px;
 }
 .type-badge.mcq {
-  background: #1e3a8a;
-  color: #93c5fd;
-  border: 1px solid #3b82f6;
+  background: var(--c-blue-900);
+  color: var(--c-blue-300);
+  border: 1px solid var(--c-blue-500);
 }
 .type-badge.text {
-  background: #581c87;
-  color: #e9d5ff;
-  border: 1px solid #a855f7;
+  background: var(--c-purple-900);
+  color: var(--c-purple-200);
+  border: 1px solid var(--c-purple-500);
 }
 
 .diff-badge {
@@ -648,16 +648,16 @@ export default defineComponent({
   text-transform: capitalize;
 }
 .badge-easy {
-  background: #065f46;
-  color: #a7f3d0;
+  background: var(--c-emerald-800);
+  color: var(--c-emerald-200);
 }
 .badge-medium {
-  background: #78350f;
-  color: #fde68a;
+  background: var(--c-amber-900);
+  color: var(--c-amber-200);
 }
 .badge-hard {
-  background: #7f1d1d;
-  color: #fca5a5;
+  background: var(--c-red-900);
+  color: var(--c-red-300);
 }
 
 .topic-badge {
@@ -666,18 +666,18 @@ export default defineComponent({
   border-radius: 6px;
   font-size: 0.72rem;
   font-weight: 600;
-  background: #1e3a5f;
-  color: #93c5fd;
+  background: var(--c-navy-700);
+  color: var(--c-blue-300);
 }
 
 /* Title & Prompt */
 .q-title {
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   margin-bottom: 0.25rem;
 }
 .q-prompt-preview {
-  color: #94a3b8;
+  color: var(--c-slate-400);
   font-size: 0.8rem;
   max-width: 320px;
   overflow: hidden;
@@ -691,7 +691,7 @@ export default defineComponent({
 }
 .meta-label {
   font-size: 0.7rem;
-  color: #64748b;
+  color: var(--c-slate-500);
   display: block;
   margin-bottom: 0.2rem;
 }
@@ -700,7 +700,7 @@ export default defineComponent({
   margin: 0;
   padding: 0;
   font-size: 0.78rem;
-  color: #cbd5e1;
+  color: var(--c-slate-300);
 }
 .preview-list li {
   overflow: hidden;
@@ -708,11 +708,11 @@ export default defineComponent({
   white-space: nowrap;
 }
 .is-correct-preview {
-  color: #34d399;
+  color: var(--c-emerald-400);
   font-weight: 700;
 }
 .more-hint {
-  color: #64748b;
+  color: var(--c-slate-500);
   font-style: italic;
   font-size: 0.72rem;
 }
@@ -723,9 +723,9 @@ export default defineComponent({
   gap: 0.3rem;
 }
 .ans-tag {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #38bdf8;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-sky-400);
   font-size: 0.72rem;
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
@@ -751,14 +751,14 @@ export default defineComponent({
   cursor: not-allowed;
 }
 .status-published {
-  background: #064e3b;
-  color: #34d399;
-  border: 1px solid #10b981;
+  background: var(--c-emerald-900);
+  color: var(--c-emerald-400);
+  border: 1px solid var(--c-emerald-500);
 }
 .status-draft {
-  background: #451a03;
-  color: #fb923c;
-  border: 1px solid #f97316;
+  background: var(--c-amber-950);
+  color: var(--c-orange-400);
+  border: 1px solid var(--c-orange-500);
 }
 
 /* Action buttons */
@@ -773,27 +773,27 @@ export default defineComponent({
 .confirm-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 9, 20, 0.8);
+  background: color-mix(in srgb, var(--c-navy-975) 80%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 250;
 }
 .confirm-modal-card {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--c-slate-900);
+  border: 1px solid var(--c-slate-700);
   border-radius: 12px;
   padding: 1.5rem 2rem;
   max-width: 400px;
   text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--c-shadow) 80%, transparent);
 }
 .confirm-modal-card h3 {
   margin-top: 0;
-  color: #f87171;
+  color: var(--c-red-400);
 }
 .confirm-modal-card p {
-  color: #cbd5e1;
+  color: var(--c-slate-300);
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
 }
@@ -804,8 +804,8 @@ export default defineComponent({
 }
 
 .btn-primary {
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
-  color: white;
+  background: linear-gradient(90deg, var(--c-solid--blue-600), var(--c-solid--violet-600));
+  color: var(--c-white);
   border: none;
   border-radius: 8px;
   padding: 0.5rem 1rem;
@@ -814,9 +814,9 @@ export default defineComponent({
   cursor: pointer;
 }
 .btn-secondary {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #e2e8f0;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-slate-200);
   border-radius: 8px;
   padding: 0.5rem 1rem;
   font-weight: 600;
@@ -824,8 +824,8 @@ export default defineComponent({
   cursor: pointer;
 }
 .btn-danger {
-  background: linear-gradient(90deg, #7f1d1d, #ef4444);
-  color: white;
+  background: linear-gradient(90deg, var(--c-solid--red-900), var(--c-red-500));
+  color: var(--c-white);
   border: none;
   border-radius: 8px;
   padding: 0.5rem 1rem;

@@ -160,12 +160,12 @@ export default defineComponent({
 
 <style scoped>
 .problem-container {
-  background: rgba(30, 41, 59, 0.75);
+  background: color-mix(in srgb, var(--c-slate-800) 75%, transparent);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid color-mix(in srgb, var(--c-bright) 10%, transparent);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--c-shadow) 40%, transparent);
   margin: 1rem 0;
   animation: slideIn 0.4s ease-out;
   text-align: left;
@@ -181,8 +181,8 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1.25rem;
-  background: rgba(15, 23, 42, 0.6);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--c-slate-900) 60%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--c-bright) 10%, transparent);
 }
 
 .header-left {
@@ -194,9 +194,9 @@ export default defineComponent({
 .header-badge {
   font-size: 0.6rem;
   font-weight: 800;
-  color: #38bdf8;
+  color: var(--c-sky-400);
   letter-spacing: 1px;
-  background: rgba(56, 189, 248, 0.15);
+  background: color-mix(in srgb, var(--c-sky-400) 15%, transparent);
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
 }
@@ -207,12 +207,12 @@ export default defineComponent({
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
   letter-spacing: 0.5px;
-  color: #fff;
+  color: var(--c-white);
 }
 
-.diff-easy .difficulty-tag { background: #10b981; }
-.diff-medium .difficulty-tag { background: #fbbf24; color: #1e293b; }
-.diff-hard .difficulty-tag { background: #ef4444; }
+.diff-easy .difficulty-tag { background: var(--c-emerald-500); }
+.diff-medium .difficulty-tag { background: var(--c-amber-400); color: var(--c-slate-800); }
+.diff-hard .difficulty-tag { background: var(--c-red-500); }
 
 .header-timer {
   display: flex;
@@ -220,14 +220,14 @@ export default defineComponent({
   gap: 0.3rem;
   font-size: 0.85rem;
   font-weight: 800;
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--c-bright) 5%, transparent);
   padding: 0.25rem 0.6rem;
   border-radius: 20px;
 }
 
 .header-timer.warning-time {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--c-red-500) 20%, transparent);
+  color: var(--c-red-500);
   animation: pulse 1s infinite;
 }
 
@@ -241,16 +241,16 @@ export default defineComponent({
 }
 
 .prompt-box {
-  background: rgba(15, 23, 42, 0.4);
+  background: color-mix(in srgb, var(--c-slate-900) 40%, transparent);
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--c-bright) 5%, transparent);
 }
 
 .prompt-text {
   margin: 0;
   font-size: 0.85rem;
   line-height: 1.5;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   white-space: pre-wrap;
 }
 
@@ -260,18 +260,18 @@ export default defineComponent({
   font-weight: 700;
   font-size: 0.8rem;
   text-align: center;
-  background: rgba(15, 23, 42, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--c-slate-900) 80%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--c-bright) 5%, transparent);
 }
 
 .timeout-msg {
   margin: 0;
-  color: #ef4444;
+  color: var(--c-red-500);
 }
 
 .submitting-msg {
   margin: 0;
-  color: #34d399;
+  color: var(--c-emerald-400);
 }
 
 /* Spectator Panel */
@@ -289,7 +289,7 @@ export default defineComponent({
 
 .redacted-lock {
   font-size: 2rem;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--c-shadow) 50%, transparent));
   animation: hoverLock 3s ease-in-out infinite;
 }
 
@@ -302,13 +302,13 @@ export default defineComponent({
   margin: 0.5rem 0 0 0;
   font-size: 0.9rem;
   letter-spacing: 1px;
-  color: #f8fafc;
+  color: var(--c-slate-50);
 }
 
 .spectator-hint {
   margin: 0;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   max-width: 320px;
   line-height: 1.4;
 }
@@ -324,9 +324,9 @@ export default defineComponent({
 .spinner {
   width: 2rem;
   height: 2rem;
-  border: 3px solid rgba(255,255,255,0.1);
+  border: 3px solid color-mix(in srgb, var(--c-bright) 10%, transparent);
   border-radius: 50%;
-  border-top-color: #38bdf8;
+  border-top-color: var(--c-sky-400);
   animation: spin 1s linear infinite;
 }
 

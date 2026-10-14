@@ -114,7 +114,7 @@ export default defineComponent({
   justify-content: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: rgba(2, 6, 23, 0.78);
+  background: color-mix(in srgb, var(--c-slate-950) 78%, transparent);
   box-sizing: border-box;
   pointer-events: none;
   animation: preview-fade-in 0.25s ease-out;
@@ -127,7 +127,7 @@ export default defineComponent({
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--c-slate-400);
 }
 
 /*
@@ -142,18 +142,18 @@ export default defineComponent({
   aspect-ratio: 130 / 85;
   max-width: 100%;
   border-radius: 10px;
-  border: 2px solid #475569;
-  background: #334155;
+  border: 2px solid var(--c-slate-600);
+  background: var(--c-slate-700);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 0.65rem 0.85rem;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--c-shadow) 45%, transparent);
   animation: preview-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .landed-cell.corner {
-  background: #1e293b;
+  background: var(--c-slate-800);
   border-width: 3px;
 }
 
@@ -164,7 +164,7 @@ export default defineComponent({
 }
 
 .landed-index {
-  color: #94a3b8;
+  color: var(--c-slate-400);
   font-weight: 700;
   font-size: clamp(0.75rem, 2.2vh, 1.1rem);
 }
@@ -188,14 +188,14 @@ export default defineComponent({
 .landed-name {
   font-size: clamp(0.95rem, 3.2vh, 1.55rem);
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--c-slate-50);
   line-height: 1.15;
 }
 
 .landed-subtitle {
   font-size: clamp(0.75rem, 2.4vh, 1.15rem);
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--c-sky-400);
 }
 
 .landed-token {
@@ -209,84 +209,84 @@ export default defineComponent({
   max-width: 28rem;
   font-size: 0.9rem;
   font-style: italic;
-  color: #cbd5e1;
+  color: var(--c-slate-300);
   text-align: center;
 }
 
 /* Match BoardView cell type accents */
 .cell-deploy {
-  background: linear-gradient(135deg, #065f46 0%, #047857 100%);
-  border-color: #10b981;
+  background: linear-gradient(135deg, var(--c-deploy--emerald-800) 0%, var(--c-deploy--emerald-700) 100%);
+  border-color: var(--c-deploy--emerald-500);
 }
 
 .cell-code_freeze {
-  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
-  border-color: #3b82f6;
+  background: linear-gradient(135deg, var(--c-code_freeze--blue-900) 0%, var(--c-code_freeze--blue-700) 100%);
+  border-color: var(--c-code_freeze--blue-500);
 }
 
 .cell-coffee_break {
-  background: linear-gradient(135deg, #78350f 0%, #b45309 100%);
-  border-color: #f59e0b;
+  background: linear-gradient(135deg, var(--c-coffee_break--amber-900) 0%, var(--c-coffee_break--amber-700) 100%);
+  border-color: var(--c-coffee_break--amber-500);
 }
 
 .cell-deadline {
-  background: linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%);
-  border-color: #ef4444;
+  background: linear-gradient(135deg, var(--c-deadline--red-900) 0%, var(--c-deadline--red-700) 100%);
+  border-color: var(--c-deadline--red-500);
 }
 
 .cell-xp_gain {
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.35) 0%, #334155 100%);
-  border-top: 5px solid #10b981;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_gain--emerald-500) 35%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 5px solid var(--c-xp_gain--emerald-500);
 }
 
 .cell-xp_gain.xp-gain-sm {
-  background: linear-gradient(180deg, rgba(5, 150, 105, 0.25) 0%, #334155 100%);
-  border-top-color: #059669;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_gain--emerald-600) 25%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top-color: var(--c-xp_gain--emerald-600);
 }
 
 .cell-xp_gain.xp-gain-md {
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.45) 0%, #334155 100%);
-  border-top-color: #10b981;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_gain--emerald-500) 45%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top-color: var(--c-xp_gain--emerald-500);
 }
 
 .cell-xp_gain.xp-gain-lg {
-  background: linear-gradient(180deg, rgba(52, 211, 153, 0.65) 0%, #334155 100%);
-  border-top-color: #34d399;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_gain--emerald-400) 65%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top-color: var(--c-xp_gain--emerald-400);
 }
 
 .cell-xp_loss {
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.35) 0%, #334155 100%);
-  border-top: 5px solid #ef4444;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_loss--red-500) 35%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 5px solid var(--c-xp_loss--red-500);
 }
 
 .cell-mystery {
-  background: linear-gradient(180deg, #312e81 0%, #334155 100%);
-  border-top: 5px solid #818cf8;
+  background: linear-gradient(180deg, var(--c-mystery--indigo-900) 0%, var(--c-slate-700) 100%);
+  border-top: 5px solid var(--c-mystery--indigo-400);
 }
 
 .cell-teleport {
-  background: linear-gradient(180deg, rgba(139, 92, 246, 0.35) 0%, #334155 100%);
-  border-top: 5px solid #8b5cf6;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-teleport--violet-500) 35%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 5px solid var(--c-teleport--violet-500);
 }
 
 .cell-skip_next {
-  background: linear-gradient(180deg, rgba(249, 115, 22, 0.35) 0%, #334155 100%);
-  border-top: 5px solid #f97316;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-skip_next--orange-500) 35%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 5px solid var(--c-skip_next--orange-500);
 }
 
 .cell-double_xp {
-  background: linear-gradient(180deg, rgba(234, 179, 8, 0.35) 0%, #334155 100%);
-  border-top: 5px solid #eab308;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-double_xp--yellow-500) 35%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 5px solid var(--c-double_xp--yellow-500);
 }
 
 .cell-free_pass {
-  background: linear-gradient(180deg, rgba(6, 182, 212, 0.35) 0%, #334155 100%);
-  border-top: 5px solid #06b6d4;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-free_pass--cyan-500) 35%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 5px solid var(--c-free_pass--cyan-500);
 }
 
 .cell-special_challenge {
-  background: linear-gradient(180deg, rgba(236, 72, 153, 0.35) 0%, #334155 100%);
-  border-top: 5px solid #ec4899;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-special_challenge--pink-500) 35%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 5px solid var(--c-special_challenge--pink-500);
 }
 
 @keyframes preview-fade-in {

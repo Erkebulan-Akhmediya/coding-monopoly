@@ -22,7 +22,7 @@
 - **Framework**: Vue 3 + TypeScript built with Vite.
 - **Strict Invariant**: **Options API only** (`defineComponent({ data, computed, methods, watch, mounted })`). **No Composition API, no `<script setup>`**.
 - **State Management**: Reactive store modules (`src/store.ts` for players, `src/adminStore.ts` for admin spectator) built with Vue's `reactive({})` — Options API compatible.
-- **Styling**: Modern, responsive dark-themed CSS with CSS Grid for the 32-cell perimeter board.
+- **Styling**: Responsive, themeable CSS with CSS Grid for the 32-cell perimeter board. Five color themes — Midnight (original dark, default), Ivory (Claude-like light), Terminal (Omarchy/Tokyo Night TUI), Mono (black/white/gray), Solarpunk — switchable at any time from the 🎨 control next to the language switcher (saved per browser in `localStorage['ui-theme']`).
 - **Libraries**:
   - `roll-a-die` — 3D canvas dice rolling animations.
   - Web Audio API — sound effects (`soundService.ts`) with custom synthesized audio fallback.
@@ -210,7 +210,9 @@ coding-monopoly/
     ├── src/
     │   ├── App.vue              # Root component: routes LobbyView vs BoardView vs AdminView
     │   ├── main.ts              # Vue application bootstrap & i18n mounting
-    │   ├── style.css            # Global dark-theme styles, board grid layout, animations
+    │   ├── style.css            # Global base styles (font, layout) wired to theme tokens
+    │   ├── themes.css           # Color tokens for every theme (see its header comment)
+    │   ├── theme.ts             # Theme registry, persistence, applies <html data-theme>
     │   ├── store.ts             # Player reactive state store
     │   ├── adminStore.ts        # Admin spectator reactive state store
     │   ├── i18n/                # Localization module
@@ -238,6 +240,7 @@ coding-monopoly/
     │       ├── EndGameSummary.vue       # Match podium & final standings modal
     │       ├── PlayerToken.vue          # Player avatar marker on cells
     │       ├── LanguageSwitcher.vue     # Language picker dropdown
+    │       ├── ThemeSwitcher.vue        # Theme picker (🎨) shown on every screen
     │       ├── AdminView.vue            # Admin dashboard container (Tabs + Login)
     │       ├── AdminQuestionList.vue    # Question bank management view
     │       ├── AdminQuestionFormModal.vue # Question editor modal
@@ -289,3 +292,4 @@ LISTEN_ADDR=0.0.0.0:8080 ADMIN_PASSWORD=secret ADMIN_TOKEN_SECRET=devsecret ./bi
 3. **Preserve Content Redaction**: Never send question prompts, options, or correctness to public spectator broadcasts. Only send redacted metadata (`difficulty`, `deadline`).
 4. **Dynamic Host Resolution**: In frontend services, always resolve API and WebSocket URLs dynamically from `window.location` (via `src/services/serverUrls.ts`), avoiding hardcoded `localhost` to ensure seamless LAN functionality.
 5. **Preserve i18n Translations**: Any new user-visible text in components must have corresponding translation keys added in `src/i18n/locales/en.ts`, `kk.ts`, and `ru.ts`.
+6. **Never hard-code colors**: Components use theme tokens only — `var(--c-<hue>-<shade>)` (Tailwind-style names, e.g. `--c-slate-700`), per-cell-type families inside cell-type rules (`--c-teleport--violet-500`), and `--c-solid--*` for dark shades behind on-accent (`--c-white`) text. Use `color-mix(in srgb, var(--c-…) 20%, transparent)` for translucency. A brand-new token needs a literal value in the Midnight block of `src/themes.css` and a derived formula in the shared block (the other themes only define `--t-*` base colors).
