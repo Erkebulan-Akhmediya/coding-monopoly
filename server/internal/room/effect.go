@@ -126,7 +126,7 @@ func handleTeleport(r *Room, p *Player, cell BoardCell) EffectResult {
 
 	return EffectResult{
 		EffectType:  "teleport",
-		Description: fmt.Sprintf("Teleported to cell %d (%s)", p.Position, r.GetCell(p.Position).Name),
+		Description: fmt.Sprintf("Teleported to cell %d (%s)", p.Position, r.GetCell(p.Position).Name.En),
 		XPDelta:     0,
 		NewXP:       p.XP,
 		NewPosition: p.Position,
@@ -280,12 +280,12 @@ func handleMystery(r *Room, p *Player, cell BoardCell) EffectResult {
 }
 
 func handleDeploy(r *Room, p *Player, cell BoardCell) EffectResult {
-	lapBonus := 100
-	p.XP += lapBonus
+	landingBonus := cellParam(cell, "amount")
+	p.XP += landingBonus
 	return EffectResult{
 		EffectType:  "deploy",
-		Description: fmt.Sprintf("Landed on Deploy! Collected +%d XP bonus", lapBonus),
-		XPDelta:     lapBonus,
+		Description: fmt.Sprintf("Landed on Deploy! Collected +%d XP bonus", landingBonus),
+		XPDelta:     landingBonus,
 		NewXP:       p.XP,
 		NewPosition: p.Position,
 	}
@@ -303,30 +303,32 @@ func handleCodeFreeze(r *Room, p *Player, cell BoardCell) EffectResult {
 }
 
 func handleCoffeeBreak(r *Room, p *Player, cell BoardCell) EffectResult {
-	p.XP += 5
+	amount := cellParam(cell, "amount")
+	p.XP += amount
 	return EffectResult{
 		EffectType:  "coffee_break",
-		Description: "Coffee Break! Rested and gained +5 XP",
-		XPDelta:     5,
+		Description: fmt.Sprintf("Coffee Break! Rested and gained +%d XP", amount),
+		XPDelta:     amount,
 		NewXP:       p.XP,
 		NewPosition: p.Position,
 	}
 }
 
 func handleDeadline(r *Room, p *Player, cell BoardCell) EffectResult {
-	// Swing event: 50% chance +50 XP, 50% chance -20 XP
+	// Swing event: 50% chance of the gain, 50% chance of the loss
 	if r.RNGIntn(2) == 0 {
-		p.XP += 50
+		gain := cellParam(cell, "gain")
+		p.XP += gain
 		return EffectResult{
 			EffectType:  "deadline",
-			Description: "Met the Deadline! Big swing bonus +50 XP",
-			XPDelta:     50,
+			Description: fmt.Sprintf("Met the Deadline! Big swing bonus +%d XP", gain),
+			XPDelta:     gain,
 			NewXP:       p.XP,
 			NewPosition: p.Position,
 		}
 	}
 	oldXP := p.XP
-	p.XP -= 20
+	p.XP -= cellParam(cell, "loss")
 	if p.XP < 0 {
 		p.XP = 0
 	}

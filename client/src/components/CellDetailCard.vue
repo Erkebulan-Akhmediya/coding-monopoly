@@ -67,7 +67,7 @@ export default defineComponent({
         return cell.params?.bonus ? `+${cell.params.bonus} ${this.$t('common.xp')}` : this.$t('board.cellSubtitle.bonus')
       }
       const key = `board.cellSubtitle.${cell.type}`
-      if (this.$te(key)) return this.$t(key)
+      if (this.$te(key)) return this.$t(key, cell.params || {})
       return ''
     },
   },

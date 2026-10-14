@@ -150,6 +150,9 @@ const (
 type Room struct {
 	ID                string
 	Topic             string
+	BoardID           string
+	BoardName         string
+	InitialXP         int // XP every new player starts with; set before the room is published
 	mu                sync.RWMutex
 	players           []*Player
 	playerMap         map[string]*Player
@@ -395,6 +398,7 @@ func (r *Room) AddOrReconnectPlayer(clientID string, name string) (*Player, erro
 
 	// New player joining before game starts
 	player := NewPlayer(clientID, name)
+	player.XP = r.InitialXP
 	r.players = append(r.players, player)
 	r.playerMap[clientID] = player
 
@@ -807,7 +811,7 @@ func (r *Room) rollPlayerLocked(player *Player) []RollResult {
 
 		lapBonus := 0
 		if passedGO {
-			lapBonus = 50
+			lapBonus = cellParam(r.board[StartCellIndex], "pass_bonus")
 			player.XP += lapBonus
 		}
 
@@ -1011,6 +1015,17 @@ func (r *Room) FormatPlayerTurnSummary() string {
 
 func (r *Room) Board() []BoardCell {
 	return r.board
+}
+
+// SetBoard replaces the room's board layout. Cells must already be validated
+// (see ValidateBoard). Call it before the room is published to players: the
+// board is treated as immutable afterwards and read without the lock.
+func (r *Room) SetBoard(layout BoardLayout) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.BoardID = layout.ID
+	r.BoardName = layout.Name
+	r.board = append([]BoardCell(nil), layout.Cells...)
 }
 
 // ---------------------------------------------------------------------------

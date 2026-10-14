@@ -11,6 +11,7 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 
 	"server/internal/admin"
+	"server/internal/boards"
 	"server/internal/ws"
 )
 
@@ -27,6 +28,9 @@ func main() {
 	defer db.Close()
 	if err := db.Ping(ctx); err != nil {
 		log.Fatalf("Connect to database: %v", err)
+	}
+	if err := boards.EnsureDefault(ctx, db); err != nil {
+		log.Printf("Ensure default board (run migrations?): %v", err)
 	}
 
 	hub := ws.NewHub(ws.NewDBQuestionProvider(db))

@@ -28,28 +28,28 @@ func cell(index int, nameEn, nameRu, nameKz, explEn, explRu, explKz, cellType st
 // Layout: 4 corners (0: Deploy, 8: Code Freeze, 16: Coffee Break, 24: Deadline)
 // and 28 perimeter effect cells.
 func DefaultBoard() []BoardCell {
-	cells := make([]BoardCell, 32)
+	cells := make([]BoardCell, BoardSize)
 
 	cells[0] = cell(0,
 		"Deploy", "Развертывание", "Орнату",
 		"Starting cell (GO). Passing this cell during a lap awards +50 XP. Landing directly on it awards a massive +100 XP Deploy bonus!",
 		"Стартовая клетка (GO). Прохождение этой клетки во время круга приносит +50 XP. Попадание прямо на неё приносит огромный бонус за размещение в размере +100 XP!",
 		"Бастапқы ұяшық (GO). Осы ұяшықтан бір айналым ішінде өту +50 XP береді. Тікелей осы ұяшыққа түсу үлкен +100 XP-лік орналастыру бонусын береді!",
-		"deploy", map[string]any{"lap_bonus": 100},
+		"deploy", map[string]any{"amount": 100, "pass_bonus": 50},
 	)
 	cells[1] = cell(1,
 		"Quick Bugfix", "Быстрое исправление ошибки", "Жылдам ақау түзету",
 		"Fixed a minor issue quickly in development. Grants +10 XP.",
 		"Быстро устранена небольшая проблема в процессе разработки. Даёт +10 XP.",
 		"Дамыту кезінде шағын мәселені тез арада түзетті. +10 XP береді.",
-		"xp_gain", map[string]any{"size": "S", "amount": 10},
+		"xp_gain", map[string]any{"amount": 10},
 	)
 	cells[2] = cell(2,
 		"Syntax Error", "Синтаксическая ошибка", "Синтаксистік қате",
 		"A syntax error slipped into the codebase. Deducts 10 XP (XP cannot drop below 0).",
 		"В код проникла синтаксическая ошибка. Снимается 10 XP (XP не может опускаться ниже 0).",
 		"Код базасына синтаксистік қате енді. 10 XP шегеріледі (XP 0-ден төмен түсе алмайды).",
-		"xp_loss", map[string]any{"size": "S", "amount": 10},
+		"xp_loss", map[string]any{"amount": 10},
 	)
 	cells[3] = cell(3,
 		"Mystery Box", "Таинственная коробка", "Құпия қорап",
@@ -63,7 +63,7 @@ func DefaultBoard() []BoardCell {
 		"Successfully merged a feature pull request into main. Grants +25 XP.",
 		"Успешно объединил пул-реквест с функцией в основную ветку. Присвоено +25 XP.",
 		"Фичерлік пул-реквестін негізгіге сәтті біріктірді. +25 XP береді.",
-		"xp_gain", map[string]any{"size": "M", "amount": 25},
+		"xp_gain", map[string]any{"amount": 25},
 	)
 	cells[5] = cell(5,
 		"Code Review Pass", "Прохождение рецензии кода", "Кодты тексеруден өту",
@@ -77,7 +77,7 @@ func DefaultBoard() []BoardCell {
 		"Painful merge conflict resolved under stress. Deducts 25 XP.",
 		"Конфликт слияния, вызвавший трудности, разрешён в условиях стресса. Снимается 25 XP.",
 		"Ауыр біріктіру қақтығысы стресс жағдайында шешілді. 25 XP шегеріледі.",
-		"xp_loss", map[string]any{"size": "M", "amount": 25},
+		"xp_loss", map[string]any{"amount": 25},
 	)
 	cells[7] = cell(7,
 		"CI Pass Ticket", "Прохождение CI", "CI тестілеуден өту билеті",
@@ -100,7 +100,7 @@ func DefaultBoard() []BoardCell {
 		"Cleaned up technical debt and improved code quality. Grants +10 XP.",
 		"Устранил технический долг и улучшил качество кода. Дает +10 XP.",
 		"Техникалық қарызды жойып, код сапасын жақсартты. +10 XP береді.",
-		"xp_gain", map[string]any{"size": "S", "amount": 10},
+		"xp_gain", map[string]any{"amount": 10},
 	)
 	cells[10] = cell(10,
 		"Meeting Overhead", "Накладные расходы на совещания", "Жиналыс презентациясы",
@@ -114,7 +114,7 @@ func DefaultBoard() []BoardCell {
 		"Major version release launched to production successfully! Grants a huge +50 XP bonus.",
 		"Выпуск новой версии успешно запущен в производственную среду! Даёт огромный бонус в размере +50 XP.",
 		"Негізгі нұсқаның шығарылымы өндіріске сәтті енгізілді! Үлкен +50 XP бонусын береді.",
-		"xp_gain", map[string]any{"size": "L", "amount": 50},
+		"xp_gain", map[string]any{"amount": 50},
 	)
 	cells[12] = cell(12,
 		"Fast-Track Pipeline", "Ускоренный конвейер", "Жылдам жол картасы",
@@ -135,7 +135,7 @@ func DefaultBoard() []BoardCell {
 		"A memory leak caused high resource consumption. Deducts 10 XP.",
 		"Утечка памяти привела к высокому потреблению ресурсов. Снимается 10 XP.",
 		"Жадтың ағып кетуі ресурстардың көп тұтынылуына әкелді. 10 XP шегеріледі.",
-		"xp_loss", map[string]any{"size": "S", "amount": 10},
+		"xp_loss", map[string]any{"amount": 10},
 	)
 	cells[15] = cell(15,
 		"Wildcard Event", "Непредвиденное событие", "Жабайы карта оқиғасы",
@@ -150,7 +150,7 @@ func DefaultBoard() []BoardCell {
 		"Neutral rest zone. Enjoy a quick coffee break and relax while earning a +5 XP boost.",
 		"Нейтральная зона отдыха. Сделайте небольшой перерыв на кофе и расслабьтесь, получив при этом бонус +5 XP.",
 		"Бейтарап демалыс аймағы. Жылдам кофе үзілісін пайдаланып демалып, +5 XP қосымша ұпай жинаңыз.",
-		"coffee_break", map[string]any{},
+		"coffee_break", map[string]any{"amount": 5},
 	)
 
 	cells[17] = cell(17,
@@ -158,7 +158,7 @@ func DefaultBoard() []BoardCell {
 		"Optimized database queries and latency. Grants +25 XP.",
 		"Оптимизированные запросы к базе данных и задержка. Дает +25 XP.",
 		"Оптимизацияланған дерекқор сұраулары мен кешігу уақыты. +25 XP береді.",
-		"xp_gain", map[string]any{"size": "M", "amount": 25},
+		"xp_gain", map[string]any{"amount": 25},
 	)
 	cells[18] = cell(18,
 		"Pair Programming", "Парное программирование", "Жұп бағдарламалау",
@@ -172,7 +172,7 @@ func DefaultBoard() []BoardCell {
 		"Broken unit test failed the staging build. Deducts 25 XP.",
 		"Неисправный модульный тест привёл к сбою сборки на промежуточном этапе. Снято 25 XP.",
 		"Бұзылған unit-тест staging құрастыру кезінде сәтсіз аяқталды. 25 XP шегеріледі.",
-		"xp_loss", map[string]any{"size": "M", "amount": 25},
+		"xp_loss", map[string]any{"amount": 25},
 	)
 	cells[20] = cell(20,
 		"Express Route", "Экспресс-маршрут", "Экспресс маршрут",
@@ -186,7 +186,7 @@ func DefaultBoard() []BoardCell {
 		"Wrote clear API documentation for the team. Grants +10 XP.",
 		"Написал понятную документацию по API для команды. Даёт +10 XP.",
 		"Команда үшін айқын API құжаттамасын жазды. +10 XP береді.",
-		"xp_gain", map[string]any{"size": "S", "amount": 10},
+		"xp_gain", map[string]any{"amount": 10},
 	)
 	cells[22] = cell(22,
 		"Security Clearance", "Допуск к секретной информации", "Қауіпсіздік рұқсаты",
@@ -208,7 +208,7 @@ func DefaultBoard() []BoardCell {
 		"Critical release deadline swing event! 50% chance of +50 XP bonus, 50% chance of -20 XP penalty.",
 		"Критическое событие, влияющее на срок выпуска! 50 % шанс получить бонус +50 XP, 50 % шанс получить штраф -20 XP.",
 		"Критикалық шығарылым мерзімінің ауытқу оқиғасы! +50 XP бонусын алу ықтималдығы 50%, -20 XP айыппұл алу ықтималдығы 50%.",
-		"deadline", map[string]any{},
+		"deadline", map[string]any{"gain": 50, "loss": 20},
 	)
 
 	cells[25] = cell(25,
@@ -216,7 +216,7 @@ func DefaultBoard() []BoardCell {
 		"Migrated legacy monolith to a modern resilient architecture. Grants +50 XP.",
 		"Перенес устаревшую монолитную архитектуру на современную отказоустойчивую архитектуру. Даёт +50 XP.",
 		"Ескі мұрагерлік монолитті заманауи, төзімді архитектураға көшірді. +50 XP береді.",
-		"xp_gain", map[string]any{"size": "L", "amount": 50},
+		"xp_gain", map[string]any{"amount": 50},
 	)
 	cells[26] = cell(26,
 		"Bug Bounty", "Программа поощрения за обнаружение ошибок", "Қателіктерге сыйақы",
@@ -230,7 +230,7 @@ func DefaultBoard() []BoardCell {
 		"Incompatible package versions caused build failure. Deducts 10 XP.",
 		"Несовместимые версии пакетов привели к сбою сборки. Снимается 10 XP.",
 		"Сәйкес келмейтін пакет нұсқалары құрастырудың сәтсіздігіне әкелді. 10 XP шегеріледі.",
-		"xp_loss", map[string]any{"size": "S", "amount": 10},
+		"xp_loss", map[string]any{"amount": 10},
 	)
 	cells[28] = cell(28,
 		"Surprise Audit", "Неожиданный аудит", "Күтпеген аудит",
@@ -244,7 +244,7 @@ func DefaultBoard() []BoardCell {
 		"Achieved 100% test coverage with comprehensive test suites. Grants +25 XP.",
 		"Достигнут 100% охват тестированием с помощью комплексных наборов тестов. Начисляется +25 XP.",
 		"Кешенді тест жиынтықтарымен 100% тест қамтуына қол жеткізілді. +25 XP береді.",
-		"xp_gain", map[string]any{"size": "M", "amount": 25},
+		"xp_gain", map[string]any{"amount": 25},
 	)
 	cells[30] = cell(30,
 		"Hotfix Shift", "Смена при выпуске исправления", "Hotfix ауысымы",
@@ -258,7 +258,7 @@ func DefaultBoard() []BoardCell {
 		"Passed strict automated linter and static analysis checks. Grants +10 XP.",
 		"Прошло строгие проверки с помощью автоматизированного линтера и статического анализа. Дает +10 XP.",
 		"Қатаң автоматтандырылған линтер мен статикалық талдау тексерістерінен сәтті өтті. +10 XP береді.",
-		"xp_gain", map[string]any{"size": "S", "amount": 10},
+		"xp_gain", map[string]any{"amount": 10},
 	)
 
 	return cells

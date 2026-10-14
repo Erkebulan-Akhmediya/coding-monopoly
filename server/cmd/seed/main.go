@@ -2,15 +2,18 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"os"
 
 	"github.com/jackc/pgx/v5"
 
+	"server/internal/boards"
 	"server/internal/locale"
 	"server/internal/room"
 )
+
+// beginnerBoardName is the seeded gentler board offered alongside the default.
+const beginnerBoardName = "Beginner"
 
 func main() {
 	connStr := os.Getenv("DATABASE_URL")
@@ -27,33 +30,25 @@ func main() {
 
 	log.Println("Starting database seeding...")
 
-	_, err = conn.Exec(ctx, "TRUNCATE games, board_cells, problems, problem_options, problem_accepted_answers, submissions, game_events CASCADE")
+	_, err = conn.Exec(ctx, "TRUNCATE games, boards, board_cells, problems, problem_options, problem_accepted_answers, submissions, game_events CASCADE")
 	if err != nil {
 		log.Fatalf("Failed to truncate tables: %v\n", err)
 	}
 	log.Println("Database truncated successfully.")
 
-	defaultGameID := "00000000-0000-0000-0000-000000000000"
-	_, err = conn.Exec(ctx, "INSERT INTO games (id, status) VALUES ($1, $2)", defaultGameID, "lobby")
-	if err != nil {
-		log.Fatalf("Failed to insert default game: %v\n", err)
+	if err := boards.EnsureDefault(ctx, conn); err != nil {
+		log.Fatalf("Failed to seed default board: %v\n", err)
 	}
-	log.Println("Seeded default game.")
+	log.Printf("Seeded %q board with %d cells.\n", boards.DefaultName, room.BoardSize)
 
-	for _, cell := range room.DefaultBoard() {
-		paramsJSON, err := json.Marshal(cell.Params)
-		if err != nil {
-			log.Fatalf("Failed to marshal cell params: %v\n", err)
-		}
-		_, err = conn.Exec(ctx, `
-			INSERT INTO board_cells (game_id, cell_index, name_en, name_ru, name_kz, explanation_en, explanation_ru, explanation_kz, type, params)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		`, defaultGameID, cell.Index, cell.Name.En, cell.Name.Ru, cell.Name.Kz, cell.Explanation.En, cell.Explanation.Ru, cell.Explanation.Kz, cell.Type, paramsJSON)
-		if err != nil {
-			log.Fatalf("Failed to insert board cell %d: %v\n", cell.Index, err)
-		}
+	beginnerCells, err := room.ValidateBoard(room.BeginnerBoard())
+	if err != nil {
+		log.Fatalf("Invalid beginner board: %v\n", err)
 	}
-	log.Printf("Seeded 32 board cells for game %s.\n", defaultGameID)
+	if _, err := boards.Create(ctx, conn, beginnerBoardName, beginnerCells); err != nil {
+		log.Fatalf("Failed to seed %q board: %v\n", beginnerBoardName, err)
+	}
+	log.Printf("Seeded %q board with %d cells.\n", beginnerBoardName, room.BoardSize)
 
 	type SeedOption struct {
 		Text      locale.Text

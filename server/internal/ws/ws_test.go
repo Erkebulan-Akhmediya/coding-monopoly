@@ -916,3 +916,54 @@ func TestWS_JoinRejectsNonExistentRoom(t *testing.T) {
 		t.Fatal("joining a missing room should not create it")
 	}
 }
+
+func TestWS_RoomUsesSelectedBoardSnapshot(t *testing.T) {
+	hub, server := setupTestServer(t)
+	cells := room.DefaultBoard()
+	cells[1].Name = locale.FromEn("Custom Gain")
+	cells[1].Params = map[string]any{"amount": 200}
+	opts := RoomOptions{Topic: "Go", Board: room.BoardLayout{ID: "b-1", Name: "Hard Mode", Cells: cells}, InitialXP: 120}
+	if err := hub.CreateRoomWithOptions("custom-board", opts); err != nil {
+		t.Fatalf("CreateRoomWithOptions: %v", err)
+	}
+	// Later edits to the source layout must not reach the running room.
+	cells[1].Name = locale.FromEn("Edited After Create")
+
+	conn := connectClient(t, server)
+	defer conn.Close()
+	sendJoin(t, hub, conn, "Alice", "custom-board")
+	_, msg := readUntilType(t, conn, MessageTypeStateSync)
+
+	var payload StateSyncPayload
+	if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+		t.Fatalf("decode state_sync: %v", err)
+	}
+	if len(payload.BoardCells) != room.BoardSize {
+		t.Fatalf("board has %d cells, want %d", len(payload.BoardCells), room.BoardSize)
+	}
+	got := payload.BoardCells[1]
+	if got.Name.En != "Custom Gain" || got.Params["amount"] != float64(200) {
+		t.Fatalf("cell 1 = %+v, want the custom board snapshot", got)
+	}
+
+	if len(payload.Players) != 1 || payload.Players[0].XP != 120 {
+		t.Fatalf("players = %+v, want Alice starting with 120 XP", payload.Players)
+	}
+
+	summaries := hub.GetRoomsSummary()
+	if len(summaries) != 1 || summaries[0].BoardID != "b-1" || summaries[0].BoardName != "Hard Mode" || summaries[0].InitialXP != 120 {
+		t.Fatalf("room summary = %+v, want board b-1 / Hard Mode with 120 initial XP", summaries)
+	}
+}
+
+func TestHub_CreateRoomRejectsOutOfRangeInitialXP(t *testing.T) {
+	hub := NewHub()
+	for _, xp := range []int{-1, room.DefaultTargetXP} {
+		if err := hub.CreateRoomWithOptions("xp-room", RoomOptions{Topic: "Go", InitialXP: xp}); err == nil {
+			t.Errorf("initial XP %d was accepted", xp)
+		}
+	}
+	if hub.RoomExists("xp-room") {
+		t.Fatal("room was created despite invalid initial XP")
+	}
+}
