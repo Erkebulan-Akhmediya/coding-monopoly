@@ -30,13 +30,14 @@
 
 ### Database (PostgreSQL)
 - **Schema Management**: `golang-migrate` (`server/migrations/000001_init.up.sql`).
-- **Tables**: `games`, `players`, `board_cells`, `problems`, `problem_options`, `problem_accepted_answers`, `submissions`, `game_events`.
+- **Tables**: `games`, `players`, `boards`, `board_cells`, `problems`, `problem_options`, `problem_accepted_answers`, `submissions`, `game_events`.
+- **Boards** (`000005_add_boards`): `boards` holds named 32-cell layouts (exactly one `is_default`); `board_cells` is keyed by `(board_id, cell_index)`. The server ensures a default board exists at startup (`boards.EnsureDefault`, built from `room.DefaultBoard()`).
 
 ---
 
 ## 3. Board Layout & Cell Effects
 
-The board contains **32 cells** around a square perimeter (8 per side, corners shared, indices 0..31):
+The board contains **32 cells** around a square perimeter (8 per side, corners shared, indices 0..31). Admins can create custom boards (Boards tab) that change each cell's type, effect values, name and description; the size and cell count are fixed. Rules (`room.ValidateBoard`): cell 0 is always `deploy` and `deploy` can't appear elsewhere; English names are required; params are integers within the ranges in `room.CellTypeSpecs()`; a teleport can't target its own cell. A room snapshots its board at creation, so later edits don't affect running rooms. The values below are the **default board's**:
 
 ### Corner Cells
 - **0 — `Deploy` (Start / GO)**: +100 XP bonus upon landing directly. Passing GO during any roll movement grants a +50 XP lap bonus.
@@ -53,6 +54,9 @@ The board contains **32 cells** around a square perimeter (8 per side, corners s
 - **`teleport`**: Relocates player token directly to a target cell (e.g. cell 0 `Deploy`, cell 8 `Code Freeze`, or cell 16 `Coffee Break`).
 - **`special_challenge`**: Instant bonus challenge reward (+30 to +35 XP).
 - **`mystery`**: Random roll from the effect catalog (XP gain/loss, double XP, free pass, teleport, or special challenge).
+
+### Configurable Cell Params
+`deploy`: `amount` (landing bonus), `pass_bonus` (passing GO) · `xp_gain` / `xp_loss` / `coffee_break`: `amount` · `special_challenge`: `bonus` · `teleport`: `target_position` · `deadline`: `gain`, `loss`. Other types take no params. Missing params fall back to the defaults above.
 
 ---
 
@@ -131,7 +135,8 @@ The admin subsystem is accessed via `?admin=1` in the client URL:
   - `PUT /admin/problems/{id}` — Update problem title, prompt, options, or accepted answers.
   - `DELETE /admin/problems/{id}` — Delete problem.
   - `PATCH /admin/problems/{id}/publish` — Toggle published state.
-- Multi-Room API: `GET /admin/rooms` and `POST /admin/rooms` for creating and monitoring game rooms.
+- Multi-Room API: `GET /admin/rooms` and `POST /admin/rooms` (`room_id`, `topic`, optional `board_id`; default board when omitted) for creating and monitoring game rooms.
+- Boards API: `GET/POST /admin/boards`, `GET/PUT/DELETE /admin/boards/{id}` (the default board can't be deleted), `POST /admin/boards/{id}/default`, and `GET /admin/cell-types` (placeable types with param ranges).
 
 ### 2. Live Room Spectator & Control (WebSocket `/ws/admin`)
 - Upgrades after verifying bearer token.
@@ -170,13 +175,17 @@ coding-monopoly/
 │   ├── internal/
 │   │   ├── admin/
 │   │   │   ├── admin.go         # REST API handler, HMAC auth, problem CRUD, room manager
+│   │   │   ├── boards.go        # Board CRUD + cell-type catalog HTTP handlers
 │   │   │   ├── admin_test.go    # Unit tests for admin API
 │   │   │   └── admin_room_test.go # Room manager unit tests
+│   │   ├── boards/
+│   │   │   └── store.go         # Board persistence (list/load/create/update/delete/default)
 │   │   ├── problems/
 │   │   │   └── selector.go      # Random published problem selection queries
 │   │   ├── room/
 │   │   │   ├── room.go          # Core game engine: turns, timers, grading, admin controls
-│   │   │   ├── board.go         # 32-cell board definition
+│   │   │   ├── board.go         # 32-cell default board definition
+│   │   │   ├── board_layout.go  # Cell type catalog, param specs, board validation
 │   │   │   ├── effect.go        # Cell effect dispatch table and handlers
 │   │   │   ├── player.go        # Player state model
 │   │   │   ├── room_test.go     # Turn engine & movement tests
@@ -193,7 +202,8 @@ coding-monopoly/
 │   │       └── ws_admin_test.go # Admin WebSocket integration tests
 │   └── migrations/
 │       ├── 000001_init.up.sql   # Initial schema migration
-│       └── 000001_init.down.sql # Migration rollback
+│       ├── 000001_init.down.sql # Migration rollback
+│       └── 000005_add_boards.*  # Boards table; board_cells re-keyed by board
 └── client/
     ├── package.json             # Frontend dependencies (Vue 3, Vite, TypeScript)
     ├── src/
@@ -230,6 +240,8 @@ coding-monopoly/
     │       ├── AdminView.vue            # Admin dashboard container (Tabs + Login)
     │       ├── AdminQuestionList.vue    # Question bank management view
     │       ├── AdminQuestionFormModal.vue # Question editor modal
+    │       ├── AdminBoardList.vue       # Board management list (Boards tab)
+    │       ├── AdminBoardEditor.vue     # Visual 32-cell board editor
     │       └── AdminSpectatorView.vue   # Live room spectator & room controls
 ```
 

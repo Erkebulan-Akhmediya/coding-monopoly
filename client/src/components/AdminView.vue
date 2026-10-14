@@ -1,15 +1,19 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { adminStore } from '../adminStore'
-import { adminApiService, type RoomSummary } from '../services/adminApiService'
+import { adminApiService, type BoardSummary, type RoomSummary } from '../services/adminApiService'
 import adminWS from '../services/adminWebsocketService'
+import AdminBoardList from './AdminBoardList.vue'
 import AdminQuestionList from './AdminQuestionList.vue'
 import AdminSpectatorView from './AdminSpectatorView.vue'
+
+type AdminTab = 'questions' | 'boards' | 'rooms'
 
 export default defineComponent({
   name: 'AdminView',
 
   components: {
+    AdminBoardList,
     AdminQuestionList,
     AdminSpectatorView,
   },
@@ -20,7 +24,7 @@ export default defineComponent({
       loginPassword: '' as string,
       loginError: '' as string,
       loginLoading: false as boolean,
-      activeTab: 'questions' as 'questions' | 'rooms',
+      activeTab: 'questions' as AdminTab,
       // rooms list
       rooms: [] as RoomSummary[],
       roomsLoading: false as boolean,
@@ -31,6 +35,9 @@ export default defineComponent({
       newRoomTopic: '' as string,
       availableTopics: [] as string[],
       topicsLoading: false as boolean,
+      newRoomBoard: '' as string,
+      availableBoards: [] as BoardSummary[],
+      boardsLoading: false as boolean,
       createRoomLoading: false as boolean,
       createRoomError: '' as string,
       // selected room for spectating
@@ -86,14 +93,14 @@ export default defineComponent({
       sessionStorage.removeItem('admin_room')
     },
 
-    async switchTab(tab: 'questions' | 'rooms') {
+    async switchTab(tab: AdminTab) {
       this.activeTab = tab
       if (tab === 'rooms') {
         // Deselect room so we show the list, not a spectator view
         this.selectedRoom = null
         adminWS.disconnect()
         adminStore.connected = false
-        await Promise.all([this.loadRooms(), this.loadTopics()])
+        await Promise.all([this.loadRooms(), this.loadTopics(), this.loadBoards()])
         this.startRoomsRefresh()
       } else {
         this.stopRoomsRefresh()
@@ -117,6 +124,21 @@ export default defineComponent({
         this.createRoomError = err.message || 'Failed to load topics'
       } finally {
         this.topicsLoading = false
+      }
+    },
+
+    async loadBoards() {
+      this.boardsLoading = true
+      try {
+        this.availableBoards = await adminApiService.listBoards(adminStore.token)
+        if (!this.availableBoards.some((board) => board.id === this.newRoomBoard)) {
+          const fallback = this.availableBoards.find((board) => board.is_default) || this.availableBoards[0]
+          this.newRoomBoard = fallback ? fallback.id : ''
+        }
+      } catch (err: any) {
+        this.createRoomError = err.message || 'Failed to load boards'
+      } finally {
+        this.boardsLoading = false
       }
     },
 
@@ -187,7 +209,7 @@ export default defineComponent({
       this.createRoomLoading = true
       this.createRoomError = ''
       try {
-        await adminApiService.createRoom(adminStore.token, roomID, topic)
+        await adminApiService.createRoom(adminStore.token, roomID, topic, this.newRoomBoard)
         this.newRoomID = ''
         await this.loadRooms()
       } catch (err: any) {
@@ -250,6 +272,14 @@ export default defineComponent({
             📚 {{ $t('admin.questionBank') }}
           </button>
           <button
+            id="tab-boards"
+            class="tab-btn"
+            :class="{ active: activeTab === 'boards' }"
+            @click="switchTab('boards')"
+          >
+            🎲 {{ $t('admin.boardsTab') }}
+          </button>
+          <button
             id="tab-rooms"
             class="tab-btn"
             :class="{ active: activeTab === 'rooms' }"
@@ -272,6 +302,9 @@ export default defineComponent({
     <main class="admin-main-content">
       <!-- QUESTION BANK TAB -->
       <AdminQuestionList v-if="activeTab === 'questions'" />
+
+      <!-- BOARDS TAB -->
+      <AdminBoardList v-else-if="activeTab === 'boards'" />
 
       <!-- ROOMS TAB: list or spectator -->
       <template v-else-if="activeTab === 'rooms'">
@@ -317,6 +350,20 @@ export default defineComponent({
                     {{ topic }}
                   </option>
                 </select>
+                <select
+                  id="new-room-board"
+                  v-model="newRoomBoard"
+                  class="create-room-input create-room-board"
+                  :title="$t('admin.board')"
+                  :disabled="createRoomLoading || boardsLoading || availableBoards.length === 0"
+                >
+                  <option value="" disabled>
+                    {{ boardsLoading ? $t('admin.loadingBoards') : $t('admin.selectBoard') }}
+                  </option>
+                  <option v-for="board in availableBoards" :key="board.id" :value="board.id">
+                    {{ board.is_default ? $t('admin.boardOptionDefault', { name: board.name }) : board.name }}
+                  </option>
+                </select>
                 <button
                   id="create-room-btn"
                   type="submit"
@@ -360,6 +407,10 @@ export default defineComponent({
                 <span v-if="room.topic" class="stat">
                   <span class="stat-icon">📚</span>
                   {{ room.topic }}
+                </span>
+                <span v-if="room.board_name" class="stat">
+                  <span class="stat-icon">🎲</span>
+                  {{ room.board_name }}
                 </span>
                 <span class="stat">
                   <span class="stat-icon">👥</span>
@@ -653,10 +704,14 @@ export default defineComponent({
   outline: none;
   width: 160px;
 }
-.create-room-topic {
+.create-room-topic,
+.create-room-board {
   width: 140px;
   font-family: inherit;
   cursor: pointer;
+}
+.create-room-board {
+  width: 180px;
 }
 .create-room-input:focus {
   border-color: #60a5fa;

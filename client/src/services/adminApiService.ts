@@ -64,12 +64,57 @@ export interface ProblemFilters {
 export interface RoomSummary {
   room_id: string
   topic: string
+  board_id?: string
+  board_name?: string
   player_count: number
   is_started: boolean
   is_paused: boolean
   is_finished: boolean
   active_turn: string
   players: string[]
+}
+
+export interface BoardCell {
+  cell_index: number
+  name: LocalizedText
+  explanation: LocalizedText
+  type: string
+  params: Record<string, number>
+}
+
+export interface BoardSummary {
+  id: string
+  name: string
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Board extends BoardSummary {
+  cells: BoardCell[]
+}
+
+export interface BoardInput {
+  name: string
+  cells: BoardCell[]
+}
+
+export interface CellParamSpec {
+  key: string
+  default: number
+  min: number
+  max: number
+}
+
+export interface CellTypeSpec {
+  type: string
+  start_only: boolean
+  params: CellParamSpec[]
+}
+
+export interface CellTypeCatalog {
+  board_size: number
+  cell_types: CellTypeSpec[]
 }
 
 export interface ValidationError {
@@ -125,6 +170,64 @@ export function validateProblemInput(input: ProblemInput): ValidationError[] {
     })
   }
 
+  return errors
+}
+
+/** Defaults for every param of a cell type, used when a cell changes type. */
+export function defaultCellParams(spec: CellTypeSpec | undefined): Record<string, number> {
+  const params: Record<string, number> = {}
+  for (const param of spec?.params || []) {
+    params[param.key] = param.default
+  }
+  return params
+}
+
+/**
+ * Client-side mirror of the server's board rules (room.ValidateBoard), keyed by
+ * cell index so the editor can flag the offending cells. Index -1 holds
+ * board-level errors.
+ */
+export function validateBoardInput(
+  input: BoardInput,
+  catalog: CellTypeCatalog,
+): Array<ValidationError & { cell: number }> {
+  const errors: Array<ValidationError & { cell: number }> = []
+  if (!input.name || input.name.trim() === '') {
+    errors.push({ cell: -1, key: 'boardNameRequired' })
+  }
+  if (input.cells.length !== catalog.board_size) {
+    errors.push({ cell: -1, key: 'boardCellCount', params: { count: catalog.board_size } })
+  }
+  input.cells.forEach((cell) => {
+    const index = cell.cell_index
+    const spec = catalog.cell_types.find((s) => s.type === cell.type)
+    if (!spec) {
+      errors.push({ cell: index, key: 'cellTypeUnknown', params: { index } })
+      return
+    }
+    if (index === 0 && !spec.start_only) {
+      errors.push({ cell: index, key: 'startCellDeploy' })
+    }
+    if (spec.start_only && index !== 0) {
+      errors.push({ cell: index, key: 'deployOnlyStart', params: { index } })
+    }
+    if (!cell.name?.en || cell.name.en.trim() === '') {
+      errors.push({ cell: index, key: 'cellNameRequired', params: { index } })
+    }
+    for (const param of spec.params) {
+      const value = cell.params?.[param.key]
+      if (typeof value !== 'number' || !Number.isInteger(value) || value < param.min || value > param.max) {
+        errors.push({
+          cell: index,
+          key: 'cellParamRange',
+          params: { index, min: param.min, max: param.max },
+        })
+      }
+    }
+    if (cell.type === 'teleport' && cell.params?.target_position === index) {
+      errors.push({ cell: index, key: 'teleportSelf', params: { index } })
+    }
+  })
   return errors
 }
 
@@ -249,7 +352,12 @@ export const adminApiService = {
     return data.rooms || []
   },
 
-  async createRoom(token: string, roomID: string, topic: string): Promise<{ room_id: string; topic: string }> {
+  async createRoom(
+    token: string,
+    roomID: string,
+    topic: string,
+    boardID: string,
+  ): Promise<{ room_id: string; topic: string; board_id: string; board_name: string }> {
     const baseUrl = getBaseHttpUrl()
     const res = await fetch(`${baseUrl}/admin/rooms`, {
       method: 'POST',
@@ -257,9 +365,9 @@ export const adminApiService = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ room_id: roomID.trim(), topic: topic.trim() }),
+      body: JSON.stringify({ room_id: roomID.trim(), topic: topic.trim(), board_id: boardID }),
     })
-    return handleResponse<{ room_id: string; topic: string }>(res)
+    return handleResponse<{ room_id: string; topic: string; board_id: string; board_name: string }>(res)
   },
 
   async listTopics(token: string): Promise<string[]> {
@@ -270,5 +378,78 @@ export const adminApiService = {
     })
     const data = await handleResponse<{ topics: string[] }>(res)
     return data.topics || []
+  },
+
+  async listCellTypes(token: string): Promise<CellTypeCatalog> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/cell-types`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return handleResponse<CellTypeCatalog>(res)
+  },
+
+  async listBoards(token: string): Promise<BoardSummary[]> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/boards`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await handleResponse<{ boards: BoardSummary[] }>(res)
+    return data.boards || []
+  },
+
+  async getBoard(token: string, id: string): Promise<Board> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/boards/${id}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return handleResponse<Board>(res)
+  },
+
+  async createBoard(token: string, input: BoardInput): Promise<Board> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/boards`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(input),
+    })
+    return handleResponse<Board>(res)
+  },
+
+  async updateBoard(token: string, id: string, input: BoardInput): Promise<Board> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/boards/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(input),
+    })
+    return handleResponse<Board>(res)
+  },
+
+  async deleteBoard(token: string, id: string): Promise<void> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/boards/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    await handleResponse<void>(res)
+  },
+
+  async setDefaultBoard(token: string, id: string): Promise<BoardSummary[]> {
+    const baseUrl = getBaseHttpUrl()
+    const res = await fetch(`${baseUrl}/admin/boards/${id}/default`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await handleResponse<{ boards: BoardSummary[] }>(res)
+    return data.boards || []
   },
 }

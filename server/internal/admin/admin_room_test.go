@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"server/internal/room"
 	"server/internal/ws"
 )
 
@@ -23,7 +24,7 @@ func (s *stubRoomManager) GetRoomsSummary() []ws.RoomSummary {
 	return out
 }
 
-func (s *stubRoomManager) CreateRoom(roomID, topic string) error {
+func (s *stubRoomManager) CreateRoomWithBoard(roomID, topic string, _ room.BoardLayout) error {
 	if s.rooms[roomID] {
 		return ws.ErrRoomAlreadyExists
 	}

@@ -3,10 +3,12 @@ package admin
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"server/internal/locale"
+	"server/internal/room"
 )
 
 func TestProblemInputValidation(t *testing.T) {
@@ -50,5 +52,27 @@ func TestTokenAuthorizationRejectsExpiredAndAcceptsValid(t *testing.T) {
 	request.Header.Set("Authorization", "Bearer "+expired)
 	if h.authorized(request) {
 		t.Fatal("expired token accepted")
+	}
+}
+
+func TestBoardInputValidation(t *testing.T) {
+	cells := room.DefaultBoard()
+	cells[0], cells[31] = cells[31], cells[0]
+	input := boardInput{Name: "  Hard Mode  ", Cells: cells}
+	if err := input.validate(); err != nil {
+		t.Fatalf("valid board rejected: %v", err)
+	}
+	if input.Name != "Hard Mode" || input.Cells[0].Type != "deploy" || input.Cells[31].Index != 31 {
+		t.Fatalf("board not normalized: name=%q cell0=%s cell31=%d", input.Name, input.Cells[0].Type, input.Cells[31].Index)
+	}
+
+	if err := (&boardInput{Name: " ", Cells: room.DefaultBoard()}).validate(); err == nil {
+		t.Fatal("board without a name was accepted")
+	}
+	if err := (&boardInput{Name: strings.Repeat("b", 129), Cells: room.DefaultBoard()}).validate(); err == nil {
+		t.Fatal("board with an overlong name was accepted")
+	}
+	if err := (&boardInput{Name: "Short", Cells: room.DefaultBoard()[:10]}).validate(); err == nil {
+		t.Fatal("board with 10 cells was accepted")
 	}
 }

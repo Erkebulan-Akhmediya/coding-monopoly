@@ -916,3 +916,37 @@ func TestWS_JoinRejectsNonExistentRoom(t *testing.T) {
 		t.Fatal("joining a missing room should not create it")
 	}
 }
+
+func TestWS_RoomUsesSelectedBoardSnapshot(t *testing.T) {
+	hub, server := setupTestServer(t)
+	cells := room.DefaultBoard()
+	cells[1].Name = locale.FromEn("Custom Gain")
+	cells[1].Params = map[string]any{"amount": 200}
+	if err := hub.CreateRoomWithBoard("custom-board", "Go", room.BoardLayout{ID: "b-1", Name: "Hard Mode", Cells: cells}); err != nil {
+		t.Fatalf("CreateRoomWithBoard: %v", err)
+	}
+	// Later edits to the source layout must not reach the running room.
+	cells[1].Name = locale.FromEn("Edited After Create")
+
+	conn := connectClient(t, server)
+	defer conn.Close()
+	sendJoin(t, hub, conn, "Alice", "custom-board")
+	_, msg := readUntilType(t, conn, MessageTypeStateSync)
+
+	var payload StateSyncPayload
+	if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+		t.Fatalf("decode state_sync: %v", err)
+	}
+	if len(payload.BoardCells) != room.BoardSize {
+		t.Fatalf("board has %d cells, want %d", len(payload.BoardCells), room.BoardSize)
+	}
+	got := payload.BoardCells[1]
+	if got.Name.En != "Custom Gain" || got.Params["amount"] != float64(200) {
+		t.Fatalf("cell 1 = %+v, want the custom board snapshot", got)
+	}
+
+	summaries := hub.GetRoomsSummary()
+	if len(summaries) != 1 || summaries[0].BoardID != "b-1" || summaries[0].BoardName != "Hard Mode" {
+		t.Fatalf("room summary = %+v, want board b-1 / Hard Mode", summaries)
+	}
+}
