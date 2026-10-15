@@ -1,0 +1,15 @@
+**/.git
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+bin/
+venv/
+client/dist/
+server/dist/
+server/cmd/server/dist/assets/
+.cursor/
+.agents/
+.codex/
+.vscode/
+*.md
