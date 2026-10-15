@@ -68,11 +68,11 @@ export default defineComponent({
 }
 
 .text-input {
-  background: rgba(15, 23, 42, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--c-slate-900) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-bright) 5%, transparent);
   border-radius: 8px;
   padding: 0.75rem;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.8rem;
   line-height: 1.5;
@@ -84,9 +84,9 @@ export default defineComponent({
 }
 
 .text-input:focus:not(:disabled) {
-  border-color: #38bdf8;
-  background: rgba(15, 23, 42, 0.6);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.1);
+  border-color: var(--c-sky-400);
+  background: color-mix(in srgb, var(--c-slate-900) 60%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c-sky-400) 10%, transparent);
 }
 
 .text-input:disabled {
@@ -96,7 +96,7 @@ export default defineComponent({
 
 .input-hint {
   font-size: 0.65rem;
-  color: #64748b;
+  color: var(--c-slate-500);
   text-align: right;
 }
 
@@ -106,27 +106,27 @@ export default defineComponent({
 }
 
 .submit-btn {
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(90deg, var(--c-blue-500), var(--c-violet-500));
   border: none;
   border-radius: 6px;
   padding: 0.5rem 1.25rem;
   font-weight: 700;
   font-size: 0.75rem;
   letter-spacing: 0.5px;
-  color: #fff;
+  color: var(--c-white);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--c-blue-500) 20%, transparent);
 }
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--c-blue-500) 30%, transparent);
 }
 
 .submit-btn:disabled {
-  background: #475569;
-  color: #94a3b8;
+  background: var(--c-slate-600);
+  color: var(--c-slate-400);
   cursor: not-allowed;
   box-shadow: none;
 }

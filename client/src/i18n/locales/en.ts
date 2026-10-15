@@ -6,6 +6,24 @@ export default {
     ru: 'Russian',
     kk: 'Kazakh',
   },
+  theme: {
+    title: 'Theme',
+    switch: 'Change theme',
+    names: {
+      midnight: 'Midnight',
+      ivory: 'Ivory',
+      terminal: 'Terminal',
+      mono: 'Mono',
+      solarpunk: 'Solarpunk',
+    },
+    descriptions: {
+      midnight: 'The original dark theme',
+      ivory: 'Warm light theme, Claude-style',
+      terminal: 'Cozy TUI, Omarchy-style',
+      mono: 'Minimal black, white and gray',
+      solarpunk: 'Sunlit greens and gold',
+    },
+  },
   common: {
     you: '(You)',
     offline: 'offline',

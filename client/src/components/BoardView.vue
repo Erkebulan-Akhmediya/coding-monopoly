@@ -295,8 +295,8 @@ export default defineComponent({
   align-items: center;
   padding: 1rem;
   min-height: 100vh;
-  background: #0f172a;
-  color: #f8fafc;
+  background: var(--c-slate-900);
+  color: var(--c-slate-50);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
 }
@@ -306,20 +306,20 @@ export default defineComponent({
   grid-template-columns: repeat(9, minmax(0, 130px));
   grid-template-rows: repeat(9, minmax(0, 85px));
   gap: 4px;
-  background: #1e293b;
+  background: var(--c-slate-800);
   padding: 8px;
   border-radius: 12px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.15);
-  border: 1px solid #334155;
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--c-shadow) 60%, transparent), 0 0 20px color-mix(in srgb, var(--c-blue-500) 15%, transparent);
+  border: 1px solid var(--c-slate-700);
   width: max-content;
 }
 
 /* Base Board Cell */
 .board-cell {
   position: relative;
-  background: #334155;
+  background: var(--c-slate-700);
   border-radius: 6px;
-  border: 1px solid #475569;
+  border: 1px solid var(--c-slate-600);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -332,12 +332,12 @@ export default defineComponent({
 .board-cell:hover {
   transform: scale(1.04);
   z-index: 5;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--c-shadow) 40%, transparent);
 }
 
 .board-cell.effect-highlight {
   animation: cell-effect-pulse 0.9s ease-in-out 2;
-  box-shadow: 0 0 0 2px #fbbf24, 0 0 18px rgba(251, 191, 36, 0.55);
+  box-shadow: 0 0 0 2px var(--c-amber-400), 0 0 18px color-mix(in srgb, var(--c-amber-400) 55%, transparent);
   z-index: 6;
 }
 
@@ -370,7 +370,7 @@ export default defineComponent({
 }
 
 .cell-index {
-  color: #94a3b8;
+  color: var(--c-slate-400);
   font-weight: 700;
   font-size: 0.6rem;
 }
@@ -390,7 +390,7 @@ export default defineComponent({
 .cell-name {
   font-size: 0.65rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   line-height: 1.1;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -401,7 +401,7 @@ export default defineComponent({
 .cell-subtitle {
   font-size: 0.55rem;
   font-weight: 600;
-  color: #38bdf8;
+  color: var(--c-sky-400);
   margin-top: 2px;
 }
 
@@ -426,96 +426,96 @@ export default defineComponent({
 
 /* Corner Cells Special Styling */
 .board-cell.corner {
-  background: #1e293b;
+  background: var(--c-slate-800);
   border-width: 2px;
 }
 
 .cell-deploy {
-  background: linear-gradient(135deg, #065f46 0%, #047857 100%);
-  border-color: #10b981;
+  background: linear-gradient(135deg, var(--c-deploy--emerald-800) 0%, var(--c-deploy--emerald-700) 100%);
+  border-color: var(--c-deploy--emerald-500);
 }
 
 .cell-code_freeze {
-  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
-  border-color: #3b82f6;
+  background: linear-gradient(135deg, var(--c-code_freeze--blue-900) 0%, var(--c-code_freeze--blue-700) 100%);
+  border-color: var(--c-code_freeze--blue-500);
 }
 
 .cell-coffee_break {
-  background: linear-gradient(135deg, #78350f 0%, #b45309 100%);
-  border-color: #f59e0b;
+  background: linear-gradient(135deg, var(--c-coffee_break--amber-900) 0%, var(--c-coffee_break--amber-700) 100%);
+  border-color: var(--c-coffee_break--amber-500);
 }
 
 .cell-deadline {
-  background: linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%);
-  border-color: #ef4444;
+  background: linear-gradient(135deg, var(--c-deadline--red-900) 0%, var(--c-deadline--red-700) 100%);
+  border-color: var(--c-deadline--red-500);
 }
 
 /* Cell Types Accent Colors (Using gradients matching their borders for better visibility) */
 .cell-xp_gain {
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.25) 0%, #334155 100%);
-  border-top: 3px solid #10b981;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_gain--emerald-500) 25%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-xp_gain--emerald-500);
 }
 
 /* Distinct Intensity for XP Gain Sizes */
 .cell-xp_gain.xp-gain-sm {
-  background: linear-gradient(180deg, rgba(5, 150, 105, 0.15) 0%, #334155 100%);
-  border-top: 3px solid #059669;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_gain--emerald-600) 15%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-xp_gain--emerald-600);
 }
 
 .cell-xp_gain.xp-gain-md {
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.35) 0%, #334155 100%);
-  border-top: 3px solid #10b981;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_gain--emerald-500) 35%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-xp_gain--emerald-500);
 }
 
 .cell-xp_gain.xp-gain-lg {
-  background: linear-gradient(180deg, rgba(52, 211, 153, 0.6) 0%, #334155 100%);
-  border-top: 3px solid #34d399;
-  box-shadow: inset 0 2px 10px rgba(52, 211, 153, 0.15);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_gain--emerald-400) 60%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-xp_gain--emerald-400);
+  box-shadow: inset 0 2px 10px color-mix(in srgb, var(--c-xp_gain--emerald-400) 15%, transparent);
 }
 
 .cell-xp_loss {
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.25) 0%, #334155 100%);
-  border-top: 3px solid #ef4444;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-xp_loss--red-500) 25%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-xp_loss--red-500);
 }
 
 .cell-mystery {
-  background: linear-gradient(180deg, #312e81 0%, #334155 100%);
-  border-top: 3px solid #818cf8;
+  background: linear-gradient(180deg, var(--c-mystery--indigo-900) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-mystery--indigo-400);
 }
 
 .cell-teleport {
-  background: linear-gradient(180deg, rgba(139, 92, 246, 0.25) 0%, #334155 100%);
-  border-top: 3px solid #8b5cf6;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-teleport--violet-500) 25%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-teleport--violet-500);
 }
 
 .cell-skip_next {
-  background: linear-gradient(180deg, rgba(249, 115, 22, 0.25) 0%, #334155 100%);
-  border-top: 3px solid #f97316;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-skip_next--orange-500) 25%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-skip_next--orange-500);
 }
 
 .cell-double_xp {
-  background: linear-gradient(180deg, rgba(234, 179, 8, 0.25) 0%, #334155 100%);
-  border-top: 3px solid #eab308;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-double_xp--yellow-500) 25%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-double_xp--yellow-500);
 }
 
 .cell-free_pass {
-  background: linear-gradient(180deg, rgba(6, 182, 212, 0.25) 0%, #334155 100%);
-  border-top: 3px solid #06b6d4;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-free_pass--cyan-500) 25%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-free_pass--cyan-500);
 }
 
 .cell-special_challenge {
-  background: linear-gradient(180deg, rgba(236, 72, 153, 0.25) 0%, #334155 100%);
-  border-top: 3px solid #ec4899;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c-special_challenge--pink-500) 25%, transparent) 0%, var(--c-slate-700) 100%);
+  border-top: 3px solid var(--c-special_challenge--pink-500);
 }
 
 /* Center Hub Area (Grid Rows 2..8, Cols 2..8) */
 .board-center-hub {
   grid-row: 2 / span 7;
   grid-column: 2 / span 7;
-  background: rgba(15, 23, 42, 0.85);
+  background: color-mix(in srgb, var(--c-slate-900) 85%, transparent);
   backdrop-filter: blur(8px);
   border-radius: 8px;
-  border: 1px dashed #475569;
+  border: 1px dashed var(--c-slate-600);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -544,9 +544,9 @@ export default defineComponent({
 .instructions-btn {
   position: absolute;
   right: 0;
-  background: rgba(30, 41, 59, 0.85);
-  border: 1px solid #334155;
-  color: #93c5fd;
+  background: color-mix(in srgb, var(--c-slate-800) 85%, transparent);
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-blue-300);
   border-radius: 20px;
   padding: 0.3rem 0.75rem;
   font-size: 0.75rem;
@@ -559,9 +559,9 @@ export default defineComponent({
 }
 
 .instructions-btn:hover {
-  background: #1e3a5f;
-  border-color: #3b82f6;
-  color: #ffffff;
+  background: var(--c-navy-700);
+  border-color: var(--c-blue-500);
+  color: var(--c-bright);
   transform: translateY(-1px);
 }
 
@@ -570,10 +570,10 @@ export default defineComponent({
   font-weight: 900;
   margin: 0;
   letter-spacing: 2px;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+  background: linear-gradient(90deg, var(--c-blue-400), var(--c-violet-400), var(--c-pink-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 2px 10px rgba(96, 165, 250, 0.3);
+  text-shadow: 0 2px 10px color-mix(in srgb, var(--c-blue-400) 30%, transparent);
 }
 
 .turn-card {
@@ -581,23 +581,23 @@ export default defineComponent({
   align-items: center;
   gap: 0.75rem;
   padding: 0.4rem 1rem;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
   border-radius: 20px;
   font-weight: 700;
   font-size: 0.9rem;
 }
 
 .turn-card.my-turn {
-  background: linear-gradient(90deg, #065f46, #047857);
-  border-color: #10b981;
-  color: #a7f3d0;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(90deg, var(--c-emerald-800), var(--c-emerald-700));
+  border-color: var(--c-emerald-500);
+  color: var(--c-emerald-200);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c-emerald-500) 40%, transparent);
 }
 
 .countdown-badge {
-  background: #ef4444;
-  color: white;
+  background: var(--c-red-500);
+  color: var(--c-white);
   padding: 0.15rem 0.5rem;
   border-radius: 12px;
   font-size: 0.8rem;

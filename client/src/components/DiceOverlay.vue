@@ -166,8 +166,8 @@ export default defineComponent({
   justify-content: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: rgba(2, 6, 23, 0.72);
-  color: #f8fafc;
+  background: color-mix(in srgb, var(--c-slate-950) 72%, transparent);
+  color: var(--c-slate-50);
   text-align: center;
   pointer-events: none;
   box-sizing: border-box;
@@ -204,7 +204,7 @@ export default defineComponent({
   line-height: 1.6rem;
   margin: 0 0.2rem;
   padding: 0 0.25rem;
-  background: #2563eb;
+  background: var(--c-blue-600);
   border-radius: 4px;
   font-variant-numeric: tabular-nums;
 }
@@ -213,7 +213,7 @@ export default defineComponent({
   max-width: 28rem;
   font-size: 0.9rem;
   font-style: italic;
-  color: #cbd5e1;
+  color: var(--c-slate-300);
   opacity: 0;
   transition: opacity 0.25s ease;
 }
@@ -222,16 +222,16 @@ export default defineComponent({
   opacity: 1;
 }
 
-.effect-xp_gain { color: #86efac; }
-.effect-xp_loss { color: #fca5a5; }
-.effect-teleport { color: #67e8f9; }
-.effect-skip_next { color: #fdba74; }
-.effect-double_xp { color: #fde68a; }
-.effect-free_pass { color: #c4b5fd; }
-.effect-special_challenge { color: #f9a8d4; }
-.effect-mystery { color: #d8b4fe; }
-.effect-deploy { color: #86efac; }
-.effect-code_freeze { color: #a5f3fc; }
-.effect-coffee_break { color: #e7d3b0; }
-.effect-deadline { color: #fca5a5; }
+.effect-xp_gain { color: var(--c-xp_gain--green-300); }
+.effect-xp_loss { color: var(--c-xp_loss--red-300); }
+.effect-teleport { color: var(--c-teleport--cyan-300); }
+.effect-skip_next { color: var(--c-skip_next--orange-300); }
+.effect-double_xp { color: var(--c-double_xp--amber-200); }
+.effect-free_pass { color: var(--c-free_pass--violet-300); }
+.effect-special_challenge { color: var(--c-special_challenge--pink-300); }
+.effect-mystery { color: var(--c-mystery--purple-300); }
+.effect-deploy { color: var(--c-deploy--green-300); }
+.effect-code_freeze { color: var(--c-code_freeze--cyan-200); }
+.effect-coffee_break { color: var(--c-coffee_break--latte-250); }
+.effect-deadline { color: var(--c-deadline--red-300); }
 </style>

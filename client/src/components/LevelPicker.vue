@@ -58,13 +58,13 @@ export default defineComponent({
 
 <style scoped>
 .level-picker {
-  background: rgba(30, 41, 59, 0.75);
+  background: color-mix(in srgb, var(--c-slate-800) 75%, transparent);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid color-mix(in srgb, var(--c-bright) 10%, transparent);
   border-radius: 12px;
   padding: 1.5rem;
   text-align: center;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--c-shadow) 40%, transparent);
   margin: 1rem 0;
   animation: fadeIn 0.4s ease-out;
 }
@@ -77,7 +77,7 @@ export default defineComponent({
 .picker-title {
   font-size: 1.1rem;
   letter-spacing: 2px;
-  background: linear-gradient(90deg, #34d399, #fbbf24, #ef4444);
+  background: linear-gradient(90deg, var(--c-emerald-400), var(--c-amber-400), var(--c-red-500));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-top: 0;
@@ -87,7 +87,7 @@ export default defineComponent({
 
 .picker-desc {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   margin-bottom: 1.5rem;
   line-height: 1.4;
 }
@@ -100,8 +100,8 @@ export default defineComponent({
 
 .diff-card {
   position: relative;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--c-slate-900) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-bright) 5%, transparent);
   border-radius: 10px;
   padding: 1.25rem 0.5rem;
   cursor: pointer;
@@ -111,7 +111,7 @@ export default defineComponent({
   gap: 0.5rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-  color: #f8fafc;
+  color: var(--c-slate-50);
 }
 
 .diff-card::before {
@@ -151,26 +151,26 @@ export default defineComponent({
 }
 
 .diff-card.easy {
-  --card-accent: #10b981;
-  --card-accent-alpha: rgba(16, 185, 129, 0.15);
-  --card-shadow: rgba(16, 185, 129, 0.3);
+  --card-accent: var(--c-emerald-500);
+  --card-accent-alpha: color-mix(in srgb, var(--c-emerald-500) 15%, transparent);
+  --card-shadow: color-mix(in srgb, var(--c-emerald-500) 30%, transparent);
 }
 
 .diff-card.medium {
-  --card-accent: #fbbf24;
-  --card-accent-alpha: rgba(251, 191, 36, 0.15);
-  --card-shadow: rgba(251, 191, 36, 0.3);
+  --card-accent: var(--c-amber-400);
+  --card-accent-alpha: color-mix(in srgb, var(--c-amber-400) 15%, transparent);
+  --card-shadow: color-mix(in srgb, var(--c-amber-400) 30%, transparent);
 }
 
 .diff-card.hard {
-  --card-accent: #ef4444;
-  --card-accent-alpha: rgba(239, 68, 68, 0.15);
-  --card-shadow: rgba(239, 68, 68, 0.3);
+  --card-accent: var(--c-red-500);
+  --card-accent-alpha: color-mix(in srgb, var(--c-red-500) 15%, transparent);
+  --card-shadow: color-mix(in srgb, var(--c-red-500) 30%, transparent);
 }
 
 .diff-icon {
   font-size: 1.5rem;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--c-shadow) 30%, transparent));
 }
 
 .diff-label {
@@ -184,7 +184,7 @@ export default defineComponent({
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.65rem;
-  color: #94a3b8;
+  color: var(--c-slate-400);
 }
 
 .time-limit {
@@ -192,7 +192,7 @@ export default defineComponent({
 }
 
 .reward {
-  color: #fbbf24;
+  color: var(--c-amber-400);
   font-weight: 700;
 }
 

@@ -4,14 +4,14 @@ import { store } from '../store'
 import type { Player } from '../store'
 
 const COLOR_PALETTE = [
-  '#3b82f6', // blue
-  '#10b981', // emerald
-  '#ec4899', // pink
-  '#f59e0b', // amber
-  '#8b5cf6', // purple
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#84cc16', // lime
+  'var(--c-blue-500)', // blue
+  'var(--c-emerald-500)', // emerald
+  'var(--c-pink-500)', // pink
+  'var(--c-amber-500)', // amber
+  'var(--c-violet-500)', // purple
+  'var(--c-cyan-500)', // cyan
+  'var(--c-orange-500)', // orange
+  'var(--c-lime-500)', // lime
 ]
 
 export default defineComponent({
@@ -87,10 +87,10 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: #ffffff;
+  color: var(--c-white);
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--c-shadow) 30%, transparent);
+  border: 2px solid var(--c-white);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   user-select: none;
   flex-shrink: 0;
@@ -118,7 +118,7 @@ export default defineComponent({
 .player-token:hover {
   transform: scale(1.15);
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--c-shadow) 40%, transparent);
 }
 
 .player-token.hopping {
@@ -144,7 +144,7 @@ export default defineComponent({
 
 .token-symbol {
   line-height: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--c-shadow) 50%, transparent);
 }
 
 .player-token.active-turn {
@@ -158,17 +158,17 @@ export default defineComponent({
   right: -4px;
   bottom: -4px;
   border-radius: 50%;
-  border: 2px solid #fbbf24;
+  border: 2px solid var(--c-amber-400);
   animation: halo-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
   pointer-events: none;
 }
 
 @keyframes pulse-border {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-amber-400) 70%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(251, 191, 36, 0);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--c-amber-400) 0%, transparent);
   }
 }
 

@@ -1,0 +1,531 @@
+/*
+ * Color themes.
+ *
+ * Components never use color literals: every color is a palette token
+ * (--c-<hue>-<shade>, Tailwind-style names) or, inside rules that style one
+ * board cell type, a per-type family (--c-<cell_type>--<hue>-<shade>).
+ * Rules with on-accent text use --c-solid--<hue>-<shade> for dark shades.
+ *
+ * Midnight (the original look) defines every token literally. The other
+ * themes only set base tokens (--t-*: an 11-step neutral scale from strongest
+ * text n50 to deepest background n950, page/panel/backdrop, and one base per
+ * hue and per cell type); shades are derived with color-mix(), so a light
+ * theme inverts the whole scale automatically.
+ *
+ * Themes are selected with <html data-theme="...">, see src/theme.ts.
+ */
+
+:root,
+:root[data-theme='midnight'] {
+  color-scheme: dark;
+  --c-amber-200: #fde68a;
+  --c-amber-400: #fbbf24;
+  --c-amber-500: #f59e0b;
+  --c-amber-900: #78350f;
+  --c-amber-950: #451a03;
+  --c-blue-300: #93c5fd;
+  --c-blue-400: #60a5fa;
+  --c-blue-500: #3b82f6;
+  --c-blue-600: #2563eb;
+  --c-blue-900: #1e3a8a;
+  --c-blue-950: #172554;
+  --c-bright: #ffffff;
+  --c-code_freeze--blue-500: #3b82f6;
+  --c-code_freeze--blue-700: #1d4ed8;
+  --c-code_freeze--blue-900: #1e3a8a;
+  --c-code_freeze--cyan-200: #a5f3fc;
+  --c-code_freeze--cyan-300: #67e8f9;
+  --c-coffee_break--amber-500: #f59e0b;
+  --c-coffee_break--amber-700: #b45309;
+  --c-coffee_break--amber-900: #78350f;
+  --c-coffee_break--latte-250: #e7d3b0;
+  --c-coffee_break--latte-350: #d6b28a;
+  --c-cyan-500: #06b6d4;
+  --c-deadline--red-300: #fca5a5;
+  --c-deadline--red-400: #f87171;
+  --c-deadline--red-500: #ef4444;
+  --c-deadline--red-700: #b91c1c;
+  --c-deadline--red-900: #7f1d1d;
+  --c-deploy--emerald-500: #10b981;
+  --c-deploy--emerald-700: #047857;
+  --c-deploy--emerald-800: #065f46;
+  --c-deploy--green-300: #86efac;
+  --c-deploy--green-400: #4ade80;
+  --c-double_xp--amber-200: #fde68a;
+  --c-double_xp--amber-400: #fbbf24;
+  --c-double_xp--yellow-500: #eab308;
+  --c-emerald-200: #a7f3d0;
+  --c-emerald-400: #34d399;
+  --c-emerald-500: #10b981;
+  --c-emerald-700: #047857;
+  --c-emerald-800: #065f46;
+  --c-emerald-900: #064e3b;
+  --c-free_pass--cyan-500: #06b6d4;
+  --c-free_pass--violet-300: #c4b5fd;
+  --c-free_pass--violet-400: #a78bfa;
+  --c-gray-900: #111827;
+  --c-green-400: #4ade80;
+  --c-green-500: #22c55e;
+  --c-lime-500: #84cc16;
+  --c-mystery--indigo-400: #818cf8;
+  --c-mystery--indigo-900: #312e81;
+  --c-mystery--purple-300: #d8b4fe;
+  --c-mystery--purple-400: #c084fc;
+  --c-navy-700: #1e3a5f;
+  --c-navy-800: #0f1e3a;
+  --c-navy-840: #162444;
+  --c-navy-850: #111e35;
+  --c-navy-860: #111e38;
+  --c-navy-880: #0d1b32;
+  --c-navy-900: #0c1527;
+  --c-navy-925: #0a1222;
+  --c-navy-950: #080f1e;
+  --c-navy-960: #050a18;
+  --c-navy-975: #040914;
+  --c-orange-400: #fb923c;
+  --c-orange-500: #f97316;
+  --c-orange-950: #431407;
+  --c-pink-400: #f472b6;
+  --c-pink-500: #ec4899;
+  --c-purple-200: #e9d5ff;
+  --c-purple-500: #a855f7;
+  --c-purple-900: #581c87;
+  --c-red-300: #fca5a5;
+  --c-red-400: #f87171;
+  --c-red-500: #ef4444;
+  --c-red-800: #991b1b;
+  --c-red-900: #7f1d1d;
+  --c-shadow: #000000;
+  --c-skip_next--orange-300: #fdba74;
+  --c-skip_next--orange-400: #fb923c;
+  --c-skip_next--orange-500: #f97316;
+  --c-sky-400: #38bdf8;
+  --c-slate-100: #f1f5f9;
+  --c-slate-200: #e2e8f0;
+  --c-slate-300: #cbd5e1;
+  --c-slate-400: #94a3b8;
+  --c-slate-50: #f8fafc;
+  --c-slate-500: #64748b;
+  --c-slate-600: #475569;
+  --c-slate-700: #334155;
+  --c-slate-800: #1e293b;
+  --c-slate-900: #0f172a;
+  --c-slate-950: #020617;
+  --c-solid--amber-800: #92400e;
+  --c-solid--blue-600: #2563eb;
+  --c-solid--blue-800: #1e40af;
+  --c-solid--blue-900: #1e3a8a;
+  --c-solid--emerald-800: #065f46;
+  --c-solid--red-900: #7f1d1d;
+  --c-solid--violet-600: #7c3aed;
+  --c-special_challenge--pink-300: #f9a8d4;
+  --c-special_challenge--pink-400: #f472b6;
+  --c-special_challenge--pink-500: #ec4899;
+  --c-teleport--cyan-300: #67e8f9;
+  --c-teleport--cyan-400: #22d3ee;
+  --c-teleport--violet-400: #a78bfa;
+  --c-teleport--violet-500: #8b5cf6;
+  --c-violet-400: #a78bfa;
+  --c-violet-500: #8b5cf6;
+  --c-white: #ffffff;
+  --c-xp_gain--emerald-400: #34d399;
+  --c-xp_gain--emerald-500: #10b981;
+  --c-xp_gain--emerald-600: #059669;
+  --c-xp_gain--green-300: #86efac;
+  --c-xp_loss--red-300: #fca5a5;
+  --c-xp_loss--red-400: #f87171;
+  --c-xp_loss--red-500: #ef4444;
+  --c-yellow-300: #fde047;
+  --c-yellow-900: #713f12;
+}
+
+/* Defaults for derived themes (lowest specificity so each theme can override). */
+:root {
+  --t-k50: 12%;
+  --t-k100: 22%;
+  --t-k200: 38%;
+  --t-k250: 46%;
+  --t-k300: 55%;
+  --t-k350: 64%;
+  --t-k400: 75%;
+  --t-k600: 85%;
+  --t-k700: 70%;
+  --t-k800: 55%;
+  --t-k900: 42%;
+  --t-k950: 30%;
+  --t-ks600: 88%;
+  --t-ks700: 78%;
+  --t-ks800: 68%;
+  --t-ks900: 58%;
+  --t-ks950: 48%;
+  --t-deploy: var(--t-emerald);
+  --t-code_freeze: var(--t-blue);
+  --t-coffee_break: var(--t-amber);
+  --t-deadline: var(--t-red);
+  --t-xp_gain: var(--t-emerald);
+  --t-xp_loss: var(--t-red);
+  --t-mystery: var(--t-indigo);
+  --t-teleport: var(--t-violet);
+  --t-skip_next: var(--t-orange);
+  --t-double_xp: var(--t-yellow);
+  --t-free_pass: var(--t-cyan);
+  --t-special_challenge: var(--t-pink);
+}
+
+/* Every non-Midnight theme derives the palette from its --t-* base tokens. */
+:root[data-theme]:not([data-theme='midnight']) {
+  --c-amber-200: color-mix(in oklab, var(--t-amber) var(--t-k200), var(--t-n50));
+  --c-amber-400: color-mix(in oklab, var(--t-amber) var(--t-k400), var(--t-n50));
+  --c-amber-500: var(--t-amber);
+  --c-amber-900: color-mix(in oklab, var(--t-amber) var(--t-k900), var(--t-n950));
+  --c-amber-950: color-mix(in oklab, var(--t-amber) var(--t-k950), var(--t-n950));
+  --c-blue-300: color-mix(in oklab, var(--t-blue) var(--t-k300), var(--t-n50));
+  --c-blue-400: color-mix(in oklab, var(--t-blue) var(--t-k400), var(--t-n50));
+  --c-blue-500: var(--t-blue);
+  --c-blue-600: color-mix(in oklab, var(--t-blue) var(--t-k600), var(--t-n950));
+  --c-blue-900: color-mix(in oklab, var(--t-blue) var(--t-k900), var(--t-n950));
+  --c-blue-950: color-mix(in oklab, var(--t-blue) var(--t-k950), var(--t-n950));
+  --c-bright: var(--t-n50);
+  --c-code_freeze--blue-500: var(--t-code_freeze);
+  --c-code_freeze--blue-700: color-mix(in oklab, var(--t-code_freeze) var(--t-k700), var(--t-n950));
+  --c-code_freeze--blue-900: color-mix(in oklab, var(--t-code_freeze) var(--t-k900), var(--t-n950));
+  --c-code_freeze--cyan-200: color-mix(in oklab, var(--t-code_freeze) var(--t-k200), var(--t-n50));
+  --c-code_freeze--cyan-300: color-mix(in oklab, var(--t-code_freeze) var(--t-k300), var(--t-n50));
+  --c-coffee_break--amber-500: var(--t-coffee_break);
+  --c-coffee_break--amber-700: color-mix(in oklab, var(--t-coffee_break) var(--t-k700), var(--t-n950));
+  --c-coffee_break--amber-900: color-mix(in oklab, var(--t-coffee_break) var(--t-k900), var(--t-n950));
+  --c-coffee_break--latte-250: color-mix(in oklab, var(--t-coffee_break) var(--t-k250), var(--t-n50));
+  --c-coffee_break--latte-350: color-mix(in oklab, var(--t-coffee_break) var(--t-k350), var(--t-n50));
+  --c-cyan-500: var(--t-cyan);
+  --c-deadline--red-300: color-mix(in oklab, var(--t-deadline) var(--t-k300), var(--t-n50));
+  --c-deadline--red-400: color-mix(in oklab, var(--t-deadline) var(--t-k400), var(--t-n50));
+  --c-deadline--red-500: var(--t-deadline);
+  --c-deadline--red-700: color-mix(in oklab, var(--t-deadline) var(--t-k700), var(--t-n950));
+  --c-deadline--red-900: color-mix(in oklab, var(--t-deadline) var(--t-k900), var(--t-n950));
+  --c-deploy--emerald-500: var(--t-deploy);
+  --c-deploy--emerald-700: color-mix(in oklab, var(--t-deploy) var(--t-k700), var(--t-n950));
+  --c-deploy--emerald-800: color-mix(in oklab, var(--t-deploy) var(--t-k800), var(--t-n950));
+  --c-deploy--green-300: color-mix(in oklab, var(--t-deploy) var(--t-k300), var(--t-n50));
+  --c-deploy--green-400: color-mix(in oklab, var(--t-deploy) var(--t-k400), var(--t-n50));
+  --c-double_xp--amber-200: color-mix(in oklab, var(--t-double_xp) var(--t-k200), var(--t-n50));
+  --c-double_xp--amber-400: color-mix(in oklab, var(--t-double_xp) var(--t-k400), var(--t-n50));
+  --c-double_xp--yellow-500: var(--t-double_xp);
+  --c-emerald-200: color-mix(in oklab, var(--t-emerald) var(--t-k200), var(--t-n50));
+  --c-emerald-400: color-mix(in oklab, var(--t-emerald) var(--t-k400), var(--t-n50));
+  --c-emerald-500: var(--t-emerald);
+  --c-emerald-700: color-mix(in oklab, var(--t-emerald) var(--t-k700), var(--t-n950));
+  --c-emerald-800: color-mix(in oklab, var(--t-emerald) var(--t-k800), var(--t-n950));
+  --c-emerald-900: color-mix(in oklab, var(--t-emerald) var(--t-k900), var(--t-n950));
+  --c-free_pass--cyan-500: var(--t-free_pass);
+  --c-free_pass--violet-300: color-mix(in oklab, var(--t-free_pass) var(--t-k300), var(--t-n50));
+  --c-free_pass--violet-400: color-mix(in oklab, var(--t-free_pass) var(--t-k400), var(--t-n50));
+  --c-gray-900: var(--t-n900);
+  --c-green-400: color-mix(in oklab, var(--t-green) var(--t-k400), var(--t-n50));
+  --c-green-500: var(--t-green);
+  --c-lime-500: var(--t-lime);
+  --c-mystery--indigo-400: color-mix(in oklab, var(--t-mystery) var(--t-k400), var(--t-n50));
+  --c-mystery--indigo-900: color-mix(in oklab, var(--t-mystery) var(--t-k900), var(--t-n950));
+  --c-mystery--purple-300: color-mix(in oklab, var(--t-mystery) var(--t-k300), var(--t-n50));
+  --c-mystery--purple-400: color-mix(in oklab, var(--t-mystery) var(--t-k400), var(--t-n50));
+  --c-navy-700: color-mix(in oklab, var(--t-blue) 40%, var(--t-n800));
+  --c-navy-800: color-mix(in oklab, var(--t-blue) 14%, var(--t-panel));
+  --c-navy-840: color-mix(in oklab, var(--t-blue) 12%, var(--t-panel));
+  --c-navy-850: color-mix(in oklab, var(--t-blue) 7%, var(--t-panel));
+  --c-navy-860: color-mix(in oklab, var(--t-blue) 9%, var(--t-panel));
+  --c-navy-880: color-mix(in oklab, var(--t-blue) 6%, var(--t-panel));
+  --c-navy-900: var(--t-panel);
+  --c-navy-925: var(--t-page);
+  --c-navy-950: var(--t-page);
+  --c-navy-960: var(--t-backdrop);
+  --c-navy-975: var(--t-backdrop);
+  --c-orange-400: color-mix(in oklab, var(--t-orange) var(--t-k400), var(--t-n50));
+  --c-orange-500: var(--t-orange);
+  --c-orange-950: color-mix(in oklab, var(--t-orange) var(--t-k950), var(--t-n950));
+  --c-pink-400: color-mix(in oklab, var(--t-pink) var(--t-k400), var(--t-n50));
+  --c-pink-500: var(--t-pink);
+  --c-purple-200: color-mix(in oklab, var(--t-purple) var(--t-k200), var(--t-n50));
+  --c-purple-500: var(--t-purple);
+  --c-purple-900: color-mix(in oklab, var(--t-purple) var(--t-k900), var(--t-n950));
+  --c-red-300: color-mix(in oklab, var(--t-red) var(--t-k300), var(--t-n50));
+  --c-red-400: color-mix(in oklab, var(--t-red) var(--t-k400), var(--t-n50));
+  --c-red-500: var(--t-red);
+  --c-red-800: color-mix(in oklab, var(--t-red) var(--t-k800), var(--t-n950));
+  --c-red-900: color-mix(in oklab, var(--t-red) var(--t-k900), var(--t-n950));
+  --c-shadow: var(--t-shadow);
+  --c-skip_next--orange-300: color-mix(in oklab, var(--t-skip_next) var(--t-k300), var(--t-n50));
+  --c-skip_next--orange-400: color-mix(in oklab, var(--t-skip_next) var(--t-k400), var(--t-n50));
+  --c-skip_next--orange-500: var(--t-skip_next);
+  --c-sky-400: color-mix(in oklab, var(--t-sky) var(--t-k400), var(--t-n50));
+  --c-slate-100: var(--t-n100);
+  --c-slate-200: var(--t-n200);
+  --c-slate-300: var(--t-n300);
+  --c-slate-400: var(--t-n400);
+  --c-slate-50: var(--t-n50);
+  --c-slate-500: var(--t-n500);
+  --c-slate-600: var(--t-n600);
+  --c-slate-700: var(--t-n700);
+  --c-slate-800: var(--t-n800);
+  --c-slate-900: var(--t-n900);
+  --c-slate-950: var(--t-n950);
+  --c-solid--amber-800: color-mix(in oklab, var(--t-amber) var(--t-ks800), var(--t-n50));
+  --c-solid--blue-600: color-mix(in oklab, var(--t-blue) var(--t-ks600), var(--t-n50));
+  --c-solid--blue-800: color-mix(in oklab, var(--t-blue) var(--t-ks800), var(--t-n50));
+  --c-solid--blue-900: color-mix(in oklab, var(--t-blue) var(--t-ks900), var(--t-n50));
+  --c-solid--emerald-800: color-mix(in oklab, var(--t-emerald) var(--t-ks800), var(--t-n50));
+  --c-solid--red-900: color-mix(in oklab, var(--t-red) var(--t-ks900), var(--t-n50));
+  --c-solid--violet-600: color-mix(in oklab, var(--t-violet) var(--t-ks600), var(--t-n50));
+  --c-special_challenge--pink-300: color-mix(in oklab, var(--t-special_challenge) var(--t-k300), var(--t-n50));
+  --c-special_challenge--pink-400: color-mix(in oklab, var(--t-special_challenge) var(--t-k400), var(--t-n50));
+  --c-special_challenge--pink-500: var(--t-special_challenge);
+  --c-teleport--cyan-300: color-mix(in oklab, var(--t-teleport) var(--t-k300), var(--t-n50));
+  --c-teleport--cyan-400: color-mix(in oklab, var(--t-teleport) var(--t-k400), var(--t-n50));
+  --c-teleport--violet-400: color-mix(in oklab, var(--t-teleport) var(--t-k400), var(--t-n50));
+  --c-teleport--violet-500: var(--t-teleport);
+  --c-violet-400: color-mix(in oklab, var(--t-violet) var(--t-k400), var(--t-n50));
+  --c-violet-500: var(--t-violet);
+  --c-white: var(--t-on-accent);
+  --c-xp_gain--emerald-400: color-mix(in oklab, var(--t-xp_gain) var(--t-k400), var(--t-n50));
+  --c-xp_gain--emerald-500: var(--t-xp_gain);
+  --c-xp_gain--emerald-600: color-mix(in oklab, var(--t-xp_gain) var(--t-k600), var(--t-n950));
+  --c-xp_gain--green-300: color-mix(in oklab, var(--t-xp_gain) var(--t-k300), var(--t-n50));
+  --c-xp_loss--red-300: color-mix(in oklab, var(--t-xp_loss) var(--t-k300), var(--t-n50));
+  --c-xp_loss--red-400: color-mix(in oklab, var(--t-xp_loss) var(--t-k400), var(--t-n50));
+  --c-xp_loss--red-500: var(--t-xp_loss);
+  --c-yellow-300: color-mix(in oklab, var(--t-yellow) var(--t-k300), var(--t-n50));
+  --c-yellow-900: color-mix(in oklab, var(--t-yellow) var(--t-k900), var(--t-n950));
+}
+
+/* Ivory: warm light theme inspired by Claude (ivory paper, charcoal ink, clay accent). */
+:root[data-theme='ivory'] {
+  color-scheme: light;
+  --t-n50: #141413;
+  --t-n100: #29261b;
+  --t-n200: #3d3d3a;
+  --t-n300: #5e5d59;
+  --t-n400: #73726c;
+  --t-n500: #9c9a92;
+  --t-n600: #d1cfc5;
+  --t-n700: #e8e6dc;
+  --t-n800: #f0eee6;
+  --t-n900: #f5f4ed;
+  --t-n950: #faf9f5;
+  --t-page: #f5f4ed;
+  --t-panel: #fbfaf7;
+  --t-backdrop: #f0eee6;
+  --t-shadow: #b3aa98;
+  --t-on-accent: #ffffff;
+  --t-red: #b5463c;
+  --t-orange: #d07a2e;
+  --t-amber: #b5803a;
+  --t-yellow: #c9a227;
+  --t-lime: #7ea33a;
+  --t-green: #5b9a5b;
+  --t-emerald: #4f8a5b;
+  --t-cyan: #3a9aa8;
+  --t-sky: #4a7fb0;
+  --t-blue: #c96442;
+  --t-indigo: #6e62a8;
+  --t-violet: #b4532f;
+  --t-purple: #8a5aa8;
+  --t-pink: #c45a86;
+  --t-code_freeze: #4a7fb0;
+  --t-teleport: #8a5aa8;
+  --t-xp_loss: #c0503f;
+  --t-k50: 15%;
+  --t-k100: 28%;
+  --t-k200: 45%;
+  --t-k250: 52%;
+  --t-k300: 62%;
+  --t-k350: 70%;
+  --t-k400: 78%;
+  --t-k600: 85%;
+  --t-k700: 66%;
+  --t-k800: 48%;
+  --t-k900: 30%;
+  --t-k950: 18%;
+}
+
+/* Terminal: cozy TUI look in the spirit of Omarchy (Tokyo Night palette, monospace, square corners). */
+:root[data-theme='terminal'] {
+  color-scheme: dark;
+  --t-n50: #e3e9ff;
+  --t-n100: #cfd8fb;
+  --t-n200: #c0caf5;
+  --t-n300: #a9b1d6;
+  --t-n400: #7f87b3;
+  --t-n500: #565f89;
+  --t-n600: #414868;
+  --t-n700: #2f3549;
+  --t-n800: #24283b;
+  --t-n900: #1a1b26;
+  --t-n950: #16161e;
+  --t-page: #1a1b26;
+  --t-panel: #1f2335;
+  --t-backdrop: #16161e;
+  --t-shadow: #000000;
+  --t-on-accent: #1a1b26;
+  --t-red: #f7768e;
+  --t-orange: #ff9e64;
+  --t-amber: #e0af68;
+  --t-yellow: #ffc777;
+  --t-lime: #c3e88d;
+  --t-green: #9ece6a;
+  --t-emerald: #9ece6a;
+  --t-cyan: #7dcfff;
+  --t-sky: #2ac3de;
+  --t-blue: #7aa2f7;
+  --t-indigo: #9d7cd8;
+  --t-violet: #bb9af7;
+  --t-purple: #c099ff;
+  --t-pink: #ff7eb6;
+  --t-code_freeze: #7aa2f7;
+  --t-coffee_break: #c99d74;
+  --t-free_pass: #73daca;
+}
+
+/* Mono: minimal black, white and gray. */
+:root[data-theme='mono'] {
+  color-scheme: light;
+  --t-n50: #000000;
+  --t-n100: #171717;
+  --t-n200: #2a2a2a;
+  --t-n300: #4a4a4a;
+  --t-n400: #6e6e6e;
+  --t-n500: #9a9a9a;
+  --t-n600: #c8c8c8;
+  --t-n700: #e4e4e4;
+  --t-n800: #efefef;
+  --t-n900: #f7f7f7;
+  --t-n950: #ffffff;
+  --t-page: #ffffff;
+  --t-panel: #fafafa;
+  --t-backdrop: #ffffff;
+  --t-shadow: #9a9a9a;
+  --t-on-accent: #ffffff;
+  --t-red: #1a1a1a;
+  --t-orange: #555555;
+  --t-amber: #6b6b6b;
+  --t-yellow: #7d7d7d;
+  --t-lime: #5a5a5a;
+  --t-green: #4a4a4a;
+  --t-emerald: #3d3d3d;
+  --t-cyan: #606060;
+  --t-sky: #3a3a3a;
+  --t-blue: #111111;
+  --t-indigo: #2e2e2e;
+  --t-violet: #3a3a3a;
+  --t-purple: #2e2e2e;
+  --t-pink: #484848;
+  --t-deploy: #000000;
+  --t-code_freeze: #2b2b2b;
+  --t-coffee_break: #808080;
+  --t-deadline: #1a1a1a;
+  --t-xp_gain: #4d4d4d;
+  --t-xp_loss: #262626;
+  --t-mystery: #595959;
+  --t-teleport: #737373;
+  --t-skip_next: #3d3d3d;
+  --t-double_xp: #8c8c8c;
+  --t-free_pass: #666666;
+  --t-special_challenge: #333333;
+  --t-k50: 15%;
+  --t-k100: 28%;
+  --t-k200: 45%;
+  --t-k250: 52%;
+  --t-k300: 62%;
+  --t-k350: 70%;
+  --t-k400: 78%;
+  --t-k600: 85%;
+  --t-k700: 66%;
+  --t-k800: 48%;
+  --t-k900: 30%;
+  --t-k950: 18%;
+}
+
+/* Solarpunk: sunlit parchment, leafy greens, sky teal and golden accents. */
+:root[data-theme='solarpunk'] {
+  color-scheme: light;
+  --t-n50: #142112;
+  --t-n100: #22301f;
+  --t-n200: #2f3d2c;
+  --t-n300: #4a5240;
+  --t-n400: #64664c;
+  --t-n500: #8f8a6c;
+  --t-n600: #c2bb98;
+  --t-n700: #ddd6b6;
+  --t-n800: #ebe5cb;
+  --t-n900: #f4f0dc;
+  --t-n950: #fbf8ec;
+  --t-page: #f6f2df;
+  --t-panel: #fdfbf2;
+  --t-backdrop: #f4f0dc;
+  --t-shadow: #a59c78;
+  --t-on-accent: #ffffff;
+  --t-red: #c4553a;
+  --t-orange: #e07a2f;
+  --t-amber: #d99a1e;
+  --t-yellow: #e2b93b;
+  --t-lime: #8fb339;
+  --t-green: #5aa340;
+  --t-emerald: #3f8f4f;
+  --t-cyan: #3aa6b9;
+  --t-sky: #4a90c2;
+  --t-blue: #2a8c82;
+  --t-indigo: #6b6bb8;
+  --t-violet: #5a9a3c;
+  --t-purple: #8a63b0;
+  --t-pink: #d1668c;
+  --t-code_freeze: #4a90c2;
+  --t-coffee_break: #a8763e;
+  --t-xp_gain: #5aa340;
+  --t-teleport: #8a63b0;
+  --t-mystery: #6b6bb8;
+  --t-k50: 15%;
+  --t-k100: 28%;
+  --t-k200: 45%;
+  --t-k250: 52%;
+  --t-k300: 62%;
+  --t-k350: 70%;
+  --t-k400: 78%;
+  --t-k600: 85%;
+  --t-k700: 66%;
+  --t-k800: 48%;
+  --t-k900: 30%;
+  --t-k950: 18%;
+}
+
+/* ---------------------------------------------------------------------------
+ * Theme personality beyond color
+ * ------------------------------------------------------------------------- */
+
+/* Ivory: editorial serif headings, as in Claude's interface. */
+:root[data-theme='ivory'] :is(h1, h2, h3, h4) {
+  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif !important;
+  letter-spacing: 0 !important;
+}
+
+/* Terminal: monospace everywhere and boxy, square corners (player tokens stay round). */
+:root[data-theme='terminal'] body,
+:root[data-theme='terminal'] body * {
+  font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+}
+:root[data-theme='terminal'] body *:not(.player-token):not(.mini-token):not(.p-token) {
+  border-radius: 0 !important;
+}
+
+/* Mono: grayscale everything, including emoji and the dice. */
+:root[data-theme='mono'] {
+  filter: grayscale(1);
+}
+
+/* Solarpunk: soft sunlight and leaf glow behind every full-page screen. */
+:root[data-theme='solarpunk'] :is(
+  .lobby, .board-view, .login-backdrop, .admin-view, .admin-app-layout,
+  .question-list-container, .board-list-container, .board-editor
+) {
+  background-color: var(--c-navy-950) !important;
+  background-image:
+    radial-gradient(circle at 88% -10%, color-mix(in srgb, var(--t-amber) 26%, transparent), transparent 42%),
+    radial-gradient(circle at -5% 105%, color-mix(in srgb, var(--t-green) 22%, transparent), transparent 45%) !important;
+  background-attachment: fixed !important;
+}

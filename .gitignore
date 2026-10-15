@@ -4,3 +4,4 @@ venv/
 .agents/
 opencode.jsonc
 .codex/
+.env.prod

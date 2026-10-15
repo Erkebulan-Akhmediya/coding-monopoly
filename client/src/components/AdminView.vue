@@ -362,39 +362,39 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #080f1e;
-  color: #e2e8f0;
+  background: var(--c-navy-950);
+  color: var(--c-slate-200);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* Login Backdrop */
 .login-backdrop {
   min-height: 100vh;
-  background: #080f1e;
+  background: var(--c-navy-950);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .login-card {
-  background: linear-gradient(145deg, #0f1e3a 0%, #111827 100%);
-  border: 1px solid #1e3a5f;
+  background: linear-gradient(145deg, var(--c-navy-800) 0%, var(--c-gray-900) 100%);
+  border: 1px solid var(--c-navy-700);
   border-radius: 16px;
   padding: 2.5rem 2.75rem;
   width: 360px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(96, 165, 250, 0.1);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--c-shadow) 70%, transparent), 0 0 0 1px color-mix(in srgb, var(--c-blue-400) 10%, transparent);
 }
 .login-logo {
   font-size: 1.6rem;
   font-weight: 900;
   text-align: center;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa);
+  background: linear-gradient(90deg, var(--c-blue-400), var(--c-violet-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.4rem;
 }
 .login-subtitle {
   text-align: center;
-  color: #64748b;
+  color: var(--c-slate-500);
   font-size: 0.85rem;
   margin-bottom: 1.5rem;
 }
@@ -407,26 +407,26 @@ export default defineComponent({
 .login-field label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .login-input {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--c-slate-900);
+  border: 1px solid var(--c-slate-700);
   border-radius: 8px;
   padding: 0.55rem 0.85rem;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.2s;
 }
 .login-input:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+  border-color: var(--c-blue-400);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-blue-400) 20%, transparent);
 }
 .login-error {
-  color: #f87171;
+  color: var(--c-red-400);
   font-size: 0.8rem;
   text-align: center;
   margin-bottom: 0.75rem;
@@ -439,8 +439,8 @@ export default defineComponent({
   cursor: pointer;
   font-weight: 700;
   font-size: 0.95rem;
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
-  color: white;
+  background: linear-gradient(90deg, var(--c-solid--blue-600), var(--c-solid--violet-600));
+  color: var(--c-white);
   transition: opacity 0.2s, transform 0.15s;
 }
 .login-btn:hover:not(:disabled) {
@@ -457,9 +457,10 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 1.25rem;
-  background: #0c1527;
-  border-bottom: 1px solid #1e293b;
+  /* Right padding leaves room for the fixed theme/language controls (App.vue). */
+  padding: 0.5rem 15rem 0.5rem 1.25rem;
+  background: var(--c-navy-900);
+  border-bottom: 1px solid var(--c-slate-800);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -472,7 +473,7 @@ export default defineComponent({
 .topbar-logo {
   font-weight: 900;
   font-size: 1.05rem;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa);
+  background: linear-gradient(90deg, var(--c-blue-400), var(--c-violet-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -483,7 +484,7 @@ export default defineComponent({
 .tab-btn {
   background: transparent;
   border: 1px solid transparent;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   padding: 0.4rem 0.85rem;
   border-radius: 8px;
   font-weight: 700;
@@ -492,14 +493,14 @@ export default defineComponent({
   transition: all 0.2s;
 }
 .tab-btn:hover {
-  color: #f1f5f9;
-  background: #1e293b;
+  color: var(--c-slate-100);
+  background: var(--c-slate-800);
 }
 .tab-btn.active {
-  color: #60a5fa;
-  background: #0f1e3a;
-  border-color: #1e3a5f;
-  box-shadow: 0 0 10px rgba(96, 165, 250, 0.15);
+  color: var(--c-blue-400);
+  background: var(--c-navy-800);
+  border-color: var(--c-navy-700);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c-blue-400) 15%, transparent);
 }
 .topbar-right {
   display: flex;
@@ -508,7 +509,7 @@ export default defineComponent({
 }
 .room-indicator {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--c-slate-500);
   font-family: monospace;
 }
 .admin-main-content {
@@ -519,9 +520,9 @@ export default defineComponent({
 
 /* Buttons */
 .btn-secondary {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #e2e8f0;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-slate-200);
   border-radius: 6px;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -546,14 +547,14 @@ export default defineComponent({
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 1.25rem;
-  background: #0c1527;
-  border-bottom: 1px solid #1e293b;
+  background: var(--c-navy-900);
+  border-bottom: 1px solid var(--c-slate-800);
   flex-shrink: 0;
 }
 .back-btn {
   background: transparent;
-  border: 1px solid #334155;
-  color: #94a3b8;
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-slate-400);
   padding: 0.3rem 0.7rem;
   border-radius: 6px;
   font-size: 0.82rem;
@@ -562,25 +563,25 @@ export default defineComponent({
   transition: all 0.2s;
 }
 .back-btn:hover {
-  color: #f1f5f9;
-  border-color: #60a5fa;
-  background: #0f1e3a;
+  color: var(--c-slate-100);
+  border-color: var(--c-blue-400);
+  background: var(--c-navy-800);
 }
 .spectator-room-label {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--c-slate-500);
 }
 .spectator-room-label strong {
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   font-family: monospace;
 }
 .conn-pill {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #ef4444;
+  color: var(--c-red-500);
   margin-left: auto;
 }
-.conn-pill.connected { color: #34d399; }
+.conn-pill.connected { color: var(--c-emerald-400); }
 
 /* Rooms tab */
 .rooms-tab {
@@ -602,9 +603,9 @@ export default defineComponent({
   flex-wrap: wrap;
 }
 .btn-primary {
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  background: linear-gradient(90deg, var(--c-solid--blue-600), var(--c-solid--violet-600));
   border: none;
-  color: white;
+  color: var(--c-white);
   border-radius: 6px;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -616,17 +617,17 @@ export default defineComponent({
   margin: 0;
   font-size: 1rem;
   font-weight: 800;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
 }
 .rooms-error {
-  color: #f87171;
+  color: var(--c-red-400);
   font-size: 0.85rem;
   margin-bottom: 1rem;
 }
 .rooms-empty {
   text-align: center;
   padding: 3rem 1rem;
-  color: #475569;
+  color: var(--c-slate-600);
 }
 .empty-icon {
   font-size: 2.5rem;
@@ -646,8 +647,8 @@ export default defineComponent({
 }
 
 .room-card {
-  background: #0c1527;
-  border: 1px solid #1e293b;
+  background: var(--c-navy-900);
+  border: 1px solid var(--c-slate-800);
   border-radius: 12px;
   padding: 1rem 1.1rem;
   cursor: pointer;
@@ -657,14 +658,14 @@ export default defineComponent({
   gap: 0.65rem;
 }
 .room-card:hover {
-  border-color: #3b82f6;
+  border-color: var(--c-blue-500);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--c-shadow) 40%, transparent);
 }
-.room-card.status-active  { border-left: 3px solid #34d399; }
-.room-card.status-paused  { border-left: 3px solid #f59e0b; }
-.room-card.status-finished { border-left: 3px solid #64748b; }
-.room-card.status-waiting  { border-left: 3px solid #60a5fa; }
+.room-card.status-active  { border-left: 3px solid var(--c-emerald-400); }
+.room-card.status-paused  { border-left: 3px solid var(--c-amber-500); }
+.room-card.status-finished { border-left: 3px solid var(--c-slate-500); }
+.room-card.status-waiting  { border-left: 3px solid var(--c-blue-400); }
 
 .room-card-top {
   display: flex;
@@ -674,7 +675,7 @@ export default defineComponent({
 .room-id {
   font-weight: 800;
   font-size: 0.95rem;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   font-family: monospace;
 }
 .room-status {
@@ -685,10 +686,10 @@ export default defineComponent({
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
 }
-.room-status.status-active   { background: #064e3b; color: #34d399; }
-.room-status.status-paused   { background: #78350f; color: #fbbf24; }
-.room-status.status-finished { background: #1e293b; color: #64748b; }
-.room-status.status-waiting  { background: #1e3a8a; color: #93c5fd; }
+.room-status.status-active   { background: var(--c-emerald-900); color: var(--c-emerald-400); }
+.room-status.status-paused   { background: var(--c-amber-900); color: var(--c-amber-400); }
+.room-status.status-finished { background: var(--c-slate-800); color: var(--c-slate-500); }
+.room-status.status-waiting  { background: var(--c-blue-900); color: var(--c-blue-300); }
 
 .room-card-stats {
   display: flex;
@@ -697,7 +698,7 @@ export default defineComponent({
 }
 .stat {
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -710,17 +711,17 @@ export default defineComponent({
   gap: 0.3rem;
 }
 .player-chip {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
   border-radius: 99px;
   padding: 0.1rem 0.5rem;
   font-size: 0.72rem;
-  color: #cbd5e1;
+  color: var(--c-slate-300);
   white-space: nowrap;
 }
 .player-chip.more {
-  background: #0f172a;
-  color: #64748b;
+  background: var(--c-slate-900);
+  color: var(--c-slate-500);
 }
 
 .room-card-footer {
@@ -728,15 +729,15 @@ export default defineComponent({
   justify-content: flex-end;
   margin-top: auto;
   padding-top: 0.25rem;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid var(--c-slate-800);
 }
 .view-room-link {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #3b82f6;
+  color: var(--c-blue-500);
   transition: color 0.2s;
 }
 .room-card:hover .view-room-link {
-  color: #60a5fa;
+  color: var(--c-blue-400);
 }
 </style>

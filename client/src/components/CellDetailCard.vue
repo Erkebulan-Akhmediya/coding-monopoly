@@ -145,7 +145,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(2, 6, 23, 0.75);
+  background: color-mix(in srgb, var(--c-slate-950) 75%, transparent);
   backdrop-filter: blur(4px);
   padding: 1rem;
   box-sizing: border-box;
@@ -165,17 +165,17 @@ export default defineComponent({
 
 .cell-card {
   position: relative;
-  background: linear-gradient(145deg, #111e38 0%, #0f172a 100%);
-  border: 2px solid #475569;
+  background: linear-gradient(145deg, var(--c-navy-860) 0%, var(--c-slate-900) 100%);
+  border: 2px solid var(--c-slate-600);
   border-radius: 16px;
   width: 100%;
   max-width: 440px;
   padding: 1.25rem 1.5rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--c-shadow) 70%, transparent), 0 0 25px color-mix(in srgb, var(--c-blue-500) 20%, transparent);
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   box-sizing: border-box;
   animation: popIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.1);
 }
@@ -192,7 +192,7 @@ export default defineComponent({
 }
 
 .cell-card.corner {
-  background: linear-gradient(145deg, #162444 0%, #0f172a 100%);
+  background: linear-gradient(145deg, var(--c-navy-840) 0%, var(--c-slate-900) 100%);
   border-width: 3px;
 }
 
@@ -209,9 +209,9 @@ export default defineComponent({
 }
 
 .cell-idx {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #94a3b8;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-slate-400);
   font-weight: 800;
   font-size: 0.85rem;
   padding: 0.2rem 0.55rem;
@@ -223,10 +223,10 @@ export default defineComponent({
 }
 
 .card-close-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid #334155;
+  background: color-mix(in srgb, var(--c-bright) 6%, transparent);
+  border: 1px solid var(--c-slate-700);
   border-radius: 8px;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   font-size: 1rem;
   width: 30px;
   height: 30px;
@@ -238,9 +238,9 @@ export default defineComponent({
 }
 
 .card-close-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: #ef4444;
-  color: #f87171;
+  background: color-mix(in srgb, var(--c-red-500) 20%, transparent);
+  border-color: var(--c-red-500);
+  color: var(--c-red-400);
 }
 
 .card-main {
@@ -253,7 +253,7 @@ export default defineComponent({
   margin: 0;
   font-size: 1.3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--c-bright);
   line-height: 1.25;
 }
 
@@ -262,16 +262,16 @@ export default defineComponent({
   align-self: flex-start;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--c-sky-400);
+  background: color-mix(in srgb, var(--c-sky-400) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-sky-400) 30%, transparent);
   padding: 0.2rem 0.6rem;
   border-radius: 6px;
 }
 
 .card-explanation {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid #1e3a5f;
+  background: color-mix(in srgb, var(--c-slate-900) 70%, transparent);
+  border: 1px solid var(--c-navy-700);
   border-radius: 10px;
   padding: 0.9rem 1.1rem;
 }
@@ -280,7 +280,7 @@ export default defineComponent({
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.55;
-  color: #cbd5e1;
+  color: var(--c-slate-300);
 }
 
 .card-footer {
@@ -290,9 +290,9 @@ export default defineComponent({
 }
 
 .dismiss-btn {
-  background: #1e293b;
-  border: 1px solid #3b82f6;
-  color: #93c5fd;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-blue-500);
+  color: var(--c-blue-300);
   font-weight: 700;
   font-size: 0.88rem;
   padding: 0.45rem 1.1rem;
@@ -302,66 +302,66 @@ export default defineComponent({
 }
 
 .dismiss-btn:hover {
-  background: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+  background: var(--c-solid--blue-600);
+  color: var(--c-white);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c-solid--blue-600) 40%, transparent);
 }
 
 /* Cell Type Accent Borders & Glows */
 .cell-deploy {
-  border-color: #10b981;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px rgba(16, 185, 129, 0.25);
+  border-color: var(--c-deploy--emerald-500);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--c-shadow) 70%, transparent), 0 0 25px color-mix(in srgb, var(--c-deploy--emerald-500) 25%, transparent);
 }
 
 .cell-code_freeze {
-  border-color: #3b82f6;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px rgba(59, 130, 246, 0.25);
+  border-color: var(--c-code_freeze--blue-500);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--c-shadow) 70%, transparent), 0 0 25px color-mix(in srgb, var(--c-code_freeze--blue-500) 25%, transparent);
 }
 
 .cell-coffee_break {
-  border-color: #f59e0b;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px rgba(245, 158, 11, 0.25);
+  border-color: var(--c-coffee_break--amber-500);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--c-shadow) 70%, transparent), 0 0 25px color-mix(in srgb, var(--c-coffee_break--amber-500) 25%, transparent);
 }
 
 .cell-deadline {
-  border-color: #ef4444;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px rgba(239, 68, 68, 0.25);
+  border-color: var(--c-deadline--red-500);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--c-shadow) 70%, transparent), 0 0 25px color-mix(in srgb, var(--c-deadline--red-500) 25%, transparent);
 }
 
 .cell-xp_gain {
-  border-color: #10b981;
+  border-color: var(--c-xp_gain--emerald-500);
 }
 
 .cell-xp_gain.xp-gain-lg {
-  border-color: #34d399;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px rgba(52, 211, 153, 0.3);
+  border-color: var(--c-xp_gain--emerald-400);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--c-shadow) 70%, transparent), 0 0 25px color-mix(in srgb, var(--c-xp_gain--emerald-400) 30%, transparent);
 }
 
 .cell-xp_loss {
-  border-color: #ef4444;
+  border-color: var(--c-xp_loss--red-500);
 }
 
 .cell-mystery {
-  border-color: #818cf8;
+  border-color: var(--c-mystery--indigo-400);
 }
 
 .cell-teleport {
-  border-color: #8b5cf6;
+  border-color: var(--c-teleport--violet-500);
 }
 
 .cell-skip_next {
-  border-color: #f97316;
+  border-color: var(--c-skip_next--orange-500);
 }
 
 .cell-double_xp {
-  border-color: #eab308;
+  border-color: var(--c-double_xp--yellow-500);
 }
 
 .cell-free_pass {
-  border-color: #06b6d4;
+  border-color: var(--c-free_pass--cyan-500);
 }
 
 .cell-special_challenge {
-  border-color: #ec4899;
+  border-color: var(--c-special_challenge--pink-500);
 }
 </style>

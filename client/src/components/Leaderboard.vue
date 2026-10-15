@@ -69,10 +69,10 @@ export default defineComponent({
 
 <style scoped>
 .leaderboard {
-  background: #1e293b;
+  background: var(--c-slate-800);
   border-radius: 8px;
   padding: 0.75rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--c-slate-700);
   position: absolute;
   top: 10px;
   left: 10px;
@@ -84,7 +84,7 @@ export default defineComponent({
   margin: 0;
   font-size: 0.75rem;
   letter-spacing: 1px;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   text-align: center;
   text-transform: uppercase;
 }
@@ -93,7 +93,7 @@ export default defineComponent({
   margin: 0.2rem 0 0.55rem;
   text-align: center;
   font-size: 0.7rem;
-  color: #64748b;
+  color: var(--c-slate-500);
 }
 
 .player-list {
@@ -109,15 +109,15 @@ export default defineComponent({
   align-items: center;
   gap: 0.45rem;
   padding: 0.35rem 0.55rem;
-  background: #0f172a;
+  background: var(--c-slate-900);
   border-radius: 6px;
-  border: 1px solid #334155;
+  border: 1px solid var(--c-slate-700);
   font-size: 0.8rem;
 }
 
 .player-card.active {
-  border-color: #fbbf24;
-  background: #172554;
+  border-color: var(--c-amber-400);
+  background: var(--c-blue-950);
 }
 
 .player-card.offline {
@@ -127,7 +127,7 @@ export default defineComponent({
 .rank {
   width: 1.1rem;
   font-weight: 800;
-  color: #64748b;
+  color: var(--c-slate-500);
   font-size: 0.75rem;
 }
 
@@ -140,20 +140,20 @@ export default defineComponent({
 
 .player-name {
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--c-slate-50);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .you-tag {
-  color: #60a5fa;
+  color: var(--c-blue-400);
   font-size: 0.7rem;
   margin-left: 2px;
 }
 
 .offline-tag {
-  color: #f87171;
+  color: var(--c-red-400);
   font-size: 0.65rem;
   margin-left: 4px;
   font-weight: 600;
@@ -161,26 +161,26 @@ export default defineComponent({
 
 .player-pos {
   font-size: 0.65rem;
-  color: #94a3b8;
+  color: var(--c-slate-400);
 }
 
 .xp-bar {
   margin-top: 0.2rem;
   height: 4px;
   border-radius: 999px;
-  background: #1e293b;
+  background: var(--c-slate-800);
   overflow: hidden;
 }
 
 .xp-fill {
   height: 100%;
-  background: linear-gradient(90deg, #22c55e, #34d399);
+  background: linear-gradient(90deg, var(--c-green-500), var(--c-emerald-400));
   transition: width 0.35s ease;
 }
 
 .player-xp-badge {
   font-weight: 800;
-  color: #34d399;
+  color: var(--c-emerald-400);
   font-size: 0.85rem;
   white-space: nowrap;
 }

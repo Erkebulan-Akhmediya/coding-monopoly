@@ -401,7 +401,7 @@ export default defineComponent({
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 9, 20, 0.82);
+  background: color-mix(in srgb, var(--c-navy-975) 82%, transparent);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -411,16 +411,16 @@ export default defineComponent({
 }
 
 .modal-card {
-  background: linear-gradient(145deg, #0f1e3a 0%, #111827 100%);
-  border: 1px solid #1e3a5f;
+  background: linear-gradient(145deg, var(--c-navy-800) 0%, var(--c-gray-900) 100%);
+  border: 1px solid var(--c-navy-700);
   border-radius: 16px;
   width: 100%;
   max-width: 680px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(96, 165, 250, 0.15);
-  color: #e2e8f0;
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--c-shadow) 80%, transparent), 0 0 0 1px color-mix(in srgb, var(--c-blue-400) 15%, transparent);
+  color: var(--c-slate-200);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
 }
@@ -430,15 +430,15 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #1e293b;
-  background: #0c1527;
+  border-bottom: 1px solid var(--c-slate-800);
+  background: var(--c-navy-900);
 }
 
 .modal-header h2 {
   font-size: 1.15rem;
   font-weight: 800;
   margin: 0;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa);
+  background: linear-gradient(90deg, var(--c-blue-400), var(--c-violet-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -446,15 +446,15 @@ export default defineComponent({
 .close-btn {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: var(--c-slate-500);
   font-size: 1.2rem;
   cursor: pointer;
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
 }
 .close-btn:hover {
-  color: #f1f5f9;
-  background: #1e293b;
+  color: var(--c-slate-100);
+  background: var(--c-slate-800);
 }
 
 .modal-body {
@@ -466,11 +466,11 @@ export default defineComponent({
 }
 
 .error-banner {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid #ef4444;
+  background: color-mix(in srgb, var(--c-red-500) 15%, transparent);
+  border: 1px solid var(--c-red-500);
   border-radius: 8px;
   padding: 0.75rem 1rem;
-  color: #f87171;
+  color: var(--c-red-400);
   font-size: 0.85rem;
 }
 .error-banner ul {
@@ -494,24 +494,24 @@ export default defineComponent({
 .form-group label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .form-input {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--c-slate-900);
+  border: 1px solid var(--c-slate-700);
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.2s;
 }
 .form-input:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+  border-color: var(--c-blue-400);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-blue-400) 20%, transparent);
 }
 .code-font {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -527,18 +527,18 @@ export default defineComponent({
   gap: 0.6rem;
   cursor: pointer;
   font-size: 0.88rem;
-  color: #cbd5e1;
+  color: var(--c-slate-300);
 }
 .toggle-checkbox {
   width: 18px;
   height: 18px;
-  accent-color: #3b82f6;
+  accent-color: var(--c-blue-500);
   cursor: pointer;
 }
 
 .subform-section {
-  background: #0c1527;
-  border: 1px solid #1e293b;
+  background: var(--c-navy-900);
+  border: 1px solid var(--c-slate-800);
   border-radius: 10px;
   padding: 1rem;
   display: flex;
@@ -554,7 +554,7 @@ export default defineComponent({
 .subform-header h3 {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   margin: 0;
 }
 
@@ -576,7 +576,7 @@ export default defineComponent({
 .ans-num {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--c-slate-500);
   width: 24px;
 }
 
@@ -586,19 +586,19 @@ export default defineComponent({
   gap: 0.35rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
 }
 .option-correct-checkbox {
-  accent-color: #10b981;
+  accent-color: var(--c-emerald-500);
   width: 16px;
   height: 16px;
   cursor: pointer;
 }
 .text-correct {
-  color: #34d399;
+  color: var(--c-emerald-400);
   font-weight: 700;
 }
 
@@ -608,12 +608,12 @@ export default defineComponent({
   gap: 0.75rem;
   margin-top: 0.5rem;
   padding-top: 1rem;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid var(--c-slate-800);
 }
 
 .btn-primary {
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
-  color: white;
+  background: linear-gradient(90deg, var(--c-solid--blue-600), var(--c-solid--violet-600));
+  color: var(--c-white);
   border: none;
   border-radius: 8px;
   padding: 0.6rem 1.25rem;
@@ -632,9 +632,9 @@ export default defineComponent({
 }
 
 .btn-secondary {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #e2e8f0;
+  background: var(--c-slate-800);
+  border: 1px solid var(--c-slate-700);
+  color: var(--c-slate-200);
   border-radius: 8px;
   padding: 0.6rem 1rem;
   font-weight: 600;
@@ -643,18 +643,18 @@ export default defineComponent({
   transition: background 0.2s;
 }
 .btn-secondary:hover {
-  background: #334155;
+  background: var(--c-slate-700);
 }
 
 .btn-danger {
-  background: #7f1d1d;
-  color: #fca5a5;
-  border: 1px solid #991b1b;
+  background: var(--c-red-900);
+  color: var(--c-red-300);
+  border: 1px solid var(--c-red-800);
   border-radius: 6px;
   cursor: pointer;
 }
 .btn-danger:hover:not(:disabled) {
-  background: #991b1b;
+  background: var(--c-red-800);
 }
 .btn-danger:disabled {
   opacity: 0.3;

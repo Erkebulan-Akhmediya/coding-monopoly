@@ -231,7 +231,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 10, 24, 0.85);
+  background: color-mix(in srgb, var(--c-navy-960) 85%, transparent);
   backdrop-filter: blur(8px);
   padding: 1.5rem;
   box-sizing: border-box;
@@ -250,17 +250,17 @@ export default defineComponent({
 }
 
 .instructions-card {
-  background: linear-gradient(145deg, #0d1b32 0%, #0f172a 100%);
-  border: 1px solid #3b82f6;
+  background: linear-gradient(145deg, var(--c-navy-880) 0%, var(--c-slate-900) 100%);
+  border: 1px solid var(--c-blue-500);
   border-radius: 16px;
   width: 100%;
   max-width: 720px;
   max-height: 86vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 25px 60px color-mix(in srgb, var(--c-shadow) 80%, transparent), 0 0 35px color-mix(in srgb, var(--c-blue-500) 25%, transparent);
   overflow: hidden;
-  color: #f1f5f9;
+  color: var(--c-slate-100);
   text-align: left;
 }
 
@@ -269,8 +269,8 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 1.1rem 1.5rem;
-  background: rgba(15, 23, 42, 0.9);
-  border-bottom: 1px solid #1e3a5f;
+  background: color-mix(in srgb, var(--c-slate-900) 90%, transparent);
+  border-bottom: 1px solid var(--c-navy-700);
   gap: 1rem;
 }
 
@@ -288,7 +288,7 @@ export default defineComponent({
   margin: 0;
   font-size: 1.15rem;
   font-weight: 800;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa);
+  background: linear-gradient(90deg, var(--c-blue-400), var(--c-violet-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -301,16 +301,16 @@ export default defineComponent({
 
 .language-tabs {
   display: flex;
-  background: #1e293b;
+  background: var(--c-slate-800);
   border-radius: 20px;
   padding: 2px;
-  border: 1px solid #334155;
+  border: 1px solid var(--c-slate-700);
 }
 
 .lang-pill {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   padding: 0.25rem 0.65rem;
   font-size: 0.75rem;
   font-weight: 700;
@@ -320,20 +320,20 @@ export default defineComponent({
 }
 
 .lang-pill:hover {
-  color: #f8fafc;
+  color: var(--c-slate-50);
 }
 
 .lang-pill.active {
-  background: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 0 8px rgba(37, 99, 235, 0.5);
+  background: var(--c-solid--blue-600);
+  color: var(--c-white);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--c-solid--blue-600) 50%, transparent);
 }
 
 .close-icon-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid #334155;
+  background: color-mix(in srgb, var(--c-bright) 5%, transparent);
+  border: 1px solid var(--c-slate-700);
   border-radius: 8px;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   font-size: 1rem;
   width: 32px;
   height: 32px;
@@ -345,9 +345,9 @@ export default defineComponent({
 }
 
 .close-icon-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: #ef4444;
-  color: #f87171;
+  background: color-mix(in srgb, var(--c-red-500) 20%, transparent);
+  border-color: var(--c-red-500);
+  color: var(--c-red-400);
 }
 
 .instructions-body {
@@ -356,7 +356,7 @@ export default defineComponent({
   padding: 1.5rem 2rem;
   line-height: 1.65;
   font-size: 0.95rem;
-  color: #cbd5e1;
+  color: var(--c-slate-300);
   text-align: left;
 }
 
@@ -365,22 +365,22 @@ export default defineComponent({
 }
 
 .instructions-body::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: var(--c-slate-900);
 }
 
 .instructions-body::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--c-slate-700);
   border-radius: 4px;
 }
 
 .instructions-body::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--c-slate-600);
 }
 
 .instructions-footer {
   padding: 1rem 1.5rem;
-  background: rgba(15, 23, 42, 0.9);
-  border-top: 1px solid #1e3a5f;
+  background: color-mix(in srgb, var(--c-slate-900) 90%, transparent);
+  border-top: 1px solid var(--c-navy-700);
   display: flex;
   justify-content: center;
 }
@@ -394,15 +394,15 @@ export default defineComponent({
   cursor: pointer;
   font-weight: 700;
   font-size: 1rem;
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
-  color: white;
-  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+  background: linear-gradient(90deg, var(--c-solid--blue-600), var(--c-solid--violet-600));
+  color: var(--c-white);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--c-solid--blue-600) 35%, transparent);
   transition: all 0.2s ease;
 }
 
 .confirm-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--c-blue-600) 55%, transparent);
 }
 
 .confirm-btn:active {
@@ -417,7 +417,7 @@ export default defineComponent({
 :deep(.inst-h1) {
   font-size: 1.4rem;
   font-weight: 900;
-  color: #60a5fa;
+  color: var(--c-blue-400);
   margin: 0 0 0.85rem 0;
   text-align: left;
 }
@@ -425,7 +425,7 @@ export default defineComponent({
 :deep(.inst-h2) {
   font-size: 1.2rem;
   font-weight: 800;
-  color: #93c5fd;
+  color: var(--c-blue-300);
   margin: 1.3rem 0 0.5rem 0;
   text-align: left;
 }
@@ -433,40 +433,40 @@ export default defineComponent({
 :deep(.inst-h3) {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--c-sky-400);
   margin: 1.4rem 0 0.6rem 0;
   display: flex;
   align-items: center;
   gap: 0.4rem;
   text-align: left;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--c-sky-400) 20%, transparent);
   padding-bottom: 0.3rem;
 }
 
 :deep(.inst-p) {
   margin: 0.6rem 0;
   text-align: left;
-  color: #cbd5e1;
+  color: var(--c-slate-300);
 }
 
 :deep(.inst-divider) {
   border: none;
-  border-top: 1px dashed #334155;
+  border-top: 1px dashed var(--c-slate-700);
   margin: 1.3rem 0;
 }
 
 :deep(.inst-bold) {
-  color: #f8fafc;
+  color: var(--c-slate-50);
   font-weight: 700;
 }
 
 :deep(.inst-code) {
-  background: #1e293b;
-  color: #38bdf8;
+  background: var(--c-slate-800);
+  color: var(--c-sky-400);
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
   font-size: 0.85em;
-  border: 1px solid #334155;
+  border: 1px solid var(--c-slate-700);
 }
 
 :deep(.inst-ul) {
@@ -491,7 +491,7 @@ export default defineComponent({
 
 :deep(.inst-li),
 :deep(.inst-oli) {
-  color: #cbd5e1;
+  color: var(--c-slate-300);
   text-align: left;
   line-height: 1.5;
 }
@@ -499,11 +499,11 @@ export default defineComponent({
 :deep(.inst-sub-li) {
   margin-left: 1.2rem;
   list-style-type: circle;
-  color: #94a3b8;
+  color: var(--c-slate-400);
 }
 
 :deep(.inst-li strong),
 :deep(.inst-oli strong) {
-  color: #f1f5f9;
+  color: var(--c-slate-100);
 }
 </style>

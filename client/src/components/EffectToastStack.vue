@@ -59,10 +59,10 @@ export default defineComponent({
   gap: 0.15rem;
   padding: 0.7rem 0.85rem;
   border-radius: 8px;
-  border-left: 4px solid #64748b;
-  background: rgba(15, 23, 42, 0.94);
-  color: #f8fafc;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border-left: 4px solid var(--c-slate-500);
+  background: color-mix(in srgb, var(--c-slate-900) 94%, transparent);
+  color: var(--c-slate-50);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--c-shadow) 35%, transparent);
   animation: toast-in 0.28s ease-out;
 }
 
@@ -70,7 +70,7 @@ export default defineComponent({
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--c-slate-400);
   font-weight: 700;
 }
 
@@ -82,22 +82,22 @@ export default defineComponent({
 .toast-xp {
   font-size: 0.8rem;
   font-weight: 800;
-  color: #34d399;
+  color: var(--c-emerald-400);
 }
 
-.effect-xp_gain { border-left-color: #34d399; }
-.effect-xp_loss { border-left-color: #f87171; }
-.effect-xp_loss .toast-xp { color: #f87171; }
-.effect-teleport { border-left-color: #22d3ee; }
-.effect-skip_next { border-left-color: #fb923c; }
-.effect-double_xp { border-left-color: #fbbf24; }
-.effect-free_pass { border-left-color: #a78bfa; }
-.effect-special_challenge { border-left-color: #f472b6; }
-.effect-mystery { border-left-color: #c084fc; }
-.effect-deploy { border-left-color: #4ade80; }
-.effect-code_freeze { border-left-color: #67e8f9; }
-.effect-coffee_break { border-left-color: #d6b28a; }
-.effect-deadline { border-left-color: #f87171; }
+.effect-xp_gain { border-left-color: var(--c-xp_gain--emerald-400); }
+.effect-xp_loss { border-left-color: var(--c-xp_loss--red-400); }
+.effect-xp_loss .toast-xp { color: var(--c-xp_loss--red-400); }
+.effect-teleport { border-left-color: var(--c-teleport--cyan-400); }
+.effect-skip_next { border-left-color: var(--c-skip_next--orange-400); }
+.effect-double_xp { border-left-color: var(--c-double_xp--amber-400); }
+.effect-free_pass { border-left-color: var(--c-free_pass--violet-400); }
+.effect-special_challenge { border-left-color: var(--c-special_challenge--pink-400); }
+.effect-mystery { border-left-color: var(--c-mystery--purple-400); }
+.effect-deploy { border-left-color: var(--c-deploy--green-400); }
+.effect-code_freeze { border-left-color: var(--c-code_freeze--cyan-300); }
+.effect-coffee_break { border-left-color: var(--c-coffee_break--latte-350); }
+.effect-deadline { border-left-color: var(--c-deadline--red-400); }
 
 @keyframes toast-in {
   from {
